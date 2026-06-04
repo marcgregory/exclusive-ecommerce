@@ -276,11 +276,9 @@ app.post(
   "/api/wishlist/:productId",
   requireUser,
   asyncRoute(async (req, res) => {
-    res
-      .status(201)
-      .json({
-        products: await addWishlistProduct(req.user.id, req.params.productId),
-      });
+    res.status(201).json({
+      products: await addWishlistProduct(req.user.id, req.params.productId),
+    });
   }),
 );
 
@@ -338,7 +336,8 @@ app.post(
   requireUser,
   asyncRoute(async (req, res) => {
     const { orderId, paymentMethod = "bank" } = req.body || {};
-    if (!orderId) return res.status(400).json({ message: "orderId is required" });
+    if (!orderId)
+      return res.status(400).json({ message: "orderId is required" });
     const order = await getOrder(req.user.id, orderId);
     if (!order) return res.status(404).json({ message: "Order not found" });
 

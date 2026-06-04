@@ -1,5 +1,10 @@
 import "dotenv/config";
-import { Pool, type PoolClient, type PoolConfig, type QueryResultRow } from "pg";
+import {
+  Pool,
+  type PoolClient,
+  type PoolConfig,
+  type QueryResultRow,
+} from "pg";
 
 let pool: Pool | undefined;
 
@@ -19,11 +24,16 @@ export function getPool(): Pool {
   return pool;
 }
 
-export async function query<T extends QueryResultRow = QueryResultRow>(sql: string, values: unknown[] = []) {
+export async function query<T extends QueryResultRow = QueryResultRow>(
+  sql: string,
+  values: unknown[] = [],
+) {
   return getPool().query<T>(sql, values);
 }
 
-export async function withTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+export async function withTransaction<T>(
+  callback: (client: PoolClient) => Promise<T>,
+): Promise<T> {
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const client = await getPool().connect();
@@ -46,7 +56,9 @@ export async function withTransaction<T>(callback: (client: PoolClient) => Promi
       throw error;
     } finally {
       // ensure release if not already released
-      try { client.release(); } catch (_) {}
+      try {
+        client.release();
+      } catch (_) {}
     }
   }
   throw new Error("Transaction failed after retries");

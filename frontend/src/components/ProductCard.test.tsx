@@ -65,8 +65,13 @@ describe("ProductCard", () => {
     await user.click(titleButton!);
 
     expect(onWishlist).toHaveBeenCalledWith("p1");
-    expect(navigate).toHaveBeenCalledWith("/product/p1");
-    expect(onAdd).toHaveBeenCalledWith("p1");
+    // The card's "Add To Cart" defaults to the first available color/size so
+    // it works without forcing the user to the product page; the user can
+    // change the variant on the product page or in the cart.
+    expect(onAdd).toHaveBeenCalledWith("p1", 1, "red", "S");
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(navigate).toHaveBeenNthCalledWith(1, "/product/p1");
+    expect(navigate).toHaveBeenNthCalledWith(2, "/product/p1");
   });
 
   it("disables the add to cart button when out of stock", () => {

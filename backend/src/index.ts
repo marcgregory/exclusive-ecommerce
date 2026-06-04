@@ -5,6 +5,7 @@ import session from "express-session";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
+import { fileURLToPath } from "node:url";
 import {
   asyncRoute,
   requireAdmin,
@@ -382,15 +383,21 @@ app.post(
     if (payment.status === "succeeded") {
       const paidOrder = await updateOrderStatus(orderId, "shipped");
       if (!paidOrder)
-        throw Object.assign(new Error("Payment could not update order status"), {
-          status: 500,
-        });
+        throw Object.assign(
+          new Error("Payment could not update order status"),
+          {
+            status: 500,
+          },
+        );
     }
     const updatedOrder = await getOrder(req.user.id, orderId);
     if (!updatedOrder)
-      throw Object.assign(new Error("Payment completed but order was not found"), {
-        status: 500,
-      });
+      throw Object.assign(
+        new Error("Payment completed but order was not found"),
+        {
+          status: 500,
+        },
+      );
     res.status(201).json({ payment, order: updatedOrder });
   }),
 );
@@ -638,7 +645,7 @@ app.use((err, _req, res, _next) => {
 export default app;
 
 // Only start server if running directly (not imported for testing)
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
   await loadStore();
   app.listen(port, () => {
     console.log(`Exclusive API listening on http://127.0.0.1:${port}`);

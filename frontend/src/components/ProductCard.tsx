@@ -29,7 +29,18 @@ export function ProductCard({ product, onAdd, onWishlist, navigate, showWishlist
           <button onClick={() => navigate(`/product/${product.id}`)} aria-label={`View ${product.name}`}><Eye size={18} /></button>
         </div>
         <ProductVisual type={product.image} />
-        <button className="add-cart" onClick={() => onAdd(product.id)} disabled={isOutOfStock}>
+        <button
+          className="add-cart"
+          onClick={() =>
+            onAdd(
+              product.id,
+              1,
+              product.colors[0] ?? "",
+              product.sizes[0] ?? ""
+            )
+          }
+          disabled={isOutOfStock}
+        >
           {isOutOfStock ? "Out of stock" : "Add To Cart"}
         </button>
       </div>

@@ -33,15 +33,15 @@ const cart: Cart = {
         sizes: ["M"],
         isNew: false,
         flags: [],
-        image: "default"
+        image: "default",
       },
-      lineTotal: 2999
-    }
+      lineTotal: 2999,
+    },
   ],
   subtotal: 2999,
   discount: 0,
   shipping: 500,
-  total: 3499
+  total: 3499,
 };
 
 describe("CheckoutPage", () => {
@@ -64,7 +64,7 @@ describe("CheckoutPage", () => {
         navigate={vi.fn()}
         appliedCoupon=""
         onCouponConsumed={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText(/Loading checkout/i)).toBeDefined();
@@ -82,11 +82,13 @@ describe("CheckoutPage", () => {
         navigate={navigate}
         appliedCoupon=""
         onCouponConsumed={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText(/Sign in to checkout/i)).toBeDefined();
-    await userEvent.click(screen.getByRole("button", { name: /Sign In or Register/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Sign In or Register/i }),
+    );
     expect(navigate).toHaveBeenCalledWith("/account");
   });
 
@@ -102,7 +104,7 @@ describe("CheckoutPage", () => {
         navigate={vi.fn()}
         appliedCoupon=""
         onCouponConsumed={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText(/Checkout is not available yet/i)).toBeDefined();
@@ -122,11 +124,13 @@ describe("CheckoutPage", () => {
         navigate={navigate}
         appliedCoupon=""
         onCouponConsumed={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText(/Your cart is empty/i)).toBeDefined();
-    await userEvent.click(screen.getByRole("button", { name: /Return To Shop/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Return To Shop/i }),
+    );
     expect(navigate).toHaveBeenCalledWith("/");
   });
 
@@ -138,7 +142,7 @@ describe("CheckoutPage", () => {
       .mockResolvedValueOnce({ order: { id: "order-1" } })
       .mockResolvedValueOnce({
         payment: { id: "pay-1", status: "succeeded" },
-        order: { id: "order-1", status: "shipped" }
+        order: { id: "order-1", status: "shipped" },
       });
 
     render(
@@ -151,11 +155,14 @@ describe("CheckoutPage", () => {
         navigate={navigate}
         appliedCoupon="SAVE10"
         onCouponConsumed={onCouponConsumed}
-      />
+      />,
     );
 
     await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
-    await userEvent.type(screen.getByLabelText(/street Address/i), "123 Maple Drive");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
     await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
     await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
     await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
@@ -169,14 +176,14 @@ describe("CheckoutPage", () => {
     expect(JSON.parse(options?.body as string)).toMatchObject({
       billing: expect.any(Object),
       paymentMethod: "bank",
-      couponCode: "SAVE10"
+      couponCode: "SAVE10",
     });
     expect(mockedApi).toHaveBeenNthCalledWith(2, "/api/payments", {
       method: "POST",
       body: JSON.stringify({
         orderId: "order-1",
-        paymentMethod: "bank"
-      })
+        paymentMethod: "bank",
+      }),
     });
 
     expect(refreshCart).toHaveBeenCalled();
@@ -202,18 +209,23 @@ describe("CheckoutPage", () => {
         navigate={navigate}
         appliedCoupon="SAVE10"
         onCouponConsumed={onCouponConsumed}
-      />
+      />,
     );
 
     await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
-    await userEvent.type(screen.getByLabelText(/street Address/i), "123 Maple Drive");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
     await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
     await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
     await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
 
     await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
 
-    await waitFor(() => expect(screen.getByText(/Payment failed/i)).toBeDefined());
+    await waitFor(() =>
+      expect(screen.getByText(/Payment failed/i)).toBeDefined(),
+    );
     expect(refreshCart).toHaveBeenCalled();
     expect(onCouponConsumed).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
@@ -232,17 +244,22 @@ describe("CheckoutPage", () => {
         navigate={vi.fn()}
         appliedCoupon=""
         onCouponConsumed={vi.fn()}
-      />
+      />,
     );
 
     await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
-    await userEvent.type(screen.getByLabelText(/street Address/i), "123 Maple Drive");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
     await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
     await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
     await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
 
     await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
 
-    await waitFor(() => expect(screen.getByText(/Checkout failed/i)).toBeDefined());
+    await waitFor(() =>
+      expect(screen.getByText(/Checkout failed/i)).toBeDefined(),
+    );
   });
 });

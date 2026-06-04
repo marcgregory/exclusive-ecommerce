@@ -182,15 +182,13 @@ describe("auth endpoints", () => {
 
   describe("POST /api/auth/register", () => {
     it("creates a new user and returns 201 with user data", async () => {
-      const res = await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "newuser@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-          firstName: "New",
-          lastName: "User",
-        });
+      const res = await request(testApp).post("/api/auth/register").send({
+        email: "newuser@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+        firstName: "New",
+        lastName: "User",
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.user).toMatchObject({
@@ -202,21 +200,17 @@ describe("auth endpoints", () => {
     });
 
     it("rejects duplicate email with 409", async () => {
-      await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "newuser@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await request(testApp).post("/api/auth/register").send({
+        email: "newuser@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
-      const res = await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "newuser@example.com",
-          password: "password456",
-          confirmPassword: "password456",
-        });
+      const res = await request(testApp).post("/api/auth/register").send({
+        email: "newuser@example.com",
+        password: "password456",
+        confirmPassword: "password456",
+      });
 
       expect(res.status).toBe(409);
       expect(res.body).toMatchObject({
@@ -225,13 +219,11 @@ describe("auth endpoints", () => {
     });
 
     it("rejects invalid email with 400", async () => {
-      const res = await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "bad",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      const res = await request(testApp).post("/api/auth/register").send({
+        email: "bad",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
@@ -240,13 +232,11 @@ describe("auth endpoints", () => {
     });
 
     it("rejects short password with 400", async () => {
-      const res = await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "user@example.com",
-          password: "short",
-          confirmPassword: "short",
-        });
+      const res = await request(testApp).post("/api/auth/register").send({
+        email: "user@example.com",
+        password: "short",
+        confirmPassword: "short",
+      });
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
@@ -255,13 +245,11 @@ describe("auth endpoints", () => {
     });
 
     it("rejects mismatched passwords with 400", async () => {
-      const res = await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "user@example.com",
-          password: "password123",
-          confirmPassword: "password456",
-        });
+      const res = await request(testApp).post("/api/auth/register").send({
+        email: "user@example.com",
+        password: "password123",
+        confirmPassword: "password456",
+      });
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
@@ -270,17 +258,19 @@ describe("auth endpoints", () => {
     });
 
     it("sets session cookie on successful registration", async () => {
-      const res = await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "cookie@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      const res = await request(testApp).post("/api/auth/register").send({
+        email: "cookie@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       expect(res.status).toBe(201);
       const setCookie = res.headers["set-cookie"];
-      const cookies = Array.isArray(setCookie) ? setCookie : (setCookie ? [setCookie] : []);
+      const cookies = Array.isArray(setCookie)
+        ? setCookie
+        : setCookie
+          ? [setCookie]
+          : [];
       expect(cookies).toContainEqual(expect.stringContaining("exclusive.sid"));
     });
   });
@@ -288,13 +278,11 @@ describe("auth endpoints", () => {
   describe("POST /api/auth/login", () => {
     it("authenticates user and sets session cookie", async () => {
       // Create a user first so we know the password
-      await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "testlogin@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await request(testApp).post("/api/auth/register").send({
+        email: "testlogin@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       const res = await request(testApp)
         .post("/api/auth/login")
@@ -318,13 +306,11 @@ describe("auth endpoints", () => {
 
     it("rejects wrong password with 401", async () => {
       // Create a user first
-      await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "wrongpass@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await request(testApp).post("/api/auth/register").send({
+        email: "wrongpass@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       const res = await request(testApp)
         .post("/api/auth/login")
@@ -349,13 +335,11 @@ describe("auth endpoints", () => {
 
     it("normalizes email case for login", async () => {
       // Create a user first
-      await request(testApp)
-        .post("/api/auth/register")
-        .send({
-          email: "casetest@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await request(testApp).post("/api/auth/register").send({
+        email: "casetest@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       const res = await request(testApp)
         .post("/api/auth/login")
@@ -371,13 +355,11 @@ describe("auth endpoints", () => {
       const agent = request.agent(testApp);
 
       // Register first
-      await agent
-        .post("/api/auth/register")
-        .send({
-          email: "logout@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await agent.post("/api/auth/register").send({
+        email: "logout@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       // Logout
       const logoutRes = await agent.post("/api/auth/logout");
@@ -403,14 +385,14 @@ describe("auth endpoints", () => {
       email: "payment@example.com",
     };
 
-    async function createOrderForAgent(agent: ReturnType<typeof request.agent>) {
-      await agent
-        .post("/api/auth/register")
-        .send({
-          email: `payment-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-          password: "password123",
-          confirmPassword: "password123",
-        });
+    async function createOrderForAgent(
+      agent: ReturnType<typeof request.agent>,
+    ) {
+      await agent.post("/api/auth/register").send({
+        email: `payment-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+        password: "password123",
+        confirmPassword: "password123",
+      });
       await agent.post("/api/cart/items").send({
         productId: "havic-gamepad",
         quantity: 1,
@@ -435,13 +417,11 @@ describe("auth endpoints", () => {
 
     it("requires an orderId", async () => {
       const agent = request.agent(testApp);
-      await agent
-        .post("/api/auth/register")
-        .send({
-          email: "missing-order-id@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await agent.post("/api/auth/register").send({
+        email: "missing-order-id@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       const res = await agent.post("/api/payments").send({});
 
@@ -473,13 +453,11 @@ describe("auth endpoints", () => {
       const owner = request.agent(testApp);
       const otherUser = request.agent(testApp);
       const order = await createOrderForAgent(owner);
-      await otherUser
-        .post("/api/auth/register")
-        .send({
-          email: "other-payment-user@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await otherUser.post("/api/auth/register").send({
+        email: "other-payment-user@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       const res = await otherUser
         .post("/api/payments")
@@ -494,13 +472,11 @@ describe("auth endpoints", () => {
     it("returns current user when authenticated", async () => {
       const agent = request.agent(testApp);
 
-      await agent
-        .post("/api/auth/register")
-        .send({
-          email: "getme@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await agent.post("/api/auth/register").send({
+        email: "getme@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
       const meRes = await agent.get("/api/me");
 
@@ -525,14 +501,12 @@ describe("auth endpoints", () => {
     it("updates user profile when authenticated", async () => {
       const agent = request.agent(testApp);
 
-      await agent
-        .post("/api/auth/register")
-        .send({
-          email: "patchme@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-          firstName: "Original",
-        });
+      await agent.post("/api/auth/register").send({
+        email: "patchme@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+        firstName: "Original",
+      });
 
       const patchRes = await agent
         .patch("/api/me")
@@ -557,20 +531,16 @@ describe("auth endpoints", () => {
     it("requires current password for password changes", async () => {
       const agent = request.agent(testApp);
 
-      await agent
-        .post("/api/auth/register")
-        .send({
-          email: "pwchange@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await agent.post("/api/auth/register").send({
+        email: "pwchange@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
-      const patchRes = await agent
-        .patch("/api/me")
-        .send({
-          newPassword: "newpassword123",
-          confirmPassword: "newpassword123",
-        });
+      const patchRes = await agent.patch("/api/me").send({
+        newPassword: "newpassword123",
+        confirmPassword: "newpassword123",
+      });
 
       expect(patchRes.status).toBe(400);
       expect(patchRes.body).toMatchObject({
@@ -581,21 +551,17 @@ describe("auth endpoints", () => {
     it("updates password when current password is correct", async () => {
       const agent = request.agent(testApp);
 
-      await agent
-        .post("/api/auth/register")
-        .send({
-          email: "pwupdate@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await agent.post("/api/auth/register").send({
+        email: "pwupdate@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
-      const patchRes = await agent
-        .patch("/api/me")
-        .send({
-          currentPassword: "password123",
-          newPassword: "newpassword456",
-          confirmPassword: "newpassword456",
-        });
+      const patchRes = await agent.patch("/api/me").send({
+        currentPassword: "password123",
+        newPassword: "newpassword456",
+        confirmPassword: "newpassword456",
+      });
 
       expect(patchRes.status).toBe(200);
 
@@ -616,21 +582,17 @@ describe("auth endpoints", () => {
       const agent1 = request.agent(testApp);
       const agent2 = request.agent(testApp);
 
-      await agent1
-        .post("/api/auth/register")
-        .send({
-          email: "user1duplicate@example.com",
-          password: "password123",
-          confirmPassword: "password123",
-        });
+      await agent1.post("/api/auth/register").send({
+        email: "user1duplicate@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
 
-      await agent2
-        .post("/api/auth/register")
-        .send({
-          email: "user2duplicate@example.com",
-          password: "password456",
-          confirmPassword: "password456",
-        });
+      await agent2.post("/api/auth/register").send({
+        email: "user2duplicate@example.com",
+        password: "password456",
+        confirmPassword: "password456",
+      });
 
       const patchRes = await agent2
         .patch("/api/me")

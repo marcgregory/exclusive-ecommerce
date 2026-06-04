@@ -72,6 +72,7 @@ The next work should focus on turning this from a prototype into a production-re
   - Order history UI in the account page.
   - Product option validation for size and color on the product details page.
   - Variant stock checks during add-to-cart, cart quantity updates, and checkout.
+  - Wishlist page remove and move-to-cart behavior.
 - Remaining:
   - Finish product filtering and sorting UI:
     - Category
@@ -80,7 +81,6 @@ The next work should focus on turning this from a prototype into a production-re
     - Best selling
     - Price ascending/descending
     - Rating
-  - Add wishlist page remove/move-to-cart behavior.
   - Add end-to-end checkout coverage across cart, checkout, payment, confirmation, and order history.
   - Integrate the selected payment provider beyond the current local payment simulation.
 
@@ -116,6 +116,7 @@ The next work should focus on turning this from a prototype into a production-re
     - Stock-limit failures during cart quantity updates and checkout
     - Account guest/profile/order-history loading/error/rendering/detail navigation
     - Order detail guest/loading/error/not-found/rendering/payment-status paths
+    - Wishlist guest/loading/error/empty/rendering, remove, move-to-cart, and action-error paths
   - Remaining:
     - Account profile update submission
     - Contact form submission
@@ -137,8 +138,6 @@ The next work should focus on turning this from a prototype into a production-re
 
 ## Recommended Next Sprint
 
-1. Finish authentication and session hardening, including logout coverage.
-2. Add wishlist remove and move-to-cart behavior.
-3. Add E2E checkout coverage from cart through order history.
-4. Select and integrate the real Stripe/payment provider path.
-5. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+1. Add E2E checkout coverage from cart through order history.
+2. Select and integrate the real Stripe/payment provider path.
+3. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.

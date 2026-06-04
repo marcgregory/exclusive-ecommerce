@@ -7,19 +7,20 @@ import { ProductCard } from "../components/ProductCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
-import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, RemoveFromWishlist, WishlistResponse } from "../types";
+import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, RefreshCart, WishlistResponse } from "../types";
 
 type WishlistPageProps = {
   authStatus: AuthStatus;
   navigate: Navigate;
   onAdd: AddToCart;
-  onRemove: RemoveFromWishlist;
-  onMoveToCart: RemoveFromWishlist;
+  refreshCart: RefreshCart;
+  refreshWishlist: () => Promise<void>;
 };
 
-export function WishlistPage({ authStatus, navigate, onAdd, onRemove, onMoveToCart }: WishlistPageProps) {
+export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refreshWishlist }: WishlistPageProps) {
   const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
   const [actionError, setActionError] = useState("");
+  const [pendingProductId, setPendingProductId] = useState("");
 
   const loadWishlist = useCallback(async () => {
     setProducts((current) => ({ ...current, loading: true, error: "" }));
@@ -37,23 +38,34 @@ export function WishlistPage({ authStatus, navigate, onAdd, onRemove, onMoveToCa
   }, [authStatus, loadWishlist]);
 
   const handleRemove = async (productId: string) => {
+    if (pendingProductId) return;
     try {
       setActionError("");
+      setPendingProductId(productId);
       setProducts((current) => ({ ...current, data: current.data.filter((product) => product.id !== productId) }));
-      await onRemove(productId);
+      await api(`/api/wishlist/${productId}`, { method: "DELETE" });
+      await refreshWishlist();
     } catch (error) {
       setActionError(getErrorMessage(error));
       loadWishlist();
+    } finally {
+      setPendingProductId("");
     }
   };
 
   const handleMoveToCart = async (productId: string) => {
+    if (pendingProductId) return;
     try {
       setActionError("");
-      await onMoveToCart(productId);
+      setPendingProductId(productId);
+      await api("/api/cart/items", { method: "POST", body: JSON.stringify({ productId, quantity: 1, selectedColor: "", selectedSize: "" }) });
+      await api(`/api/wishlist/${productId}`, { method: "DELETE" });
       setProducts((current) => ({ ...current, data: current.data.filter((product) => product.id !== productId) }));
+      await Promise.all([refreshCart(), refreshWishlist()]);
     } catch (error) {
       setActionError(getErrorMessage(error));
+    } finally {
+      setPendingProductId("");
     }
   };
 
@@ -118,14 +130,14 @@ export function WishlistPage({ authStatus, navigate, onAdd, onRemove, onMoveToCa
             product={product}
             navigate={navigate}
             onAdd={onAdd}
-            onWishlist={async () => { handleRemove(product.id); }}
+            onWishlist={handleRemove}
             showWishlistButton={false}
             secondaryAction={
               <div className="card-actions">
-                <Button onClick={() => handleMoveToCart(product.id)}>
-                  <ShoppingCart size={16} /> Move to cart
+                <Button onClick={() => handleMoveToCart(product.id)} disabled={pendingProductId === product.id || product.stockStatus === "Out of Stock"}>
+                  <ShoppingCart size={16} /> {product.stockStatus === "Out of Stock" ? "Out of stock" : "Move to cart"}
                 </Button>
-                <Button variant="ghost" onClick={() => handleRemove(product.id)} aria-label={`Remove ${product.name}`}>
+                <Button variant="ghost" onClick={() => handleRemove(product.id)} disabled={pendingProductId === product.id} aria-label={`Remove ${product.name}`}>
                   <Trash2 size={16} /> Remove
                 </Button>
               </div>

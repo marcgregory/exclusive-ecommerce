@@ -128,17 +128,6 @@ function App() {
     refreshWishlist();
   }, [navigate, refreshWishlist, userState.data]);
 
-  const onRemoveFromWishlist = useCallback(async (productId: string) => {
-    await api(`/api/wishlist/${productId}`, { method: "DELETE" });
-    refreshWishlist();
-  }, [refreshWishlist]);
-
-  const onMoveToCart = useCallback(async (productId: string) => {
-    await api("/api/cart/items", { method: "POST", body: JSON.stringify({ productId, quantity: 1, selectedColor: "", selectedSize: "" }) });
-    await api(`/api/wishlist/${productId}`, { method: "DELETE" });
-    await Promise.all([refreshCart(), refreshWishlist()]);
-  }, [refreshCart, refreshWishlist]);
-
   const handleAuthChanged = useCallback((user: PublicUser) => {
     setUserState({ data: user, loading: false, error: "" });
   }, []);
@@ -205,11 +194,11 @@ function App() {
     if (path === "/account") return <AccountPage userState={userState} onAuthChanged={handleAuthChanged} onUserRefresh={loadUser} navigate={navigate} />;
     if (path === "/about") return <AboutPage />;
     if (path === "/contact") return <ContactPage />;
-    if (path === "/wishlist") return <WishlistPage authStatus={authStatus} navigate={navigate} onAdd={onAdd} onRemove={onRemoveFromWishlist} onMoveToCart={onMoveToCart} />;
+    if (path === "/wishlist") return <WishlistPage authStatus={authStatus} navigate={navigate} onAdd={onAdd} refreshCart={refreshCart} refreshWishlist={refreshWishlist} />;
     if (catalogLoading) return catalogLoadingView;
     if (catalogError) return catalogErrorView;
     return <HomePage products={products.data} categories={categories.data} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} />;
-  }, [path, products, categories, userState, authStatus, cart, navigate, loadProducts, loadCategories, refreshCart, loadUser, handleAuthChanged, onAdd, onWishlist]);
+  }, [path, products, categories, userState, authStatus, cart, navigate, loadProducts, loadCategories, refreshCart, refreshWishlist, loadUser, handleAuthChanged, onAdd, onWishlist]);
 
   return (
     <>

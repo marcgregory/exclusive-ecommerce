@@ -1,21 +1,18 @@
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type ButtonProps = {
+type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> & {
   children: ReactNode;
   variant?: "primary" | "ghost";
-  onClick?: () => void;
-  type?: "button" | "submit" | "reset";
   className?: string;
-  disabled?: boolean;
 };
 
 export function Button({
   children,
   variant = "primary",
-  onClick,
   type = "button",
   className = "",
-  disabled = false
+  disabled = false,
+  ...buttonProps
 }: ButtonProps) {
-  return <button type={type} className={`button button--${variant} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
+  return <button {...buttonProps} type={type} className={`button button--${variant} ${className}`} disabled={disabled}>{children}</button>;
 }

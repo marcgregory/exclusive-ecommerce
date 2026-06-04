@@ -43,6 +43,30 @@ export type Cart = {
   total: number;
 };
 
+export type OrderItem = {
+  id: string;
+  productId: string;
+  quantity: number;
+  selectedColor: string;
+  selectedSize: string;
+  name: string;
+  price: number;
+};
+
+export type Order = {
+  id: string;
+  userId: string;
+  items: OrderItem[];
+  billing: Record<string, string>;
+  paymentMethod: string;
+  subtotal: number;
+  discount: number;
+  shipping: number;
+  total: number;
+  status: string;
+  createdAt: string;
+};
+
 export type AsyncState<T> = {
   data: T;
   loading: boolean;
@@ -58,6 +82,7 @@ export type PublicUser = {
 };
 
 export type Navigate = (href: string) => void;
+export type AuthStatus = "checking" | "authenticated" | "guest";
 
 export type AddToCart = (
   productId: string,
@@ -82,6 +107,14 @@ export type CartResponse = {
   cart: Cart;
 };
 
+export type OrderResponse = {
+  order: Order;
+};
+
+export type OrdersResponse = {
+  orders: Order[];
+};
+
 export type WishlistResponse = {
   products: Product[];
 };
@@ -94,3 +127,5 @@ export type ProductDetailResponse = {
 export type MeResponse = {
   user: PublicUser;
 };
+
+export type AuthResponse = MeResponse;

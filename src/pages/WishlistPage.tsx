@@ -5,14 +5,15 @@ import { ProductCard } from "../components/ProductCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
-import type { AddToCart, AsyncState, Navigate, Product, WishlistResponse } from "../types";
+import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, WishlistResponse } from "../types";
 
 type WishlistPageProps = {
+  authStatus: AuthStatus;
   navigate: Navigate;
   onAdd: AddToCart;
 };
 
-export function WishlistPage({ navigate, onAdd }: WishlistPageProps) {
+export function WishlistPage({ authStatus, navigate, onAdd }: WishlistPageProps) {
   const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
 
   const loadWishlist = useCallback(async () => {
@@ -26,8 +27,27 @@ export function WishlistPage({ navigate, onAdd }: WishlistPageProps) {
   }, []);
 
   useEffect(() => {
+    if (authStatus !== "authenticated") return;
     loadWishlist();
-  }, [loadWishlist]);
+  }, [authStatus, loadWishlist]);
+
+  if (authStatus === "checking") {
+    return <main className="container page"><LoadingState title="Loading wishlist" message="We are checking your wishlist." /></main>;
+  }
+
+  if (authStatus === "guest") {
+    return (
+      <main className="container page">
+        <Breadcrumbs items={["Home", "Wishlist"]} />
+        <EmptyState
+          title="Sign in to view your wishlist"
+          message="Save products to your account and keep them ready for later."
+          action={{ label: "Sign In or Register", onClick: () => navigate("/account") }}
+          secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
+        />
+      </main>
+    );
+  }
 
   if (products.loading) {
     return <main className="container page"><LoadingState title="Loading wishlist" message="We are checking your wishlist." /></main>;

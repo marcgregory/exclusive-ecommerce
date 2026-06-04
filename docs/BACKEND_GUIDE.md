@@ -56,7 +56,9 @@ Product listing supports `category`, `q`, `flag`, `sort`, `page`, and `limit`.
 
 `server/store.ts` exposes PostgreSQL-backed repository functions. `server/db.ts` owns the shared `pg` pool, and `server/types.ts` defines backend domain types.
 
-The app requires `DATABASE_URL` at runtime. Initialize development data with:
+The app requires `DATABASE_URL` at runtime. `SESSION_SECRET` is optional in development, but production requires a non-default value with at least 32 characters. Session cookies are `httpOnly`, `sameSite: "lax"`, and use `secure: true` when `NODE_ENV=production`.
+
+Initialize development data with:
 
 ```powershell
 & 'C:\nvm4w\nodejs\npm.cmd' run db:migrate

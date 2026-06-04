@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Pool, type PoolClient, type PoolConfig, type QueryResultRow } from "pg";
 
 let pool: Pool | undefined;

@@ -42,7 +42,7 @@ The next work should focus on turning this from a prototype into a production-re
   - Contact
 - Add responsive QA for mobile and tablet breakpoints.
 
-## Phase 3: Backend Persistence
+## Phase 3: Backend Persistence - Complete
 
 - Replace JSON store with PostgreSQL repositories.
 - Keep the current API response shapes stable.
@@ -54,7 +54,7 @@ The next work should focus on turning this from a prototype into a production-re
   - `WEB_ORIGIN`
 - Keep the JSON store only as an optional development fallback if useful.
 
-## Phase 4: Authentication And Sessions
+## Phase 4: Authentication And Sessions - In Progress
 
 - Harden auth validation for register, login, profile update, and password changes.
 - Add password confirmation and current-password checks for password updates.
@@ -126,9 +126,8 @@ The next work should focus on turning this from a prototype into a production-re
 
 ## Recommended Next Sprint
 
-1. Split `src/main.tsx` into components, pages, API, and types.
-2. Move backend persistence behind repository functions.
-3. Add PostgreSQL connection and migration scripts.
-4. Add order confirmation and order history UI.
+1. Finish authentication and session hardening.
+2. Add order confirmation and order history UI.
+3. Add product option validation for size and color.
+4. Add stock checks during add-to-cart and checkout.
 5. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact.
-

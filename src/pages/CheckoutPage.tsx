@@ -6,9 +6,10 @@ import { FormField } from "../components/FormField";
 import { OrderSummary } from "../components/OrderSummary";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
-import type { Cart, Navigate, RefreshCart } from "../types";
+import type { AuthStatus, Cart, Navigate, OrderResponse, RefreshCart } from "../types";
 
 type CheckoutPageProps = {
+  authStatus: AuthStatus;
   cart: Cart;
   cartLoading: boolean;
   cartError: string;
@@ -16,7 +17,7 @@ type CheckoutPageProps = {
   navigate: Navigate;
 };
 
-export function CheckoutPage({ cart, cartLoading, cartError, refreshCart, navigate }: CheckoutPageProps) {
+export function CheckoutPage({ authStatus, cart, cartLoading, cartError, refreshCart, navigate }: CheckoutPageProps) {
   const [status, setStatus] = useState("");
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -29,9 +30,9 @@ export function CheckoutPage({ cart, cartLoading, cartError, refreshCart, naviga
       setSubmitting(true);
       setStatus("");
       setStatusIsError(false);
-      await api("/api/orders", { method: "POST", body: JSON.stringify({ billing, paymentMethod: "bank" }) });
-      setStatus("Order placed successfully.");
-      refreshCart();
+      const data = await api<OrderResponse>("/api/orders", { method: "POST", body: JSON.stringify({ billing, paymentMethod: "bank" }) });
+      await refreshCart();
+      navigate(`/orders/${data.order.id}`);
     } catch (error) {
       setStatusIsError(true);
       setStatus(getErrorMessage(error));
@@ -40,8 +41,22 @@ export function CheckoutPage({ cart, cartLoading, cartError, refreshCart, naviga
     }
   };
 
-  if (cartLoading) {
+  if (authStatus === "checking" || cartLoading) {
     return <main className="container page"><LoadingState title="Loading checkout" message="We are checking your cart before checkout." /></main>;
+  }
+
+  if (authStatus === "guest") {
+    return (
+      <main className="container page">
+        <Breadcrumbs items={["Account", "My Account", "Product", "View Cart", "Checkout"]} />
+        <EmptyState
+          title="Sign in to checkout"
+          message="Create an account or sign in before placing an order."
+          action={{ label: "Sign In or Register", onClick: () => navigate("/account") }}
+          secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
+        />
+      </main>
+    );
   }
 
   if (cartError) {

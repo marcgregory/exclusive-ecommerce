@@ -31,10 +31,13 @@ import {
   toCartResponse
 } from "./store.js";
 import { closePool } from "./db.js";
+import { getSessionSecret, validateLoginInput, validateProfileInput, validateRegisterInput } from "./auth.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
 const webOrigin = process.env.WEB_ORIGIN || "http://127.0.0.1:5173";
+const isProduction = process.env.NODE_ENV === "production";
+const sessionSecret = getSessionSecret();
 
 app.use(cors({ origin: webOrigin, credentials: true }));
 app.use(express.json());
@@ -42,13 +45,13 @@ app.use(cookieParser());
 app.use(
   session({
     name: "exclusive.sid",
-    secret: process.env.SESSION_SECRET || "exclusive-dev-secret",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      secure: isProduction,
       maxAge: 1000 * 60 * 60 * 24 * 14
     }
   })
@@ -70,8 +73,7 @@ const requireUser = asyncRoute(async (req: AuthedRequest, res: Response, next: N
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "exclusive-api" }));
 
 app.post("/api/auth/register", asyncRoute(async (req, res) => {
-  const { firstName = "", lastName = "", email, password, address = "" } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Email and password are required" });
+  const { firstName, lastName, email, password, address } = validateRegisterInput(req.body);
   if (await findUserByEmail(email)) return res.status(409).json({ message: "Email already registered" });
   const user = await createUser({
     firstName,
@@ -85,9 +87,9 @@ app.post("/api/auth/register", asyncRoute(async (req, res) => {
 }));
 
 app.post("/api/auth/login", asyncRoute(async (req, res) => {
-  const { email, password } = req.body;
-  const user = await findUserByEmail(String(email || ""));
-  if (!user || !(await bcrypt.compare(password || "", user.passwordHash))) return res.status(401).json({ message: "Invalid credentials" });
+  const { email, password } = validateLoginInput(req.body);
+  const user = await findUserByEmail(email);
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ message: "Invalid email or password" });
   req.session.userId = user.id;
   res.json({ user: publicUser(user) });
 }));
@@ -99,12 +101,7 @@ app.post("/api/auth/logout", (req, res) => {
 app.get("/api/me", requireUser, (req, res) => res.json({ user: publicUser(req.user) }));
 
 app.patch("/api/me", requireUser, asyncRoute(async (req, res) => {
-  const allowed = ["firstName", "lastName", "email", "address"];
-  const updates: Record<string, string> = {};
-  allowed.forEach((field) => {
-    if (typeof req.body[field] === "string") updates[field] = req.body[field];
-  });
-  if (req.body.password) updates.passwordHash = await bcrypt.hash(req.body.password, 10);
+  const updates = await validateProfileInput(req.body, req.user, findUserByEmail);
   const user = await updateUser(req.user.id, updates);
   res.json({ user: publicUser(user) });
 }));

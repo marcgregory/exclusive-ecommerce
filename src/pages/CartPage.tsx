@@ -9,9 +9,10 @@ import { ProductVisual } from "../components/ProductVisual";
 import { QuantityStepper } from "../components/QuantityStepper";
 import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
-import type { Cart, Navigate, RefreshCart } from "../types";
+import type { AuthStatus, Cart, Navigate, RefreshCart } from "../types";
 
 type CartPageProps = {
+  authStatus: AuthStatus;
   cart: Cart;
   cartLoading: boolean;
   cartError: string;
@@ -19,7 +20,7 @@ type CartPageProps = {
   refreshCart: RefreshCart;
 };
 
-export function CartPage({ cart, cartLoading, cartError, navigate, refreshCart }: CartPageProps) {
+export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, refreshCart }: CartPageProps) {
   const [coupon, setCoupon] = useState("");
   const [actionError, setActionError] = useState("");
 
@@ -42,8 +43,22 @@ export function CartPage({ cart, cartLoading, cartError, navigate, refreshCart }
     }
   };
 
-  if (cartLoading) {
+  if (authStatus === "checking" || cartLoading) {
     return <main className="container page"><LoadingState title="Loading cart" message="We are checking your cart." /></main>;
+  }
+
+  if (authStatus === "guest") {
+    return (
+      <main className="container page">
+        <Breadcrumbs items={["Home", "Cart"]} />
+        <EmptyState
+          title="Sign in to view your cart"
+          message="Your cart is saved to your account so it is ready whenever you come back."
+          action={{ label: "Sign In or Register", onClick: () => navigate("/account") }}
+          secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
+        />
+      </main>
+    );
   }
 
   if (cartError) {

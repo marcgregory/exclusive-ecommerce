@@ -147,11 +147,11 @@ export function publicUser(user?: User | null) {
 }
 
 export async function getSessionUser(req: { session?: { userId?: string } }): Promise<User | undefined> {
-  const userId = req.session?.userId || "demo-user";
+  const userId = req.session?.userId;
+  if (!userId) return undefined;
   const byId = await query("SELECT * FROM users WHERE id = $1 LIMIT 1", [userId]);
   if (byId.rows[0]) return mapUser(byId.rows[0]);
-  const first = await query("SELECT * FROM users ORDER BY created_at, id LIMIT 1");
-  return first.rows[0] ? mapUser(first.rows[0]) : undefined;
+  return undefined;
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {

@@ -1,22 +1,29 @@
-import { Heart, Menu, Search, ShoppingCart, User, X } from "lucide-react";
+import { Heart, LogOut, Menu, Search, ShoppingCart, User, X } from "lucide-react";
 import { useState } from "react";
-import type { Navigate } from "../types";
+import type { Navigate, PublicUser } from "../types";
 
 type HeaderProps = {
   navigate: Navigate;
+  user: PublicUser | null;
   cartCount: number;
   wishlistCount: number;
+  onLogout: () => Promise<void>;
+  logoutSaving: boolean;
 };
 
-const links = [
-  ["/", "Home"],
-  ["/contact", "Contact"],
-  ["/about", "About"],
-  ["/account", "Sign Up"]
-];
-
-export function Header({ navigate, cartCount, wishlistCount }: HeaderProps) {
+export function Header({ navigate, user, cartCount, wishlistCount, onLogout, logoutSaving }: HeaderProps) {
   const [open, setOpen] = useState(false);
+  const links = [
+    ["/", "Home"],
+    ["/contact", "Contact"],
+    ["/about", "About"],
+    ["/account", user ? "Account" : "Sign Up"]
+  ];
+
+  const logout = async () => {
+    setOpen(false);
+    await onLogout();
+  };
 
   return (
     <>
@@ -40,6 +47,11 @@ export function Header({ navigate, cartCount, wishlistCount }: HeaderProps) {
               {cartCount > 0 && <span>{cartCount}</span>}
             </button>
             <button className="icon-button" onClick={() => navigate("/account")} aria-label="Account"><User size={22} /></button>
+            {user && (
+              <button className="icon-button" onClick={logout} disabled={logoutSaving} aria-label="Log out">
+                <LogOut size={21} />
+              </button>
+            )}
             <button className="icon-button mobile-menu" onClick={() => setOpen(true)} aria-label="Open navigation"><Menu size={24} /></button>
           </div>
         </div>
@@ -52,6 +64,7 @@ export function Header({ navigate, cartCount, wishlistCount }: HeaderProps) {
           ))}
           <button onClick={() => { setOpen(false); navigate("/cart"); }}>Cart</button>
           <button onClick={() => { setOpen(false); navigate("/account"); }}>Account</button>
+          {user && <button onClick={logout} disabled={logoutSaving}>Log Out</button>}
         </div>
       )}
     </>

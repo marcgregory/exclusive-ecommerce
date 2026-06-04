@@ -44,7 +44,8 @@ describe("PostgreSQL persistence", () => {
     const products = await listProducts();
     expect(products.total).toBeGreaterThan(0);
     expect(await validateCoupon("EXCLUSIVE10")).toMatchObject({ code: "EXCLUSIVE10", active: true });
-    expect(await getSessionUser({})).toMatchObject({ id: "demo-user", email: "rimel@example.com" });
+    expect(await getSessionUser({})).toBeUndefined();
+    expect(await getSessionUser({ session: { userId: "demo-user" } })).toMatchObject({ id: "demo-user", email: "rimel@example.com" });
   });
 
   it("filters, searches, sorts, and paginates products", async () => {

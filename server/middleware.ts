@@ -5,7 +5,13 @@ import type { User } from "./types.js";
 export type AuthedRequest = Request & { user?: User };
 
 export const asyncRoute = (handler: (req: AuthedRequest, res: Response, next: NextFunction) => Promise<unknown> | unknown) => {
-  return (req: AuthedRequest, res: Response, next: NextFunction) => Promise.resolve(handler(req, res, next)).catch(next);
+  return (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      return Promise.resolve(handler(req, res, next)).catch(next);
+    } catch (err) {
+      next(err as Error);
+    }
+  };
 };
 
 export const requireUser = asyncRoute(async (req: AuthedRequest, res: Response, next: NextFunction) => {

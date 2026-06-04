@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { NextFunction, Request, Response } from "express";
-import { requireAdmin, requireUser, type AuthedRequest } from "./middleware.js";
+import type { AuthedRequest } from "./middleware.js";
 
 const makeRes = () => {
   const res = {
     status: vi.fn().mockReturnThis(),
-    json: vi.fn().mockReturnThis()
+    json: vi.fn().mockReturnThis(),
   } as unknown as Response;
   return res;
 };
@@ -14,8 +14,9 @@ const makeNext = () => vi.fn() as unknown as NextFunction;
 
 describe("auth middleware", () => {
   it("rejects unauthenticated requests with 401", async () => {
+    vi.resetModules();
     vi.doMock("./store.js", () => ({
-      getSessionUser: vi.fn().mockResolvedValue(undefined)
+      getSessionUser: vi.fn().mockResolvedValue(undefined),
     }));
     const { requireUser: localRequireUser } = await import("./middleware.js");
     const req = {} as AuthedRequest;
@@ -28,7 +29,10 @@ describe("auth middleware", () => {
   });
 
   it("rejects customers from admin routes with 403", async () => {
-    const getSessionUser = vi.fn().mockResolvedValue({ id: "u1", role: "customer" });
+    const getSessionUser = vi
+      .fn()
+      .mockResolvedValue({ id: "u1", role: "customer" });
+    vi.resetModules();
     vi.doMock("./store.js", () => ({ getSessionUser }));
     const { requireAdmin: localRequireAdmin } = await import("./middleware.js");
     const req = {} as AuthedRequest;
@@ -44,6 +48,7 @@ describe("auth middleware", () => {
   it("allows admins through to next()", async () => {
     const admin = { id: "admin-1", role: "admin" };
     const getSessionUser = vi.fn().mockResolvedValue(admin);
+    vi.resetModules();
     vi.doMock("./store.js", () => ({ getSessionUser }));
     const { requireAdmin: localRequireAdmin } = await import("./middleware.js");
     const req = {} as AuthedRequest;
@@ -59,6 +64,7 @@ describe("auth middleware", () => {
   it("attaches the session user for requireUser", async () => {
     const user = { id: "u1", role: "customer" };
     const getSessionUser = vi.fn().mockResolvedValue(user);
+    vi.resetModules();
     vi.doMock("./store.js", () => ({ getSessionUser }));
     const { requireUser: localRequireUser } = await import("./middleware.js");
     const req = {} as AuthedRequest;
@@ -72,6 +78,7 @@ describe("auth middleware", () => {
 
   it("returns 401 when requireAdmin receives unauthenticated request", async () => {
     const getSessionUser = vi.fn().mockResolvedValue(undefined);
+    vi.resetModules();
     vi.doMock("./store.js", () => ({ getSessionUser }));
     const { requireAdmin: localRequireAdmin } = await import("./middleware.js");
     const req = {} as AuthedRequest;
@@ -94,10 +101,10 @@ describe("asyncRoute middleware wrapper", () => {
     const req = {} as AuthedRequest;
     const res = makeRes();
     const next = makeNext();
-    
+
     const wrappedHandler = asyncRoute(handler);
     await wrappedHandler(req, res, next);
-    
+
     expect(handler).toHaveBeenCalledWith(req, res, next);
     expect(next).toHaveBeenCalledWith(error);
     expect(res.status).not.toHaveBeenCalled();
@@ -110,10 +117,10 @@ describe("asyncRoute middleware wrapper", () => {
     const req = {} as AuthedRequest;
     const res = makeRes();
     const next = makeNext();
-    
+
     const wrappedHandler = asyncRoute(handler);
     await wrappedHandler(req, res, next);
-    
+
     expect(handler).toHaveBeenCalledWith(req, res, next);
     expect(next).toHaveBeenCalledWith(error);
     expect(res.status).not.toHaveBeenCalled();
@@ -125,10 +132,10 @@ describe("asyncRoute middleware wrapper", () => {
     const req = {} as AuthedRequest;
     const res = makeRes();
     const next = makeNext();
-    
+
     const wrappedHandler = asyncRoute(handler);
     await wrappedHandler(req, res, next);
-    
+
     expect(handler).toHaveBeenCalledWith(req, res, next);
     expect(next).not.toHaveBeenCalled();
   });
@@ -141,10 +148,10 @@ describe("asyncRoute middleware wrapper", () => {
     const req = {} as AuthedRequest;
     const res = makeRes();
     const next = makeNext();
-    
+
     const wrappedHandler = asyncRoute(handler);
     await wrappedHandler(req, res, next);
-    
+
     expect(handler).toHaveBeenCalledWith(req, res, next);
     expect(next).toHaveBeenCalled();
   });

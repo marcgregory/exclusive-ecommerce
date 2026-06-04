@@ -139,7 +139,7 @@ describe("WishlistPage", () => {
     expect(screen.getByText(/Your wishlist is empty/i)).toBeDefined();
   });
 
-  it("moves an item to the cart before removing it from the wishlist", async () => {
+  it("moves an item to the cart using the first available color/size, then removes it from the wishlist", async () => {
     const refreshCart = vi.fn().mockResolvedValue(undefined);
     const refreshWishlist = vi.fn().mockResolvedValue(undefined);
     mockWishlist([product]);
@@ -151,7 +151,7 @@ describe("WishlistPage", () => {
     await waitFor(() => {
       expect(mockedApi).toHaveBeenCalledWith("/api/cart/items", {
         method: "POST",
-        body: JSON.stringify({ productId: "p1", quantity: 1, selectedColor: "", selectedSize: "" })
+        body: JSON.stringify({ productId: "p1", quantity: 1, selectedColor: "red", selectedSize: "S" })
       });
       expect(mockedApi).toHaveBeenCalledWith("/api/wishlist/p1", { method: "DELETE" });
     });

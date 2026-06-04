@@ -78,6 +78,13 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
     const form = event.currentTarget;
     const payload = Object.fromEntries(new FormData(form).entries());
 
+    // Strip empty password fields so the backend doesn't treat a non-password
+    // profile save as an attempted password change (it requires all three
+    // password fields once any of them is present).
+    for (const key of ["currentPassword", "newPassword", "confirmPassword"] as const) {
+      if (!payload[key]) delete payload[key];
+    }
+
     try {
       setSavingProfile(true);
       setProfileStatus("");

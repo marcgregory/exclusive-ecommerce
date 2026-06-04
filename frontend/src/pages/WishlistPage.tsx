@@ -53,14 +53,25 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
     }
   };
 
-  const handleMoveToCart = async (productId: string) => {
+  const handleMoveToCart = async (product: Product) => {
     if (pendingProductId) return;
     try {
       setActionError("");
-      setPendingProductId(productId);
-      await api("/api/cart/items", { method: "POST", body: JSON.stringify({ productId, quantity: 1, selectedColor: "", selectedSize: "" }) });
-      await api(`/api/wishlist/${productId}`, { method: "DELETE" });
-      setProducts((current) => ({ ...current, data: current.data.filter((product) => product.id !== productId) }));
+      setPendingProductId(product.id);
+      // Default to the first available color/size so the move-to-cart works
+      // without forcing the user back to the product page. They can adjust
+      // the variant from the cart or product page later.
+      await api("/api/cart/items", {
+        method: "POST",
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: 1,
+          selectedColor: product.colors[0] ?? "",
+          selectedSize: product.sizes[0] ?? ""
+        })
+      });
+      await api(`/api/wishlist/${product.id}`, { method: "DELETE" });
+      setProducts((current) => ({ ...current, data: current.data.filter((entry) => entry.id !== product.id) }));
       await Promise.all([refreshCart(), refreshWishlist()]);
     } catch (error) {
       setActionError(getErrorMessage(error));
@@ -134,7 +145,7 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
             showWishlistButton={false}
             secondaryAction={
               <div className="card-actions">
-                <Button onClick={() => handleMoveToCart(product.id)} disabled={pendingProductId === product.id || product.stockStatus === "Out of Stock"}>
+                <Button onClick={() => handleMoveToCart(product)} disabled={pendingProductId === product.id || product.stockStatus === "Out of Stock"}>
                   <ShoppingCart size={16} /> {product.stockStatus === "Out of Stock" ? "Out of stock" : "Move to cart"}
                 </Button>
                 <Button variant="ghost" onClick={() => handleRemove(product.id)} disabled={pendingProductId === product.id} aria-label={`Remove ${product.name}`}>

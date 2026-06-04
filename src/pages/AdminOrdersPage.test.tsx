@@ -58,6 +58,7 @@ const stripeOrder: AdminOrder = {
   shipping: 500,
   total: 3000,
   status: "processing",
+  internalNote: "",
   createdAt: "2026-04-10T12:00:00.000Z",
 };
 
@@ -126,5 +127,20 @@ describe("AdminOrdersPage", () => {
         "/api/admin/orders?limit=50&status=cancelled&email=buyer%40example.com",
       ),
     );
+  });
+
+  it("navigates to admin order details", async () => {
+    const actor = userEvent.setup();
+    mockedApi.mockResolvedValue({
+      orders: [stripeOrder],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    const { navigate } = renderPage();
+
+    await actor.click(await screen.findByRole("button", { name: /View Details/i }));
+
+    expect(navigate).toHaveBeenCalledWith("/admin/orders/order-stripe-1");
   });
 });

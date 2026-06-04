@@ -76,6 +76,12 @@ export type Order = {
   createdAt: string;
 };
 
+export type AdminOrder = Order & {
+  customerEmail: string;
+  customerName: string;
+  internalNote: string;
+};
+
 export type ContactMessage = {
   id: string;
   name: string;

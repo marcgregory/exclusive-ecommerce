@@ -735,6 +735,110 @@ describe("auth endpoints", () => {
     });
   });
 
+  describe("admin order detail endpoints", () => {
+    const billing = {
+      firstName: "Admin",
+      lastName: "Review",
+      streetAddress: "123 Maple Drive",
+      townCity: "Townsville",
+      phone: "555-0123",
+      email: "admin-order@example.com",
+    };
+
+    async function createAdminAgent(email = `admin-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`) {
+      const agent = request.agent(testApp);
+      const registerRes = await agent.post("/api/auth/register").send({
+        email,
+        password: "password123",
+        confirmPassword: "password123",
+      });
+      expect(registerRes.status).toBe(201);
+      await query("UPDATE users SET role = 'admin' WHERE id = $1", [
+        registerRes.body.user.id,
+      ]);
+      return agent;
+    }
+
+    async function createCustomerOrder() {
+      const agent = request.agent(testApp);
+      await agent.post("/api/auth/register").send({
+        email: `customer-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+        password: "password123",
+        confirmPassword: "password123",
+      });
+      await agent.post("/api/cart/items").send({
+        productId: "havic-gamepad",
+        quantity: 1,
+        selectedColor: "#db4444",
+        selectedSize: "M",
+      });
+      const orderRes = await agent.post("/api/orders").send({
+        billing,
+        paymentMethod: "bank",
+      });
+      expect(orderRes.status).toBe(201);
+      return { agent, order: orderRes.body.order };
+    }
+
+    it("lets admins fetch an order detail", async () => {
+      const admin = await createAdminAgent();
+      const { order } = await createCustomerOrder();
+
+      const res = await admin.get(`/api/admin/orders/${order.id}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.order).toMatchObject({
+        id: order.id,
+        customerEmail: expect.any(String),
+        internalNote: "",
+      });
+    });
+
+    it("rejects non-admin reads and writes", async () => {
+      const { agent, order } = await createCustomerOrder();
+
+      const getRes = await agent.get(`/api/admin/orders/${order.id}`);
+      const patchRes = await agent
+        .patch(`/api/admin/orders/${order.id}`)
+        .send({ internalNote: "Private note" });
+
+      expect(getRes.status).toBe(403);
+      expect(patchRes.status).toBe(403);
+    });
+
+    it("lets admins patch status and internal note without leaking notes to customers", async () => {
+      const admin = await createAdminAgent();
+      const { agent: customer, order } = await createCustomerOrder();
+
+      const res = await admin.patch(`/api/admin/orders/${order.id}`).send({
+        status: "delivered",
+        internalNote: "Customer confirmed delivery by phone.",
+      });
+      const customerRes = await customer.get(`/api/orders/${order.id}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.order).toMatchObject({
+        id: order.id,
+        status: "delivered",
+        internalNote: "Customer confirmed delivery by phone.",
+      });
+      expect(customerRes.status).toBe(200);
+      expect(customerRes.body.order).not.toHaveProperty("internalNote");
+    });
+
+    it("rejects empty admin order patches", async () => {
+      const admin = await createAdminAgent();
+      const { order } = await createCustomerOrder();
+
+      const res = await admin.patch(`/api/admin/orders/${order.id}`).send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({
+        message: "No admin order updates provided",
+      });
+    });
+  });
+
   describe("GET /api/me", () => {
     it("returns current user when authenticated", async () => {
       const agent = request.agent(testApp);

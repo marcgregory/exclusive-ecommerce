@@ -1,6 +1,6 @@
 import type { PoolClient, QueryResultRow } from "pg";
 import { query, withTransaction } from "./db.js";
-import type { Cart, CartItem, CartResponse, Category, ContactMessage, Coupon, Order, Product, User } from "./types.js";
+import type { AdminOrder, Cart, CartItem, CartResponse, Category, ContactMessage, Coupon, Order, Product, User } from "./types.js";
 
 type Queryable = {
   query<T extends QueryResultRow = QueryResultRow>(sql: string, values?: unknown[]): Promise<{ rows: T[]; rowCount: number }>;
@@ -555,10 +555,9 @@ export type AdminOrderFilters = {
   limit?: number;
 };
 
-export type AdminOrder = Order & { customerEmail: string; customerName: string };
-
 const ORDER_STATUSES = ["processing", "shipped", "delivered", "cancelled"] as const;
 export const ORDER_STATUS_VALUES = ORDER_STATUSES;
+const MAX_INTERNAL_NOTE_LENGTH = 5000;
 
 function isValidOrderStatus(value: string): value is (typeof ORDER_STATUSES)[number] {
   return (ORDER_STATUSES as readonly string[]).includes(value);
@@ -582,7 +581,8 @@ function mapAdminOrder(row: QueryResultRow, items: Array<CartItem & { name: stri
   return {
     ...mapOrder(row, items),
     customerEmail: String(row.user_email || ""),
-    customerName: `${billing.firstName || ""} ${billing.lastName || ""}`.trim() || String(row.user_email || "")
+    customerName: `${billing.firstName || ""} ${billing.lastName || ""}`.trim() || String(row.user_email || ""),
+    internalNote: String(row.internal_note || "")
   };
 }
 
@@ -646,6 +646,42 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
     throw Object.assign(new Error(`Invalid order status: ${status}`), { status: 400 });
   }
   const result = await query("UPDATE orders SET status = $2 WHERE id = $1 RETURNING *", [orderId, status]);
+  if (!result.rows[0]) return undefined;
+  return getAdminOrder(orderId);
+}
+
+export type AdminOrderUpdate = {
+  status?: string;
+  internalNote?: string;
+};
+
+export async function updateAdminOrder(orderId: string, input: AdminOrderUpdate): Promise<AdminOrder | undefined> {
+  const updates: string[] = [];
+  const values: unknown[] = [orderId];
+
+  if (Object.prototype.hasOwnProperty.call(input, "status")) {
+    const status = String(input.status || "");
+    if (!isValidOrderStatus(status)) {
+      throw Object.assign(new Error(`Invalid order status: ${status}`), { status: 400 });
+    }
+    values.push(status);
+    updates.push(`status = $${values.length}`);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, "internalNote")) {
+    const internalNote = String(input.internalNote ?? "");
+    if (internalNote.length > MAX_INTERNAL_NOTE_LENGTH) {
+      throw Object.assign(new Error("Internal note cannot exceed 5000 characters"), { status: 400 });
+    }
+    values.push(internalNote);
+    updates.push(`internal_note = $${values.length}`);
+  }
+
+  if (!updates.length) {
+    throw Object.assign(new Error("No admin order updates provided"), { status: 400 });
+  }
+
+  const result = await query(`UPDATE orders SET ${updates.join(", ")} WHERE id = $1 RETURNING *`, values);
   if (!result.rows[0]) return undefined;
   return getAdminOrder(orderId);
 }

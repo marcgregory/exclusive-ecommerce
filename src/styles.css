@@ -1634,6 +1634,176 @@ button {
   font-weight: 600;
 }
 
+.admin-order-row__meta .button {
+  min-height: 32px;
+  padding: 6px 12px;
+}
+
+.admin-order-detail-page {
+  display: grid;
+  gap: 28px;
+}
+
+.admin-order-detail-hero,
+.admin-detail-card {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.admin-order-detail-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 28px;
+}
+
+.admin-order-detail-hero p,
+.admin-status-card p,
+.admin-note-footer span {
+  color: var(--muted);
+}
+
+.admin-order-detail-actions,
+.admin-status-form,
+.admin-note-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-order-detail-actions .button,
+.admin-status-form .button,
+.admin-note-form .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.admin-order-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 28px;
+  align-items: start;
+}
+
+.admin-order-detail-main,
+.admin-order-detail-side {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-detail-card {
+  padding: 24px;
+}
+
+.admin-detail-card h2 {
+  margin-bottom: 18px;
+}
+
+.admin-status-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+}
+
+.admin-status-card h2 {
+  margin: 4px 0 8px;
+}
+
+.admin-status-form {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-status-form label,
+.admin-note-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.admin-status-form select {
+  min-height: 44px;
+  min-width: 190px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 14px;
+  color: var(--text);
+  background: #fff;
+}
+
+.admin-order-items-table {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-order-detail-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 120px;
+  gap: 16px;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-order-detail-item div {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-order-detail-item span {
+  color: var(--muted);
+}
+
+.admin-order-detail-item > span,
+.admin-order-detail-item > strong {
+  text-align: right;
+}
+
+.admin-note-form {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-note-form textarea {
+  min-height: 170px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 14px;
+  color: var(--text);
+  font: inherit;
+  line-height: 24px;
+}
+
+.admin-note-footer {
+  justify-content: space-between;
+}
+
+.admin-order-detail-side .admin-detail-card p {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-order-detail-side .admin-detail-card span {
+  color: var(--muted);
+}
+
+.admin-order-detail-side address {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-style: normal;
+  line-height: 24px;
+}
+
 .order-confirmation {
   align-items: flex-start;
   margin-bottom: 48px;
@@ -2197,6 +2367,9 @@ button {
   .order-history__row,
   .order-item-row,
   .admin-orders-hero,
+  .admin-order-detail-hero,
+  .admin-order-detail-actions,
+  .admin-status-card,
   .admin-orders-toolbar,
   .admin-orders-search,
   .admin-order-row__main {
@@ -2206,7 +2379,8 @@ button {
 
   .admin-orders-metrics,
   .admin-orders-toolbar select,
-  .admin-orders-toolbar input {
+  .admin-orders-toolbar input,
+  .admin-status-form select {
     min-width: 0;
     width: 100%;
   }
@@ -2217,13 +2391,40 @@ button {
 
   .order-history__row .button,
   .admin-orders-toolbar .button,
-  .admin-orders-search .button {
+  .admin-orders-search .button,
+  .admin-order-detail-actions .button,
+  .admin-status-form .button,
+  .admin-note-form .button {
     width: 100%;
+  }
+
+  .admin-order-detail-grid,
+  .admin-status-card,
+  .admin-order-detail-item {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-status-form,
+  .admin-note-footer {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .admin-status-form label,
+  .admin-note-form label {
+    width: 100%;
+  }
+
+  .admin-order-detail-item > span,
+  .admin-order-detail-item > strong {
+    text-align: left;
   }
 
   .profile-card,
   .contact-card,
   .contact-form,
+  .admin-detail-card,
   .order-items-panel,
   .order-side-panel {
     padding: 28px 20px;

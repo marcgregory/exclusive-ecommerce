@@ -9,6 +9,7 @@ import { getErrorMessage } from "./lib/errors";
 import { useRoute } from "./lib/router";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
+import { AdminOrderDetailPage } from "./pages/AdminOrderDetailPage";
 import { AdminOrdersPage } from "./pages/AdminOrdersPage";
 import { CartPage } from "./pages/CartPage";
 import { CategoryPage } from "./pages/CategoryPage";
@@ -190,6 +191,7 @@ function App() {
     }
     if (path.startsWith("/product/")) return <ProductDetailsPage id={path.split("/").pop()} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} />;
     if (path.startsWith("/orders/")) return <OrderPage authStatus={authStatus} id={path.split("/").pop()} navigate={navigate} />;
+    if (path.startsWith("/admin/orders/")) return <AdminOrderDetailPage id={path.split("/").pop()} userState={userState} navigate={navigate} />;
     if (path === "/admin/orders") return <AdminOrdersPage userState={userState} navigate={navigate} />;
     if (path === "/cart") return <CartPage authStatus={authStatus} cart={cart.data} cartLoading={cart.loading} cartError={cart.error} navigate={navigate} refreshCart={refreshCart} appliedCoupon={appliedCoupon} onAppliedCouponChange={setAppliedCoupon} />;
     if (path === "/checkout") return <CheckoutPage authStatus={authStatus} cart={cart.data} cartLoading={cart.loading} cartError={cart.error} refreshCart={refreshCart} navigate={navigate} appliedCoupon={appliedCoupon} onCouponConsumed={() => setAppliedCoupon("")} />;

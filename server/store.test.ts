@@ -26,6 +26,7 @@ import {
   toCartResponse,
   updateCartItem,
   updateContactMessageStatus,
+  updateAdminOrder,
   updateOrderStatus,
   updateProduct,
   updateUser,
@@ -245,6 +246,9 @@ describe("PostgreSQL persistence", () => {
       "bank"
     );
 
+    const initial = await getAdminOrder(order.id);
+    expect(initial).toMatchObject({ id: order.id, internalNote: "" });
+
     const shipped = await updateOrderStatus(order.id, "shipped");
     expect(shipped).toMatchObject({ id: order.id, status: "shipped" });
 
@@ -252,6 +256,32 @@ describe("PostgreSQL persistence", () => {
     expect(fetched).toMatchObject({ id: order.id, status: "shipped", customerEmail: "rimel@example.com" });
 
     await expect(updateOrderStatus(order.id, "nope")).rejects.toThrow("Invalid order status");
+  });
+
+  it("saves a persistent internal admin order note", async () => {
+    const order = await createOrder(
+      "demo-user",
+      { firstName: "Md", streetAddress: "1 St", townCity: "Dhaka", phone: "1", email: "rimel@example.com" },
+      "bank"
+    );
+
+    const noted = await updateAdminOrder(order.id, {
+      internalNote: "Customer called about expedited handling.",
+    });
+    expect(noted).toMatchObject({
+      id: order.id,
+      internalNote: "Customer called about expedited handling.",
+    });
+
+    const fetched = await getAdminOrder(order.id);
+    expect(fetched).toMatchObject({
+      id: order.id,
+      internalNote: "Customer called about expedited handling.",
+    });
+
+    await expect(
+      updateAdminOrder(order.id, { internalNote: "x".repeat(5001) }),
+    ).rejects.toThrow("Internal note cannot exceed 5000 characters");
   });
 
   it("filters admin order listings by status and email", async () => {

@@ -44,6 +44,7 @@ import {
   updateCategory,
   updateContactMessageStatus,
   updateCoupon,
+  updateAdminOrder,
   updateOrderStatus,
   updateProduct,
   updateUser,
@@ -468,10 +469,15 @@ app.patch(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const order = await updateOrderStatus(
-      req.params.id,
-      String(req.body.status || ""),
-    );
+    const body = req.body || {};
+    const order = await updateAdminOrder(req.params.id, {
+      ...(Object.prototype.hasOwnProperty.call(body, "status")
+        ? { status: String(body.status || "") }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "internalNote")
+        ? { internalNote: String(body.internalNote ?? "") }
+        : {}),
+    });
     if (!order) return res.status(404).json({ message: "Order not found" });
     res.json({ order });
   }),

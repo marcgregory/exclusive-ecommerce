@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS orders (
   shipping NUMERIC(10, 2) NOT NULL DEFAULT 0,
   total NUMERIC(10, 2) NOT NULL,
   status TEXT NOT NULL DEFAULT 'processing',
+  internal_note TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -129,6 +130,7 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS colors TEXT[] NOT NULL DEFAULT '{}
 ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS idempotency_key TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS internal_note TEXT NOT NULL DEFAULT '';
 CREATE UNIQUE INDEX IF NOT EXISTS orders_user_id_idempotency_key_idx ON orders (user_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'customer';
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;

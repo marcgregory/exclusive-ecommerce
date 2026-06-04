@@ -23,6 +23,7 @@ const statusFilters = [
   { value: "", label: "All statuses" },
   { value: "processing", label: "Processing" },
   { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
 ];
 
@@ -226,6 +227,12 @@ export function AdminOrdersPage({ userState, navigate }: AdminOrdersPageProps) {
                 <span>{order.paymentMethod}</span>
                 <span>{order.items.length} item{order.items.length === 1 ? "" : "s"}</span>
                 <strong>{formatMoney(order.total)}</strong>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(`/admin/orders/${order.id}`)}
+                >
+                  View Details
+                </Button>
               </div>
               <div className="admin-order-row__items">
                 {order.items.map((item) => (

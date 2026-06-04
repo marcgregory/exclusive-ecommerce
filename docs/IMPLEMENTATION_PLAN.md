@@ -67,18 +67,22 @@ The next work should focus on turning this from a prototype into a production-re
 
 ## Phase 5: Ecommerce Workflows
 
-- Finish product filtering and sorting UI:
-  - Category
-  - Search
-  - Sale items
-  - Best selling
-  - Price ascending/descending
-  - Rating
-- Add product option validation for size and color.
-- Add stock checks during add-to-cart and checkout.
-- Add order confirmation page after checkout.
-- Add order history UI in the account page.
-- Add wishlist page remove/move-to-cart behavior.
+- Completed:
+  - Order confirmation page after checkout.
+  - Order history UI in the account page.
+  - Product option validation for size and color on the product details page.
+- Remaining:
+  - Finish product filtering and sorting UI:
+    - Category
+    - Search
+    - Sale items
+    - Best selling
+    - Price ascending/descending
+    - Rating
+  - Add stock checks during add-to-cart and checkout.
+  - Add wishlist page remove/move-to-cart behavior.
+  - Add end-to-end checkout coverage across cart, checkout, payment, confirmation, and order history.
+  - Integrate the selected payment provider beyond the current local payment simulation.
 
 ## Phase 6: Admin Readiness
 
@@ -104,11 +108,17 @@ The next work should focus on turning this from a prototype into a production-re
   - Order creation
   - Contact submission
 - Frontend tests:
-  - Product card interactions
-  - Cart quantity changes
-  - Checkout validation
-  - Account form updates
-  - Contact form submission
+  - Completed:
+    - Product card interactions
+    - Product details loading/error/rendering, option validation, cart, and wishlist actions
+    - Cart quantity changes
+    - Checkout guest/error/empty/submission/payment failure paths
+    - Account guest/profile/order-history loading/error/rendering/detail navigation
+    - Order detail guest/loading/error/not-found/rendering/payment-status paths
+  - Remaining:
+    - Account profile update submission
+    - Contact form submission
+    - E2E checkout flow with order confirmation and history verification
 - Visual QA:
   - Desktop 1440px screenshots against Figma
   - Mobile no-overlap checks
@@ -126,8 +136,9 @@ The next work should focus on turning this from a prototype into a production-re
 
 ## Recommended Next Sprint
 
-1. Finish authentication and session hardening.
-2. Add order confirmation and order history UI.
-3. Add product option validation for size and color.
-4. Add stock checks during add-to-cart and checkout.
-5. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact.
+1. Finish authentication and session hardening, including logout coverage.
+2. Add stock checks during add-to-cart and checkout.
+3. Add wishlist remove and move-to-cart behavior.
+4. Add E2E checkout coverage from cart through order history.
+5. Select and integrate the real Stripe/payment provider path.
+6. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.

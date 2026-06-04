@@ -196,7 +196,7 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
                   <span>{formatOrderDate(order.createdAt)} | {formatOrderStatus(order.status)} | {order.items.length} item{order.items.length === 1 ? "" : "s"}</span>
                 </div>
                 <strong>{formatMoney(order.total)}</strong>
-                <Button variant="ghost" onClick={() => navigate(`/orders/${order.id}`)}>View</Button>
+                <Button variant="ghost" onClick={() => navigate(`/orders/${order.id}`)}>View Details</Button>
               </article>
             ))}
           </section>

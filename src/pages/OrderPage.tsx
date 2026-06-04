@@ -134,7 +134,7 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
             currently {formatStatus(order.status)}.
           </p>
           {order.status === "shipped" ? (
-            <p className="eyebrow">Payment received — thank you.</p>
+            <p className="eyebrow">Payment received - thank you.</p>
           ) : null}
         </div>
         <div className="order-meta">

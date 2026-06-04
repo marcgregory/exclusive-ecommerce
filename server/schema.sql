@@ -1,39 +1,44 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
-  address TEXT,
+  address TEXT NOT NULL DEFAULT '',
   password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
   label TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
-  icon TEXT,
+  icon TEXT NOT NULL DEFAULT '',
+  children JSONB NOT NULL DEFAULT '[]'::jsonb,
+  sort_order INTEGER NOT NULL DEFAULT 0,
   parent_id TEXT REFERENCES categories(id)
 );
 
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   category_id TEXT REFERENCES categories(id),
   description TEXT NOT NULL,
   price NUMERIC(10, 2) NOT NULL,
-  original_price NUMERIC(10, 2),
-  discount_percent INTEGER DEFAULT 0,
-  rating NUMERIC(2, 1) DEFAULT 0,
-  review_count INTEGER DEFAULT 0,
-  stock_status TEXT DEFAULT 'In Stock',
-  is_new BOOLEAN DEFAULT FALSE,
-  image_key TEXT,
-  flags TEXT[] DEFAULT '{}',
+  original_price NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  discount_percent INTEGER NOT NULL DEFAULT 0,
+  rating NUMERIC(2, 1) NOT NULL DEFAULT 0,
+  review_count INTEGER NOT NULL DEFAULT 0,
+  stock_status TEXT NOT NULL DEFAULT 'In Stock',
+  colors TEXT[] NOT NULL DEFAULT '{}',
+  sizes TEXT[] NOT NULL DEFAULT '{}',
+  is_new BOOLEAN NOT NULL DEFAULT FALSE,
+  image_key TEXT NOT NULL DEFAULT '',
+  flags TEXT[] NOT NULL DEFAULT '{}',
+  sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE product_images (
+CREATE TABLE IF NOT EXISTS product_images (
   id TEXT PRIMARY KEY,
   product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
@@ -41,7 +46,7 @@ CREATE TABLE product_images (
   sort_order INTEGER DEFAULT 0
 );
 
-CREATE TABLE product_variants (
+CREATE TABLE IF NOT EXISTS product_variants (
   id TEXT PRIMARY KEY,
   product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
   color TEXT,
@@ -49,40 +54,40 @@ CREATE TABLE product_variants (
   stock INTEGER DEFAULT 0
 );
 
-CREATE TABLE carts (
+CREATE TABLE IF NOT EXISTS carts (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE cart_items (
+CREATE TABLE IF NOT EXISTS cart_items (
   id TEXT PRIMARY KEY,
   cart_id TEXT REFERENCES carts(id) ON DELETE CASCADE,
   product_id TEXT REFERENCES products(id),
   quantity INTEGER NOT NULL CHECK (quantity > 0),
-  selected_color TEXT,
-  selected_size TEXT
+  selected_color TEXT NOT NULL DEFAULT '',
+  selected_size TEXT NOT NULL DEFAULT ''
 );
 
-CREATE TABLE wishlists (
+CREATE TABLE IF NOT EXISTS wishlists (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE wishlist_items (
+CREATE TABLE IF NOT EXISTS wishlist_items (
   wishlist_id TEXT REFERENCES wishlists(id) ON DELETE CASCADE,
   product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
   PRIMARY KEY (wishlist_id, product_id)
 );
 
-CREATE TABLE coupons (
+CREATE TABLE IF NOT EXISTS coupons (
   code TEXT PRIMARY KEY,
   type TEXT NOT NULL CHECK (type IN ('percent', 'fixed')),
   amount NUMERIC(10, 2) NOT NULL,
-  active BOOLEAN DEFAULT TRUE
+  active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id),
   billing JSONB NOT NULL,
@@ -95,23 +100,29 @@ CREATE TABLE orders (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
   id TEXT PRIMARY KEY,
   order_id TEXT REFERENCES orders(id) ON DELETE CASCADE,
   product_id TEXT REFERENCES products(id),
   name TEXT NOT NULL,
   price NUMERIC(10, 2) NOT NULL,
   quantity INTEGER NOT NULL,
-  selected_color TEXT,
-  selected_size TEXT
+  selected_color TEXT NOT NULL DEFAULT '',
+  selected_size TEXT NOT NULL DEFAULT ''
 );
 
-CREATE TABLE contact_messages (
+CREATE TABLE IF NOT EXISTS contact_messages (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
-  phone TEXT,
+  phone TEXT NOT NULL DEFAULT '',
   message TEXT NOT NULL,
-  status TEXT DEFAULT 'new',
+  status TEXT NOT NULL DEFAULT 'new',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS children JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS colors TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;

@@ -54,16 +54,17 @@ Product listing supports `category`, `q`, `flag`, `sort`, `page`, and `limit`.
 
 ## Data Store
 
-`server/store.ts` manages local JSON persistence. `server/seed.ts` provides initial data. `server/types.ts` defines backend domain types.
+`server/store.ts` exposes PostgreSQL-backed repository functions. `server/db.ts` owns the shared `pg` pool, and `server/types.ts` defines backend domain types.
 
-When replacing JSON storage with PostgreSQL, keep the API response shapes stable and move the implementation behind functions with the same responsibilities as:
+The app requires `DATABASE_URL` at runtime. Initialize development data with:
 
-- `findProduct`
-- `getUserCart`
-- `getWishlist`
-- `toCartResponse`
+```powershell
+& 'C:\nvm4w\nodejs\npm.cmd' run db:migrate
+& 'C:\nvm4w\nodejs\npm.cmd' run db:seed
+```
+
+Backend tests require `TEST_DATABASE_URL`. The test suite runs migrations and reseeds before repository scenarios.
 
 ## Database
 
-Use `server/schema.sql` as the initial PostgreSQL schema. It includes users, products, categories, variants, carts, wishlists, coupons, orders, and contact messages.
-
+Use `server/schema.sql` as the PostgreSQL migration source. It includes users, products, categories, variants, carts, wishlists, coupons, orders, and contact messages.

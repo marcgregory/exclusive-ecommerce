@@ -6,19 +6,29 @@ Full-stack ecommerce implementation based on the Figma “Exclusive” design.
 
 - React + Vite + TypeScript frontend
 - Node/Express + TypeScript API
-- PostgreSQL-ready schema in `server/schema.sql`
-- Local JSON-backed development store in `server/data/store.json`
+- PostgreSQL persistence using `pg`
+- Source migration in `server/schema.sql`
 
 ## Run Locally
 
 ```powershell
 & 'C:\nvm4w\nodejs\npm.cmd' install
+Set-Item Env:DATABASE_URL 'postgres://postgres:postgres@127.0.0.1:5432/exclusive_ecommerce'
+& 'C:\nvm4w\nodejs\npm.cmd' run db:migrate
+& 'C:\nvm4w\nodejs\npm.cmd' run db:seed
 & 'C:\nvm4w\nodejs\npm.cmd' run dev
 ```
 
 Frontend: `http://127.0.0.1:5173/`
 
 API: `http://127.0.0.1:4000/api/health`
+
+Backend tests require an isolated PostgreSQL database:
+
+```powershell
+Set-Item Env:TEST_DATABASE_URL 'postgres://postgres:postgres@127.0.0.1:5432/exclusive_ecommerce_test'
+& 'C:\nvm4w\nodejs\npm.cmd' test
+```
 
 ## Guides
 

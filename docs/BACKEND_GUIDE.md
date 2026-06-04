@@ -70,3 +70,12 @@ Backend tests require `TEST_DATABASE_URL`. The test suite runs migrations and re
 ## Database
 
 Use `server/schema.sql` as the PostgreSQL migration source. It includes users, products, categories, variants, carts, wishlists, coupons, orders, and contact messages.
+
+## Rate Limiting
+
+`server/index.ts` mounts two `express-rate-limit` middlewares (default in-memory store):
+
+- `authLimiter` on `POST /api/auth/register` and `POST /api/auth/login` — 10 requests per 15 minutes per IP.
+- `contactLimiter` on `POST /api/contact` — 5 requests per hour per IP.
+
+For production with multiple API instances, swap the in-memory store for a shared backend such as Redis (`rate-limit-redis`) so all instances see the same counters.

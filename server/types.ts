@@ -31,6 +31,8 @@ export type Coupon = {
   active: boolean;
 };
 
+export type UserRole = "customer" | "admin";
+
 export type User = {
   id: string;
   firstName: string;
@@ -38,6 +40,7 @@ export type User = {
   email: string;
   address: string;
   passwordHash: string;
+  role: UserRole;
 };
 
 export type CartItem = {

@@ -13,6 +13,15 @@ type HeaderProps = {
 
 export function Header({ navigate, user, cartCount, wishlistCount, onLogout, logoutSaving }: HeaderProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+  };
+
   const links = [
     ["/", "Home"],
     ["/contact", "Contact"],
@@ -34,10 +43,16 @@ export function Header({ navigate, user, cartCount, wishlistCount, onLogout, log
             {links.map(([href, label]) => <button key={href} onClick={() => navigate(href)}>{label}</button>)}
           </nav>
           <div className="header-actions">
-            <label className="search-box">
-              <span>What are you looking for?</span>
-              <Search size={20} />
-            </label>
+            <form className="search-box" role="search" onSubmit={submitSearch}>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="What are you looking for?"
+                aria-label="Search products"
+              />
+              <button type="submit" className="search-box__submit" aria-label="Search"><Search size={20} /></button>
+            </form>
             <button className="icon-button badge-button" onClick={() => navigate("/wishlist")} aria-label="Wishlist">
               <Heart size={22} />
               {wishlistCount > 0 && <span>{wishlistCount}</span>}

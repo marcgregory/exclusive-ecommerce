@@ -1,20 +1,25 @@
+import { Trash2, ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import { Button } from "../components/Button";
 import { ProductCard } from "../components/ProductCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
-import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, WishlistResponse } from "../types";
+import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, RemoveFromWishlist, WishlistResponse } from "../types";
 
 type WishlistPageProps = {
   authStatus: AuthStatus;
   navigate: Navigate;
   onAdd: AddToCart;
+  onRemove: RemoveFromWishlist;
+  onMoveToCart: RemoveFromWishlist;
 };
 
-export function WishlistPage({ authStatus, navigate, onAdd }: WishlistPageProps) {
+export function WishlistPage({ authStatus, navigate, onAdd, onRemove, onMoveToCart }: WishlistPageProps) {
   const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
+  const [actionError, setActionError] = useState("");
 
   const loadWishlist = useCallback(async () => {
     setProducts((current) => ({ ...current, loading: true, error: "" }));
@@ -30,6 +35,27 @@ export function WishlistPage({ authStatus, navigate, onAdd }: WishlistPageProps)
     if (authStatus !== "authenticated") return;
     loadWishlist();
   }, [authStatus, loadWishlist]);
+
+  const handleRemove = async (productId: string) => {
+    try {
+      setActionError("");
+      setProducts((current) => ({ ...current, data: current.data.filter((product) => product.id !== productId) }));
+      await onRemove(productId);
+    } catch (error) {
+      setActionError(getErrorMessage(error));
+      loadWishlist();
+    }
+  };
+
+  const handleMoveToCart = async (productId: string) => {
+    try {
+      setActionError("");
+      await onMoveToCart(productId);
+      setProducts((current) => ({ ...current, data: current.data.filter((product) => product.id !== productId) }));
+    } catch (error) {
+      setActionError(getErrorMessage(error));
+    }
+  };
 
   if (authStatus === "checking") {
     return <main className="container page"><LoadingState title="Loading wishlist" message="We are checking your wishlist." /></main>;
@@ -84,7 +110,29 @@ export function WishlistPage({ authStatus, navigate, onAdd }: WishlistPageProps)
     <main className="container page">
       <Breadcrumbs items={["Home", "Wishlist"]} />
       <SectionHeader kicker="Wishlist" title={`Wishlist (${products.data.length})`} />
-      <div className="product-grid four">{products.data.map((product) => <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={async () => {}} navigate={navigate} />)}</div>
+      {actionError && <p className="form-status form-status--error">{actionError}</p>}
+      <div className="product-grid four">
+        {products.data.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            navigate={navigate}
+            onAdd={onAdd}
+            onWishlist={async () => { handleRemove(product.id); }}
+            showWishlistButton={false}
+            secondaryAction={
+              <div className="card-actions">
+                <Button onClick={() => handleMoveToCart(product.id)}>
+                  <ShoppingCart size={16} /> Move to cart
+                </Button>
+                <Button variant="ghost" onClick={() => handleRemove(product.id)} aria-label={`Remove ${product.name}`}>
+                  <Trash2 size={16} /> Remove
+                </Button>
+              </div>
+            }
+          />
+        ))}
+      </div>
     </main>
   );
 }

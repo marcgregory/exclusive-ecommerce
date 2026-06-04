@@ -15,9 +15,11 @@ type CheckoutPageProps = {
   cartError: string;
   refreshCart: RefreshCart;
   navigate: Navigate;
+  appliedCoupon: string;
+  onCouponConsumed: () => void;
 };
 
-export function CheckoutPage({ authStatus, cart, cartLoading, cartError, refreshCart, navigate }: CheckoutPageProps) {
+export function CheckoutPage({ authStatus, cart, cartLoading, cartError, refreshCart, navigate, appliedCoupon, onCouponConsumed }: CheckoutPageProps) {
   const [status, setStatus] = useState("");
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,8 +32,12 @@ export function CheckoutPage({ authStatus, cart, cartLoading, cartError, refresh
       setSubmitting(true);
       setStatus("");
       setStatusIsError(false);
-      const data = await api<OrderResponse>("/api/orders", { method: "POST", body: JSON.stringify({ billing, paymentMethod: "bank" }) });
+      const data = await api<OrderResponse>("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({ billing, paymentMethod: "bank", couponCode: appliedCoupon || undefined })
+      });
       await refreshCart();
+      onCouponConsumed();
       navigate(`/orders/${data.order.id}`);
     } catch (error) {
       setStatusIsError(true);

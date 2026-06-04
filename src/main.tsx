@@ -23,12 +23,13 @@ import "./styles.css";
 const emptyCart: Cart = { items: [], subtotal: 0, discount: 0, shipping: 0, total: 0 };
 
 function App() {
-  const { path, navigate } = useRoute();
+  const { path, query, navigate } = useRoute();
   const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
   const [categories, setCategories] = useState<AsyncState<Category[]>>({ data: [], loading: true, error: "" });
   const [userState, setUserState] = useState<AsyncState<PublicUser | null>>({ data: null, loading: true, error: "" });
   const [cart, setCart] = useState<AsyncState<Cart>>({ data: emptyCart, loading: false, error: "" });
   const [wishlistCount, setWishlistCount] = useState<AsyncState<number>>({ data: 0, loading: false, error: "" });
+  const [appliedCoupon, setAppliedCoupon] = useState("");
   const [logoutSaving, setLogoutSaving] = useState(false);
 
   const authStatus: AuthStatus = userState.loading ? "checking" : userState.data ? "authenticated" : "guest";
@@ -127,6 +128,17 @@ function App() {
     refreshWishlist();
   }, [navigate, refreshWishlist, userState.data]);
 
+  const onRemoveFromWishlist = useCallback(async (productId: string) => {
+    await api(`/api/wishlist/${productId}`, { method: "DELETE" });
+    refreshWishlist();
+  }, [refreshWishlist]);
+
+  const onMoveToCart = useCallback(async (productId: string) => {
+    await api("/api/cart/items", { method: "POST", body: JSON.stringify({ productId, quantity: 1, selectedColor: "", selectedSize: "" }) });
+    await api(`/api/wishlist/${productId}`, { method: "DELETE" });
+    await Promise.all([refreshCart(), refreshWishlist()]);
+  }, [refreshCart, refreshWishlist]);
+
   const handleAuthChanged = useCallback((user: PublicUser) => {
     setUserState({ data: user, loading: false, error: "" });
   }, []);
@@ -161,13 +173,25 @@ function App() {
     );
 
     if (path.startsWith("/category/")) {
-      if (catalogLoading) return catalogLoadingView;
-      if (catalogError) return catalogErrorView;
+      if (categories.loading) return catalogLoadingView;
+      if (categories.error) return catalogErrorView;
       return (
         <CategoryPage
           categorySlug={path.split("/").pop()}
           categories={categories.data}
-          products={products.data}
+          navigate={navigate}
+          onAdd={onAdd}
+          onWishlist={onWishlist}
+        />
+      );
+    }
+    if (path === "/search") {
+      if (categories.loading) return catalogLoadingView;
+      if (categories.error) return catalogErrorView;
+      return (
+        <CategoryPage
+          searchQuery={query.get("q") || ""}
+          categories={categories.data}
           navigate={navigate}
           onAdd={onAdd}
           onWishlist={onWishlist}
@@ -176,12 +200,12 @@ function App() {
     }
     if (path.startsWith("/product/")) return <ProductDetailsPage id={path.split("/").pop()} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} />;
     if (path.startsWith("/orders/")) return <OrderPage authStatus={authStatus} id={path.split("/").pop()} navigate={navigate} />;
-    if (path === "/cart") return <CartPage authStatus={authStatus} cart={cart.data} cartLoading={cart.loading} cartError={cart.error} navigate={navigate} refreshCart={refreshCart} />;
-    if (path === "/checkout") return <CheckoutPage authStatus={authStatus} cart={cart.data} cartLoading={cart.loading} cartError={cart.error} refreshCart={refreshCart} navigate={navigate} />;
+    if (path === "/cart") return <CartPage authStatus={authStatus} cart={cart.data} cartLoading={cart.loading} cartError={cart.error} navigate={navigate} refreshCart={refreshCart} appliedCoupon={appliedCoupon} onAppliedCouponChange={setAppliedCoupon} />;
+    if (path === "/checkout") return <CheckoutPage authStatus={authStatus} cart={cart.data} cartLoading={cart.loading} cartError={cart.error} refreshCart={refreshCart} navigate={navigate} appliedCoupon={appliedCoupon} onCouponConsumed={() => setAppliedCoupon("")} />;
     if (path === "/account") return <AccountPage userState={userState} onAuthChanged={handleAuthChanged} onUserRefresh={loadUser} navigate={navigate} />;
     if (path === "/about") return <AboutPage />;
     if (path === "/contact") return <ContactPage />;
-    if (path === "/wishlist") return <WishlistPage authStatus={authStatus} navigate={navigate} onAdd={onAdd} />;
+    if (path === "/wishlist") return <WishlistPage authStatus={authStatus} navigate={navigate} onAdd={onAdd} onRemove={onRemoveFromWishlist} onMoveToCart={onMoveToCart} />;
     if (catalogLoading) return catalogLoadingView;
     if (catalogError) return catalogErrorView;
     return <HomePage products={products.data} categories={categories.data} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} />;

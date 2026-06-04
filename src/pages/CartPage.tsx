@@ -18,17 +18,29 @@ type CartPageProps = {
   cartError: string;
   navigate: Navigate;
   refreshCart: RefreshCart;
+  appliedCoupon: string;
+  onAppliedCouponChange: (code: string) => void;
 };
 
-export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, refreshCart }: CartPageProps) {
-  const [coupon, setCoupon] = useState("");
+export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, refreshCart, appliedCoupon, onAppliedCouponChange }: CartPageProps) {
+  const [couponInput, setCouponInput] = useState(appliedCoupon);
   const [actionError, setActionError] = useState("");
+
+  const applyCoupon = async () => {
+    try {
+      setActionError("");
+      onAppliedCouponChange(couponInput.trim().toUpperCase());
+      await refreshCart(couponInput.trim().toUpperCase());
+    } catch (error) {
+      setActionError(getErrorMessage(error));
+    }
+  };
 
   const updateQty = async (id: string, quantity: number) => {
     try {
       setActionError("");
       await api(`/api/cart/items/${id}`, { method: "PATCH", body: JSON.stringify({ quantity }) });
-      refreshCart();
+      refreshCart(appliedCoupon);
     } catch (error) {
       setActionError(getErrorMessage(error));
     }
@@ -37,7 +49,7 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
     try {
       setActionError("");
       await api(`/api/cart/items/${id}`, { method: "DELETE" });
-      refreshCart();
+      refreshCart(appliedCoupon);
     } catch (error) {
       setActionError(getErrorMessage(error));
     }
@@ -96,8 +108,8 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
         <div className="cart-head"><span>Product</span><span>Price</span><span>Quantity</span><span>Subtotal</span></div>
         {cart.items.map((item) => <div className="cart-row" key={item.id}><div><ProductVisual type={item.product.image} /><button onClick={() => remove(item.id)}><X size={16} /></button><span>{item.product.name}</span></div><span>{formatMoney(item.product.price)}</span><QuantityStepper value={item.quantity} onChange={(qty) => updateQty(item.id, qty)} /><strong>{formatMoney(item.lineTotal)}</strong></div>)}
       </div>
-      <div className="cart-actions"><Button variant="ghost" onClick={() => navigate("/")}>Return To Shop</Button><Button variant="ghost" onClick={() => refreshCart()}>Update Cart</Button></div>
-      <div className="checkout-strip"><div className="coupon"><input value={coupon} onChange={(event) => setCoupon(event.target.value)} placeholder="Coupon Code" /><Button onClick={() => refreshCart(coupon)}>Apply Coupon</Button></div><CartTotals cart={cart} action={<Button onClick={() => navigate("/checkout")}>Proceed to checkout</Button>} /></div>
+      <div className="cart-actions"><Button variant="ghost" onClick={() => navigate("/")}>Return To Shop</Button><Button variant="ghost" onClick={() => refreshCart(appliedCoupon)}>Update Cart</Button></div>
+      <div className="checkout-strip"><div className="coupon"><input value={couponInput} onChange={(event) => setCouponInput(event.target.value)} placeholder="Coupon Code" /><Button onClick={applyCoupon}>{appliedCoupon ? `Applied: ${appliedCoupon}` : "Apply Coupon"}</Button></div><CartTotals cart={cart} action={<Button onClick={() => navigate("/checkout")}>Proceed to checkout</Button>} /></div>
     </main>
   );
 }

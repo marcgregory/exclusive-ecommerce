@@ -79,6 +79,7 @@ export type PublicUser = {
   lastName: string;
   email: string;
   address: string;
+  role: "customer" | "admin";
 };
 
 export type Navigate = (href: string) => void;
@@ -93,11 +94,25 @@ export type AddToCart = (
 
 export type AddToWishlist = (productId: string) => Promise<void>;
 
+export type RemoveFromWishlist = (productId: string) => Promise<void>;
+
 export type RefreshCart = (coupon?: string) => Promise<void>;
 
 export type ProductsResponse = {
   products: Product[];
+  total: number;
+  page: number;
+  limit: number;
 };
+
+export type ProductSort = "featured" | "price-asc" | "price-desc" | "rating";
+
+export const PRODUCT_SORTS: { value: ProductSort; label: string }[] = [
+  { value: "featured", label: "Featured" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+  { value: "rating", label: "Top Rated" }
+];
 
 export type CategoriesResponse = {
   categories: Category[];

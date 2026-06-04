@@ -125,6 +125,30 @@ button {
   font-size: 12px;
 }
 
+.search-box input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+}
+
+.search-box input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.search-box__submit {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  display: inline-grid;
+  place-items: center;
+}
+
 .icon-button {
   width: 32px;
   height: 32px;
@@ -394,6 +418,53 @@ button {
   margin: 0;
 }
 
+.listing-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.listing-toolbar .section-header {
+  margin-bottom: 0;
+}
+
+.sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted, #555);
+}
+
+.sort-control select {
+  height: 36px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 0 12px;
+  font: inherit;
+  background: #fff;
+  cursor: pointer;
+}
+
+.listing-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 32px;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted, #555);
+}
+
+.listing-pagination__actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
 .section-header__actions,
 .carousel-controls {
   display: flex;
@@ -472,7 +543,8 @@ button {
 }
 
 .discount,
-.new-badge {
+.new-badge,
+.out-badge {
   position: absolute;
   left: 12px;
   top: 12px;
@@ -486,6 +558,18 @@ button {
 .new-badge {
   background: var(--accent-green);
   color: #000;
+}
+
+.out-badge {
+  background: #000;
+  color: #fff;
+}
+
+.add-cart:disabled {
+  background: var(--muted);
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .card-tools {
@@ -553,6 +637,32 @@ button {
   margin-top: 8px;
   color: var(--muted);
   font-size: 14px;
+}
+
+.product-card__actions {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-actions .button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 10px 12px;
+}
+
+.product-card__actions .button {
+  width: 100%;
 }
 
 .stars {
@@ -930,6 +1040,23 @@ button {
   border-radius: 50%;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px #000;
+  cursor: pointer;
+  padding: 0;
+  transition: box-shadow 0.15s ease;
+}
+
+.swatch.selected {
+  box-shadow: 0 0 0 2px var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.stock-in {
+  color: var(--accent-green, #00a86b);
+}
+
+.stock-out {
+  color: var(--accent);
 }
 
 .size {

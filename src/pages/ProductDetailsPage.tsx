@@ -22,8 +22,9 @@ type ProductDetailsPageProps = {
 
 export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductDetailsPageProps) {
   const [productState, setProductState] = useState<AsyncState<ProductDetailResponse | null>>({ data: null, loading: true, error: "" });
-  const [quantity, setQuantity] = useState(2);
-  const [size, setSize] = useState("M");
+  const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
   const [actionError, setActionError] = useState("");
 
   const loadProduct = useCallback(async () => {
@@ -64,11 +65,25 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
   }
 
   const { product, related } = productState.data;
+  const isOutOfStock = product.stockStatus === "Out of Stock";
+  const requiresColor = product.colors.length > 0;
+  const requiresSize = product.sizes.length > 0;
+  const canAddToCart = !isOutOfStock && (!requiresColor || selectedColor) && (!requiresSize || selectedSize);
 
   const addToCart = async () => {
+    if (!canAddToCart) {
+      if (requiresColor && !selectedColor) {
+        setActionError("Please choose a color before adding to cart.");
+        return;
+      }
+      if (requiresSize && !selectedSize) {
+        setActionError("Please choose a size before adding to cart.");
+        return;
+      }
+    }
     try {
       setActionError("");
-      await onAdd(product.id, quantity, product.colors[0], size);
+      await onAdd(product.id, quantity, selectedColor, selectedSize);
     } catch (error) {
       setActionError(getErrorMessage(error));
     }
@@ -92,13 +107,38 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
         <div className="main-product-image"><ProductVisual type={product.image} large /></div>
         <div className="product-info">
           <h1>{product.name}</h1>
-          <div className="review-line"><Stars value={product.rating} /><span>({product.reviewCount} Reviews)</span><i /> <strong>{product.stockStatus}</strong></div>
+          <div className="review-line"><Stars value={product.rating} /><span>({product.reviewCount} Reviews)</span><i /> <strong className={isOutOfStock ? "stock-out" : "stock-in"}>{isOutOfStock ? "Out of stock" : product.stockStatus}</strong></div>
           <p className="detail-price">{formatMoney(product.price)}</p>
           <p className="detail-copy">{product.description}</p>
           <hr />
-          <div className="choice-row"><span>Colours:</span>{product.colors.map((color) => <button key={color} className="swatch" style={{ background: color }} aria-label={`Color ${color}`} />)}</div>
-          {product.sizes.length > 0 && <div className="choice-row"><span>Size:</span>{product.sizes.map((entry) => <button key={entry} className={entry === size ? "selected size" : "size"} onClick={() => setSize(entry)}>{entry}</button>)}</div>}
-          <div className="buy-row"><QuantityStepper value={quantity} onChange={setQuantity} /><Button onClick={addToCart}>Buy Now</Button><button className="wishlist-square" onClick={addToWishlist}><Heart /></button></div>
+          {requiresColor && (
+            <div className="choice-row">
+              <span>Colours:</span>
+              {product.colors.map((color) => (
+                <button
+                  key={color}
+                  className={color === selectedColor ? "swatch selected" : "swatch"}
+                  style={{ background: color }}
+                  onClick={() => setSelectedColor(color)}
+                  aria-label={`Color ${color}`}
+                  aria-pressed={color === selectedColor}
+                />
+              ))}
+            </div>
+          )}
+          {requiresSize && (
+            <div className="choice-row">
+              <span>Size:</span>
+              {product.sizes.map((entry) => (
+                <button key={entry} className={entry === selectedSize ? "selected size" : "size"} onClick={() => setSelectedSize(entry)}>{entry}</button>
+              ))}
+            </div>
+          )}
+          <div className="buy-row">
+            <QuantityStepper value={quantity} onChange={setQuantity} />
+            <Button onClick={addToCart} disabled={!canAddToCart}>{isOutOfStock ? "Out of stock" : "Buy Now"}</Button>
+            <button className="wishlist-square" onClick={addToWishlist} aria-label="Add to wishlist"><Heart /></button>
+          </div>
           <div className="delivery-box"><div><Truck /><div><h4>Free Delivery</h4><p>Enter your postal code for Delivery Availability</p></div></div><div><ShieldCheck /><div><h4>Return Delivery</h4><p>Free 30 Days Delivery Returns. Details</p></div></div></div>
         </div>
       </section>

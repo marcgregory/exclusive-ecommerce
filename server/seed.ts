@@ -300,7 +300,18 @@ export const createInitialStore = (): StoreState => ({
       lastName: "Rimel",
       email: "rimel@example.com",
       address: "Kingston, 5236, United States",
-      passwordHash: "$2a$10$B6dNT7Tq7i.FwVT3ZmNFz.j2JcJzTxzsW/qOJcE.FfrzLOq67kd6a"
+      passwordHash: "$2a$10$B6dNT7Tq7i.FwVT3ZmNFz.j2JcJzTxzsW/qOJcE.FfrzLOq67kd6a",
+      role: "admin"
+    },
+    {
+      id: "admin-user",
+      firstName: "Admin",
+      lastName: "Operator",
+      email: "admin@exclusive.com",
+      address: "Head Office, 100 Admin Way",
+      // Admin123! — bcrypt hash cost 10
+      passwordHash: "$2b$10$VCpqK2jMV2ZDhWQTC2OfpO27xvtqeZGZ1oshL8r5lWqlzfBTk9FvC",
+      role: "admin"
     }
   ],
   categories,

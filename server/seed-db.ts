@@ -12,8 +12,8 @@ export async function seedDatabase(): Promise<void> {
 
     for (const user of state.users) {
       await client.query(
-        "INSERT INTO users (id, first_name, last_name, email, address, password_hash) VALUES ($1, $2, $3, $4, $5, $6)",
-        [user.id, user.firstName, user.lastName, user.email, user.address, user.passwordHash]
+        "INSERT INTO users (id, first_name, last_name, email, address, password_hash, role) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        [user.id, user.firstName, user.lastName, user.email, user.address, user.passwordHash, user.role ?? "customer"]
       );
     }
 

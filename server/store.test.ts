@@ -6,17 +6,28 @@ import {
   addCartItem,
   addWishlistProduct,
   createContactMessage,
+  createCoupon,
   createOrder,
+  createProduct,
   createUser,
   deleteCartItem,
+  deleteCoupon,
+  deleteProduct,
   deleteWishlistProduct,
   findUserByEmail,
+  getAdminOrder,
   getSessionUser,
   getUserCart,
   getWishlistProducts,
+  listAdminOrders,
+  listContactMessages,
   listProducts,
+  setCouponActive,
   toCartResponse,
   updateCartItem,
+  updateContactMessageStatus,
+  updateOrderStatus,
+  updateProduct,
   updateUser,
   validateCoupon
 } from "./store.js";
@@ -110,10 +121,11 @@ describe("PostgreSQL persistence", () => {
       passwordHash: "hashed"
     });
 
-    expect(await findUserByEmail("ADA@example.com")).toMatchObject({ id: user.id });
+    expect(user.role).toBe("customer");
+    expect(await findUserByEmail("ADA@example.com")).toMatchObject({ id: user.id, role: "customer" });
 
     const updated = await updateUser(user.id, { address: "New address" });
-    expect(updated).toMatchObject({ address: "New address", email: "ada@example.com" });
+    expect(updated).toMatchObject({ address: "New address", email: "ada@example.com", role: "customer" });
   });
 
   it("creates orders transactionally and clears the cart", async () => {
@@ -134,5 +146,89 @@ describe("PostgreSQL persistence", () => {
 
     expect(message).toMatchObject({ name: "Ada", email: "ada@example.com", status: "new" });
     expect(message.createdAt).toEqual(expect.any(String));
+  });
+
+  it("exposes role on the session user", async () => {
+    const adminSession = await getSessionUser({ session: { userId: "demo-user" } });
+    expect(adminSession).toMatchObject({ role: "admin" });
+  });
+
+  it("creates, updates, and deletes products via the admin repo", async () => {
+    const product = await createProduct({
+      name: "Test Drone",
+      category: "electronics",
+      description: "Quadcopter with HD camera",
+      price: 199,
+      originalPrice: 249,
+      discountPercent: 20,
+      rating: 4.5,
+      reviewCount: 12,
+      stockStatus: "In Stock",
+      colors: ["#111111"],
+      sizes: [],
+      isNew: true,
+      flags: ["flash"],
+      image: "drone"
+    });
+
+    expect(product).toMatchObject({ name: "Test Drone", price: 199, isNew: true });
+    const found = await query("SELECT * FROM products WHERE id = $1", [product.id]);
+    expect(found.rows[0].image_key).toBe("drone");
+
+    const updated = await updateProduct(product.id, { price: 150, stockStatus: "Out of Stock" });
+    expect(updated).toMatchObject({ price: 150, stockStatus: "Out of Stock" });
+
+    expect(await deleteProduct(product.id)).toBe(true);
+    expect(await deleteProduct(product.id)).toBe(false);
+  });
+
+  it("advances order status through valid transitions", async () => {
+    const order = await createOrder(
+      "demo-user",
+      { firstName: "Md", streetAddress: "1 St", townCity: "Dhaka", phone: "1", email: "rimel@example.com" },
+      "bank"
+    );
+
+    const shipped = await updateOrderStatus(order.id, "shipped");
+    expect(shipped).toMatchObject({ id: order.id, status: "shipped" });
+
+    const fetched = await getAdminOrder(order.id);
+    expect(fetched).toMatchObject({ id: order.id, status: "shipped", customerEmail: "rimel@example.com" });
+
+    await expect(updateOrderStatus(order.id, "nope")).rejects.toThrow("Invalid order status");
+  });
+
+  it("filters admin order listings by status and email", async () => {
+    await createOrder("demo-user", { firstName: "Md", streetAddress: "1 St", townCity: "Dhaka", phone: "1", email: "rimel@example.com" }, "bank");
+    const all = await listAdminOrders();
+    expect(all.orders).toHaveLength(1);
+
+    const filtered = await listAdminOrders({ status: "processing" });
+    expect(filtered.orders).toHaveLength(1);
+
+    const empty = await listAdminOrders({ email: "nobody@example.com" });
+    expect(empty.orders).toHaveLength(0);
+    expect(empty.total).toBe(0);
+  });
+
+  it("soft-toggles and creates coupons", async () => {
+    const created = await createCoupon({ code: "SUMMER25", type: "percent", amount: 25, active: true });
+    expect(created).toMatchObject({ code: "SUMMER25", amount: 25, active: true });
+
+    const toggled = await setCouponActive("SUMMER25", false);
+    expect(toggled).toMatchObject({ code: "SUMMER25", active: false });
+    expect(await validateCoupon("SUMMER25")).toBeNull();
+
+    expect(await deleteCoupon("SUMMER25")).toBe(true);
+    expect(await deleteCoupon("SUMMER25")).toBe(false);
+  });
+
+  it("lists and updates contact message status", async () => {
+    const message = await createContactMessage({ name: "Ada", email: "ada@example.com", phone: "555", message: "Hi" });
+    const listed = await listContactMessages({ status: "new" });
+    expect(listed.messages.map((m) => m.id)).toContain(message.id);
+
+    const updated = await updateContactMessageStatus(message.id, "replied");
+    expect(updated).toMatchObject({ id: message.id, status: "replied" });
   });
 });

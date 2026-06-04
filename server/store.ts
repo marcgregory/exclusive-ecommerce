@@ -15,7 +15,7 @@ type ProductFilters = {
   limit?: number;
 };
 
-type NewUser = Omit<User, "id">;
+type NewUser = Omit<User, "id" | "role"> & { role?: User["role"] };
 type UpdateUserInput = Partial<Pick<User, "firstName" | "lastName" | "email" | "address" | "passwordHash">>;
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -30,7 +30,8 @@ function mapUser(row: QueryResultRow): User {
     lastName: String(row.last_name || ""),
     email: String(row.email || ""),
     address: String(row.address || ""),
-    passwordHash: String(row.password_hash || "")
+    passwordHash: String(row.password_hash || ""),
+    role: row.role === "admin" ? "admin" : "customer"
   };
 }
 
@@ -143,7 +144,7 @@ export async function loadStore(): Promise<void> {
 export function publicUser(user?: User | null) {
   if (!user) return null;
   const { passwordHash, ...safeUser } = user;
-  return safeUser;
+  return { ...safeUser, role: user.role };
 }
 
 export async function getSessionUser(req: { session?: { userId?: string } }): Promise<User | undefined> {
@@ -162,8 +163,8 @@ export async function findUserByEmail(email: string): Promise<User | undefined> 
 export async function createUser(input: NewUser): Promise<User> {
   const id = nowId("user");
   const result = await query(
-    "INSERT INTO users (id, first_name, last_name, email, address, password_hash) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-    [id, input.firstName, input.lastName, input.email, input.address, input.passwordHash]
+    "INSERT INTO users (id, first_name, last_name, email, address, password_hash, role) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'customer')) RETURNING *",
+    [id, input.firstName, input.lastName, input.email, input.address, input.passwordHash, input.role ?? null]
   );
   return mapUser(result.rows[0]);
 }
@@ -263,6 +264,18 @@ export async function toCartResponse(cart: Cart, couponCode?: string, client?: Q
 export async function addCartItem(userId: string, input: Omit<CartItem, "id">): Promise<CartResponse> {
   const product = await findProduct(input.productId);
   if (!product) throw Object.assign(new Error("Product not found"), { status: 404 });
+  if (product.stockStatus === "Out of Stock") {
+    throw Object.assign(new Error(`${product.name} is out of stock`), { status: 409 });
+  }
+  if (product.colors.length > 0 && !input.selectedColor) {
+    throw Object.assign(new Error(`Please choose a color for ${product.name}`), { status: 400 });
+  }
+  if (product.sizes.length > 0 && !input.selectedSize) {
+    throw Object.assign(new Error(`Please choose a size for ${product.name}`), { status: 400 });
+  }
+  if (!Number.isFinite(input.quantity) || input.quantity < 1) {
+    throw Object.assign(new Error(`Quantity must be at least 1 for ${product.name}`), { status: 400 });
+  }
   const cart = await getUserCart(userId);
   const existing = cart.items.find(
     (item) => item.productId === input.productId && item.selectedColor === input.selectedColor && item.selectedSize === input.selectedSize
@@ -334,6 +347,20 @@ export async function createOrder(userId: string, billing: Record<string, string
     const totals = await toCartResponse(cart, couponCode, client);
     if (!totals.items.length) throw Object.assign(new Error("Cart is empty"), { status: 400 });
 
+    for (const item of totals.items) {
+      const product = await findProduct(item.productId, client);
+      if (!product) throw Object.assign(new Error(`Product ${item.productId} is no longer available`), { status: 409 });
+      if (product.stockStatus === "Out of Stock") {
+        throw Object.assign(new Error(`${product.name} is out of stock`), { status: 409 });
+      }
+      if (product.colors.length > 0 && !item.selectedColor) {
+        throw Object.assign(new Error(`Please choose a color for ${product.name}`), { status: 400 });
+      }
+      if (product.sizes.length > 0 && !item.selectedSize) {
+        throw Object.assign(new Error(`Please choose a size for ${product.name}`), { status: 400 });
+      }
+    }
+
     const orderId = nowId("order");
     const orderResult = await client.query(
       `INSERT INTO orders (id, user_id, billing, payment_method, subtotal, discount, shipping, total, status)
@@ -399,3 +426,386 @@ export async function createContactMessage(input: Pick<ContactMessage, "name" | 
   );
   return mapContactMessage(result.rows[0]);
 }
+
+// ---------------------------------------------------------------------------
+// Admin functions
+// ---------------------------------------------------------------------------
+
+export type AdminOrderFilters = {
+  status?: string;
+  email?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type AdminOrder = Order & { customerEmail: string; customerName: string };
+
+const ORDER_STATUSES = ["processing", "shipped", "delivered", "cancelled"] as const;
+export const ORDER_STATUS_VALUES = ORDER_STATUSES;
+
+function isValidOrderStatus(value: string): value is (typeof ORDER_STATUSES)[number] {
+  return (ORDER_STATUSES as readonly string[]).includes(value);
+}
+
+async function getOrderItemsWithProduct(orderId: string, client?: Queryable) {
+  const result = await run(client).query("SELECT * FROM order_items WHERE order_id = $1 ORDER BY id", [orderId]);
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    productId: String(row.product_id),
+    quantity: Number(row.quantity || 1),
+    selectedColor: String(row.selected_color || ""),
+    selectedSize: String(row.selected_size || ""),
+    name: String(row.name),
+    price: toNumber(row.price)
+  }));
+}
+
+function mapAdminOrder(row: QueryResultRow, items: Array<CartItem & { name: string; price: number }>): AdminOrder {
+  const billing = (row.billing || {}) as Record<string, string>;
+  return {
+    ...mapOrder(row, items),
+    customerEmail: String(row.user_email || ""),
+    customerName: `${billing.firstName || ""} ${billing.lastName || ""}`.trim() || String(row.user_email || "")
+  };
+}
+
+export async function listAdminOrders(filters: AdminOrderFilters = {}): Promise<{ orders: AdminOrder[]; total: number; page: number; limit: number }> {
+  const where: string[] = [];
+  const values: unknown[] = [];
+
+  if (filters.status && isValidOrderStatus(filters.status)) {
+    values.push(filters.status);
+    where.push(`o.status = $${values.length}`);
+  }
+  if (filters.email) {
+    values.push(`%${filters.email.toLowerCase()}%`);
+    where.push(`LOWER(u.email) LIKE $${values.length}`);
+  }
+  if (filters.from) {
+    values.push(filters.from);
+    where.push(`o.created_at >= $${values.length}`);
+  }
+  if (filters.to) {
+    values.push(filters.to);
+    where.push(`o.created_at <= $${values.length}`);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const totalResult = await query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM orders o LEFT JOIN users u ON u.id = o.user_id ${whereSql}`,
+    values
+  );
+
+  const page = Math.max(1, Number(filters.page || 1));
+  const limit = Math.max(1, Number(filters.limit || 25));
+  const offset = (page - 1) * limit;
+  const pageValues = [...values, limit, offset];
+  const result = await query(
+    `SELECT o.*, u.email AS user_email
+     FROM orders o
+     LEFT JOIN users u ON u.id = o.user_id
+     ${whereSql}
+     ORDER BY o.created_at DESC, o.id DESC
+     LIMIT $${pageValues.length - 1} OFFSET $${pageValues.length}`,
+    pageValues
+  );
+
+  const orders: AdminOrder[] = [];
+  for (const row of result.rows) orders.push(mapAdminOrder(row, await getOrderItemsWithProduct(String(row.id))));
+  return { orders, total: Number(totalResult.rows[0]?.count || 0), page, limit };
+}
+
+export async function getAdminOrder(orderId: string): Promise<AdminOrder | undefined> {
+  const result = await query(
+    "SELECT o.*, u.email AS user_email FROM orders o LEFT JOIN users u ON u.id = o.user_id WHERE o.id = $1 LIMIT 1",
+    [orderId]
+  );
+  if (!result.rows[0]) return undefined;
+  return mapAdminOrder(result.rows[0], await getOrderItemsWithProduct(orderId));
+}
+
+export async function updateOrderStatus(orderId: string, status: string): Promise<AdminOrder | undefined> {
+  if (!isValidOrderStatus(status)) {
+    throw Object.assign(new Error(`Invalid order status: ${status}`), { status: 400 });
+  }
+  const result = await query("UPDATE orders SET status = $2 WHERE id = $1 RETURNING *", [orderId, status]);
+  if (!result.rows[0]) return undefined;
+  return getAdminOrder(orderId);
+}
+
+// ---------------------------------------------------------------------------
+// Admin: products
+// ---------------------------------------------------------------------------
+
+export type ProductInput = {
+  name: string;
+  category: string;
+  description: string;
+  price: number;
+  originalPrice: number;
+  discountPercent: number;
+  rating: number;
+  reviewCount: number;
+  stockStatus: string;
+  colors: string[];
+  sizes: string[];
+  isNew: boolean;
+  flags: string[];
+  image: string;
+};
+
+const STOCK_STATUSES = ["In Stock", "Out of Stock", "Preorder"] as const;
+
+function validateProductInput(input: Partial<ProductInput>): ProductInput {
+  const name = String(input.name || "").trim();
+  if (!name) throw Object.assign(new Error("Product name is required"), { status: 400 });
+  const category = String(input.category || "").trim();
+  if (!category) throw Object.assign(new Error("Category is required"), { status: 400 });
+  const description = String(input.description || "").trim();
+  const price = Number(input.price ?? 0);
+  if (!Number.isFinite(price) || price < 0) throw Object.assign(new Error("Price must be a non-negative number"), { status: 400 });
+  const originalPrice = Number(input.originalPrice ?? 0);
+  if (!Number.isFinite(originalPrice) || originalPrice < 0) throw Object.assign(new Error("Original price must be a non-negative number"), { status: 400 });
+  const discountPercent = Math.max(0, Math.min(100, Math.round(Number(input.discountPercent ?? 0))));
+  const rating = Math.max(0, Math.min(5, Number(input.rating ?? 0)));
+  const reviewCount = Math.max(0, Math.round(Number(input.reviewCount ?? 0)));
+  const stockStatus = String(input.stockStatus || "In Stock");
+  if (!(STOCK_STATUSES as readonly string[]).includes(stockStatus)) {
+    throw Object.assign(new Error("Invalid stock status"), { status: 400 });
+  }
+  const colors = Array.isArray(input.colors) ? input.colors.map(String) : [];
+  const sizes = Array.isArray(input.sizes) ? input.sizes.map(String) : [];
+  const isNew = Boolean(input.isNew);
+  const flags = Array.isArray(input.flags) ? input.flags.map(String) : [];
+  const image = String(input.image || "").trim();
+  return { name, category, description, price, originalPrice, discountPercent, rating, reviewCount, stockStatus, colors, sizes, isNew, flags, image };
+}
+
+export async function createProduct(input: Partial<ProductInput>): Promise<Product> {
+  const data = validateProductInput(input);
+  const id = nowId("prod");
+  const result = await query(
+    `INSERT INTO products (
+      id, name, category_id, description, price, original_price, discount_percent,
+      rating, review_count, stock_status, colors, sizes, is_new, image_key, flags, sort_order
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 0) RETURNING *`,
+    [
+      id,
+      data.name,
+      data.category,
+      data.description,
+      data.price,
+      data.originalPrice,
+      data.discountPercent,
+      data.rating,
+      data.reviewCount,
+      data.stockStatus,
+      data.colors,
+      data.sizes,
+      data.isNew,
+      data.image,
+      data.flags
+    ]
+  );
+  return mapProduct(result.rows[0]);
+}
+
+export async function updateProduct(productId: string, input: Partial<ProductInput>): Promise<Product | undefined> {
+  const existing = await findProduct(productId);
+  if (!existing) return undefined;
+  const merged: ProductInput = { ...existing, ...input };
+  const data = validateProductInput(merged);
+  const result = await query(
+    `UPDATE products SET
+      name = $2, category_id = $3, description = $4, price = $5, original_price = $6,
+      discount_percent = $7, rating = $8, review_count = $9, stock_status = $10,
+      colors = $11, sizes = $12, is_new = $13, image_key = $14, flags = $15
+     WHERE id = $1 RETURNING *`,
+    [
+      productId,
+      data.name,
+      data.category,
+      data.description,
+      data.price,
+      data.originalPrice,
+      data.discountPercent,
+      data.rating,
+      data.reviewCount,
+      data.stockStatus,
+      data.colors,
+      data.sizes,
+      data.isNew,
+      data.image,
+      data.flags
+    ]
+  );
+  return result.rows[0] ? mapProduct(result.rows[0]) : undefined;
+}
+
+export async function deleteProduct(productId: string): Promise<boolean> {
+  const result = await query("DELETE FROM products WHERE id = $1", [productId]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Admin: categories
+// ---------------------------------------------------------------------------
+
+export type CategoryInput = {
+  label: string;
+  slug: string;
+  icon: string;
+  children: string[];
+  sortOrder: number;
+  parentId: string | null;
+};
+
+function validateCategoryInput(input: Partial<CategoryInput>): CategoryInput {
+  const label = String(input.label || "").trim();
+  if (!label) throw Object.assign(new Error("Category label is required"), { status: 400 });
+  const slug = String(input.slug || label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")).trim();
+  if (!slug) throw Object.assign(new Error("Category slug is required"), { status: 400 });
+  const icon = String(input.icon || "").trim();
+  const children = Array.isArray(input.children) ? input.children.map(String) : [];
+  const sortOrder = Math.round(Number(input.sortOrder ?? 0));
+  const parentId = input.parentId ? String(input.parentId) : null;
+  return { label, slug, icon, children, sortOrder, parentId };
+}
+
+export async function createCategory(input: Partial<CategoryInput>): Promise<Category> {
+  const data = validateCategoryInput(input);
+  const id = nowId("cat");
+  const result = await query(
+    "INSERT INTO categories (id, label, slug, icon, children, sort_order, parent_id) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7) RETURNING *",
+    [id, data.label, data.slug, data.icon, JSON.stringify(data.children), data.sortOrder, data.parentId]
+  );
+  return mapCategory(result.rows[0]);
+}
+
+export async function updateCategory(categoryId: string, input: Partial<CategoryInput>): Promise<Category | undefined> {
+  const existing = (await listCategories()).find((category) => category.id === categoryId);
+  if (!existing) return undefined;
+  const merged: CategoryInput = {
+    label: existing.label,
+    slug: existing.slug,
+    icon: existing.icon,
+    children: existing.children,
+    sortOrder: 0,
+    parentId: null,
+    ...input
+  };
+  const data = validateCategoryInput(merged);
+  const result = await query(
+    "UPDATE categories SET label = $2, slug = $3, icon = $4, children = $5::jsonb, sort_order = $6, parent_id = $7 WHERE id = $1 RETURNING *",
+    [categoryId, data.label, data.slug, data.icon, JSON.stringify(data.children), data.sortOrder, data.parentId]
+  );
+  return result.rows[0] ? mapCategory(result.rows[0]) : undefined;
+}
+
+export async function deleteCategory(categoryId: string): Promise<boolean> {
+  const result = await query("DELETE FROM categories WHERE id = $1", [categoryId]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Admin: coupons
+// ---------------------------------------------------------------------------
+
+export type CouponInput = {
+  code: string;
+  type: "percent" | "fixed";
+  amount: number;
+  active: boolean;
+};
+
+function validateCouponInput(input: Partial<CouponInput>): CouponInput {
+  const code = String(input.code || "").trim().toUpperCase();
+  if (!code) throw Object.assign(new Error("Coupon code is required"), { status: 400 });
+  if (code.length > 32) throw Object.assign(new Error("Coupon code is too long"), { status: 400 });
+  const type: "percent" | "fixed" = input.type === "fixed" ? "fixed" : "percent";
+  const amount = Number(input.amount ?? 0);
+  if (!Number.isFinite(amount) || amount < 0) throw Object.assign(new Error("Amount must be a non-negative number"), { status: 400 });
+  if (type === "percent" && amount > 100) throw Object.assign(new Error("Percent coupons cannot exceed 100"), { status: 400 });
+  const active = input.active === false ? false : true;
+  return { code, type, amount, active };
+}
+
+export async function createCoupon(input: Partial<CouponInput>): Promise<Coupon> {
+  const data = validateCouponInput(input);
+  const result = await query(
+    "INSERT INTO coupons (code, type, amount, active) VALUES ($1, $2, $3, $4) ON CONFLICT (code) DO UPDATE SET type = EXCLUDED.type, amount = EXCLUDED.amount, active = EXCLUDED.active RETURNING *",
+    [data.code, data.type, data.amount, data.active]
+  );
+  return mapCoupon(result.rows[0]);
+}
+
+export async function updateCoupon(code: string, input: Partial<CouponInput>): Promise<Coupon | undefined> {
+  const existing = await query("SELECT * FROM coupons WHERE UPPER(code) = UPPER($1) LIMIT 1", [code]);
+  if (!existing.rows[0]) return undefined;
+  const current = mapCoupon(existing.rows[0]);
+  const merged: CouponInput = { ...current, ...input };
+  const data = validateCouponInput(merged);
+  const result = await query(
+    "UPDATE coupons SET type = $2, amount = $3, active = $4 WHERE UPPER(code) = UPPER($1) RETURNING *",
+    [code, data.type, data.amount, data.active]
+  );
+  return result.rows[0] ? mapCoupon(result.rows[0]) : undefined;
+}
+
+export async function setCouponActive(code: string, active: boolean): Promise<Coupon | undefined> {
+  const result = await query("UPDATE coupons SET active = $2 WHERE UPPER(code) = UPPER($1) RETURNING *", [code, Boolean(active)]);
+  return result.rows[0] ? mapCoupon(result.rows[0]) : undefined;
+}
+
+export async function deleteCoupon(code: string): Promise<boolean> {
+  const result = await query("DELETE FROM coupons WHERE UPPER(code) = UPPER($1)", [code]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Admin: contact messages
+// ---------------------------------------------------------------------------
+
+export type ContactMessageFilters = {
+  status?: string;
+  page?: number;
+  limit?: number;
+};
+
+const CONTACT_STATUSES = ["new", "read", "replied"] as const;
+
+export async function listContactMessages(filters: ContactMessageFilters = {}): Promise<{ messages: ContactMessage[]; total: number; page: number; limit: number }> {
+  const where: string[] = [];
+  const values: unknown[] = [];
+  if (filters.status && (CONTACT_STATUSES as readonly string[]).includes(filters.status)) {
+    values.push(filters.status);
+    where.push(`status = $${values.length}`);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const totalResult = await query<{ count: string }>(`SELECT COUNT(*) AS count FROM contact_messages ${whereSql}`, values);
+  const page = Math.max(1, Number(filters.page || 1));
+  const limit = Math.max(1, Number(filters.limit || 25));
+  const offset = (page - 1) * limit;
+  const pageValues = [...values, limit, offset];
+  const result = await query(
+    `SELECT * FROM contact_messages ${whereSql} ORDER BY created_at DESC, id DESC LIMIT $${pageValues.length - 1} OFFSET $${pageValues.length}`,
+    pageValues
+  );
+  return {
+    messages: result.rows.map(mapContactMessage),
+    total: Number(totalResult.rows[0]?.count || 0),
+    page,
+    limit
+  };
+}
+
+export async function updateContactMessageStatus(messageId: string, status: string): Promise<ContactMessage | undefined> {
+  if (!(CONTACT_STATUSES as readonly string[]).includes(status)) {
+    throw Object.assign(new Error("Invalid contact status"), { status: 400 });
+  }
+  const result = await query("UPDATE contact_messages SET status = $2 WHERE id = $1 RETURNING *", [messageId, status]);
+  return result.rows[0] ? mapContactMessage(result.rows[0]) : undefined;
+}
+

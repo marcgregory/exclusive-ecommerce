@@ -2,7 +2,7 @@
 
 ## Entry Point
 
-The React app starts at `src/main.tsx`. It currently uses a lightweight client-side router based on `window.history`.
+The React app starts at `frontend/src/main.tsx`. It currently uses a lightweight client-side router based on `window.history`.
 
 ## Routes
 
@@ -33,7 +33,7 @@ Keep reusable UI in small components before adding page-specific markup. Importa
 
 ## Styling
 
-Styles live in `src/styles.css`. Prefer extending the existing design tokens at the top of the file:
+Styles live in `frontend/src/styles.css`. Prefer extending the existing design tokens at the top of the file:
 
 ```css
 :root {
@@ -47,7 +47,7 @@ Use the existing layout classes before creating new ones. Keep desktop layout cl
 
 ## API Calls
 
-Use the `api<T>()` helper in `src/main.tsx` for browser-to-server calls. It automatically includes JSON headers and cookies.
+Use the `api<T>()` helper in `frontend/src/api/client.ts` for browser-to-server calls. It automatically includes JSON headers and cookies.
 
 ```ts
 const data = await api<{ products: Product[] }>("/api/products");
@@ -55,5 +55,4 @@ const data = await api<{ products: Product[] }>("/api/products");
 
 ## TypeScript
 
-Frontend domain types are defined near the top of `src/main.tsx`. If the app grows, move them into `src/types.ts` and import them from pages/components.
-
+Frontend domain types live in `frontend/src/types/index.ts` and are imported by pages/components.

@@ -4,10 +4,10 @@
 
 Exclusive is a full-stack ecommerce app with a React/Vite frontend and a Node/Express backend.
 
-- Frontend source: `src/`
-- Backend source: `server/`
-- Database schema: `server/schema.sql`
-- Local development data: `server/data/store.json`
+- Frontend source: `frontend/src/`
+- Backend source: `backend/src/`
+- Database schema: `backend/src/schema.sql`
+- Local Docker stack: root `docker-compose.yml`
 
 The app currently uses a JSON-backed store for fast local development. The schema is PostgreSQL-ready so the backend can be moved to a real database without changing the frontend API contract.
 
@@ -15,8 +15,8 @@ The app currently uses a JSON-backed store for fast local development. The schem
 
 1. The browser loads the React app from Vite.
 2. React calls the Express API through `VITE_API_BASE`, defaulting to `http://127.0.0.1:4000`.
-3. Express reads and writes ecommerce state through `server/store.ts`.
-4. The local store persists to `server/data/store.json`.
+3. Express reads and writes ecommerce state through `backend/src/store.ts`.
+4. PostgreSQL stores ecommerce data locally, in CI, and in production.
 
 ## Main Domains
 
@@ -37,4 +37,3 @@ The frontend follows the Figma-derived system:
 - Typography: Poppins for body, Inter for logo/headline text
 - Controls: 4px radius
 - Product cards: 270px desktop width
-

@@ -18,6 +18,12 @@ type StripePaymentIntent = {
   metadata?: Record<string, string>;
 };
 
+type StripeErrorResponse = {
+  error?: {
+    message?: string;
+  };
+};
+
 export type StripeWebhookEvent = {
   id?: string;
   type?: string;
@@ -141,12 +147,15 @@ async function createStripePayment(
     },
     body,
   });
-  const data = await response.json().catch(() => ({}));
+  const data = (await response.json().catch(() => ({}))) as
+    | StripePaymentIntent
+    | StripeErrorResponse;
 
   if (!response.ok) {
+    const errorData = data as StripeErrorResponse;
     const message =
-      typeof data?.error?.message === "string"
-        ? data.error.message
+      typeof errorData.error?.message === "string"
+        ? errorData.error.message
         : "Stripe payment intent could not be created";
     throw Object.assign(new Error(message), { status: response.status || 502 });
   }

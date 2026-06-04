@@ -7,11 +7,18 @@ Full-stack ecommerce implementation based on the Figma “Exclusive” design.
 - React + Vite + TypeScript frontend
 - Node/Express + TypeScript API
 - PostgreSQL persistence using `pg`
-- Source migration in `server/schema.sql`
+- Source migration in `backend/src/schema.sql`
+
+## Project Structure
+
+- `frontend/`: Vercel-ready React/Vite app
+- `backend/`: Render-ready Express API
+- `docker-compose.yml`: local frontend, backend, and PostgreSQL stack
 
 ## Run Locally
 
 ```powershell
+cd backend
 & 'C:\nvm4w\nodejs\npm.cmd' install
 Set-Item Env:DATABASE_URL 'postgres://postgres:postgres@127.0.0.1:5432/exclusive_ecommerce'
 & 'C:\nvm4w\nodejs\npm.cmd' run db:migrate
@@ -19,16 +26,42 @@ Set-Item Env:DATABASE_URL 'postgres://postgres:postgres@127.0.0.1:5432/exclusive
 & 'C:\nvm4w\nodejs\npm.cmd' run dev
 ```
 
+In another terminal:
+
+```powershell
+cd frontend
+& 'C:\nvm4w\nodejs\npm.cmd' install
+& 'C:\nvm4w\nodejs\npm.cmd' run dev
+```
+
 Frontend: `http://127.0.0.1:5173/`
 
 API: `http://127.0.0.1:4000/api/health`
 
+## Run With Docker
+
+```powershell
+npm run docker:up
+npm run docker:migrate
+npm run docker:seed
+```
+
 Backend tests require an isolated PostgreSQL database:
 
 ```powershell
+cd backend
 Set-Item Env:TEST_DATABASE_URL 'postgres://postgres:postgres@127.0.0.1:5432/exclusive_ecommerce_test'
 & 'C:\nvm4w\nodejs\npm.cmd' test
 ```
+
+## Deployment
+
+- Vercel root directory: `frontend`
+- Vercel build command: `npm run build`
+- Vercel output directory: `dist`
+- Render root directory: `backend`
+- Render build command: `npm install && npm run build`
+- Render start command: `npm start`
 
 ## Guides
 

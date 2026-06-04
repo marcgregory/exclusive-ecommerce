@@ -2,12 +2,13 @@
 
 ## Entry Point
 
-The API starts at `server/index.ts`.
+The API starts at `backend/src/index.ts`.
 
 Run it with:
 
 ```powershell
-& 'C:\nvm4w\nodejs\npm.cmd' run dev:api
+cd backend
+& 'C:\nvm4w\nodejs\npm.cmd' run dev
 ```
 
 ## API Groups
@@ -57,7 +58,7 @@ Product listing supports `category`, `q`, `flag`, `sort`, `page`, and `limit`.
 
 ## Data Store
 
-`server/store.ts` exposes PostgreSQL-backed repository functions. `server/db.ts` owns the shared `pg` pool, and `server/types.ts` defines backend domain types.
+`backend/src/store.ts` exposes PostgreSQL-backed repository functions. `backend/src/db.ts` owns the shared `pg` pool, and `backend/src/types.ts` defines backend domain types.
 
 The app requires `DATABASE_URL` at runtime. `SESSION_SECRET` is optional in development, but production requires a non-default value with at least 32 characters. Session cookies are `httpOnly`, `sameSite: "lax"`, and use `secure: true` when `NODE_ENV=production`.
 
@@ -79,11 +80,11 @@ Backend tests require `TEST_DATABASE_URL`. The test suite runs migrations and re
 
 ## Database
 
-Use `server/schema.sql` as the PostgreSQL migration source. It includes users, products, categories, variants, carts, wishlists, coupons, orders, and contact messages.
+Use `backend/src/schema.sql` as the PostgreSQL migration source. It includes users, products, categories, variants, carts, wishlists, coupons, orders, and contact messages.
 
 ## Rate Limiting
 
-`server/index.ts` mounts two `express-rate-limit` middlewares (default in-memory store):
+`backend/src/index.ts` mounts two `express-rate-limit` middlewares (default in-memory store):
 
 - `authLimiter` on `POST /api/auth/register` and `POST /api/auth/login` — 10 requests per 15 minutes per IP.
 - `contactLimiter` on `POST /api/contact` — 5 requests per hour per IP.

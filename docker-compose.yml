@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: exclusive_ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d exclusive_ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      WEB_ORIGIN: http://127.0.0.1:5173
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/exclusive_ecommerce
+      SESSION_SECRET: replace-me-with-at-least-32-characters
+      PAYMENT_PROVIDER: local
+      STRIPE_CURRENCY: usd
+      STRIPE_AMOUNT_MULTIPLIER: 100
+    ports:
+      - "127.0.0.1:4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE: http://127.0.0.1:4000
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+
+volumes:
+  postgres-data:
+  backend-node-modules:
+  frontend-node-modules:

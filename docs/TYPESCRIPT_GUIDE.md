@@ -4,9 +4,9 @@
 
 The project now uses TypeScript for both the frontend and backend.
 
-- Frontend entry: `src/main.tsx`
-- Backend entry: `server/index.ts`
-- Backend types: `server/types.ts`
+- Frontend entry: `frontend/src/main.tsx`
+- Backend entry: `backend/src/index.ts`
+- Backend types: `backend/src/types.ts`
 - TypeScript config: `tsconfig.json`
 
 ## Commands
@@ -29,13 +29,12 @@ This matches Node ESM output conventions and works with `tsx` during development
 
 ## Adding Types
 
-Add backend API/domain types to `server/types.ts`.
+Add backend API/domain types to `backend/src/types.ts`.
 
-For frontend-only UI types, keep them near the component while small. Move them to `src/types.ts` once multiple files need them.
+For frontend-only UI types, keep them near the component while small. Move shared types to `frontend/src/types/index.ts` once multiple files need them.
 
 ## Safety Rules
 
 - Run `npm run typecheck` before major commits.
 - Keep API response shapes typed at call sites, for example `api<{ cart: Cart }>("/api/cart")`.
-- Avoid `any` for new domain objects. Use explicit types in `server/types.ts`.
-
+- Avoid `any` for new domain objects. Use explicit types in `backend/src/types.ts`.

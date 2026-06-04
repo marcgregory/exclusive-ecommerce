@@ -1,9 +1,17 @@
 ## Running tests
 
-- Run the full test suite locally:
+- Run frontend tests:
 
 ```bash
+cd frontend
 npm test
+```
+
+- Run backend tests:
+
+```bash
+cd backend
+TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/exclusive_ecommerce_test npm test
 ```
 
 - Run a single test file (Vitest):

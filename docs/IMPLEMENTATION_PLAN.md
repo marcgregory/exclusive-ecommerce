@@ -4,25 +4,25 @@
 
 The project already has a working TypeScript full-stack foundation:
 
-- React/Vite storefront in `src/main.tsx`
-- Express API in `server/index.ts`
-- Typed backend domain models in `server/types.ts`
-- Local JSON-backed development store in `server/store.ts`
-- PostgreSQL schema in `server/schema.sql`
+- React/Vite storefront in `frontend/src/main.tsx`
+- Express API in `backend/src/index.ts`
+- Typed backend domain models in `backend/src/types.ts`
+- PostgreSQL-backed store in `backend/src/store.ts`
+- PostgreSQL schema in `backend/src/schema.sql`
 - Core ecommerce routes, cart, wishlist, checkout, account, contact, and seeded products
 
 The next work should focus on turning this from a prototype into a production-ready ecommerce application.
 
 ## Phase 1: Stabilize The TypeScript App
 
-- Split `src/main.tsx` into feature folders:
-  - `src/components/`
-  - `src/pages/`
-  - `src/api/`
-  - `src/types/`
-  - `src/lib/`
-- Move shared frontend domain types out of `main.tsx` into `src/types/index.ts`.
-- Move the `api<T>()` helper into `src/api/client.ts`.
+- Frontend feature folders live under `frontend/src/`:
+  - `frontend/src/components/`
+  - `frontend/src/pages/`
+  - `frontend/src/api/`
+  - `frontend/src/types/`
+  - `frontend/src/lib/`
+- Shared frontend domain types live in `frontend/src/types/index.ts`.
+- The `api<T>()` helper lives in `frontend/src/api/client.ts`.
 - Keep `main.tsx` responsible only for app bootstrap and top-level routing.
 - Add route-level loading and error states for product, cart, wishlist, account, checkout, and contact pages.
 

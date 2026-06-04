@@ -36,6 +36,18 @@ export function CheckoutPage({ authStatus, cart, cartLoading, cartError, refresh
         method: "POST",
         body: JSON.stringify({ billing, paymentMethod: "bank", couponCode: appliedCoupon || undefined })
       });
+
+      // Call payment stub to simulate payment provider
+      try {
+        await api(`/api/payments`, {
+          method: "POST",
+          body: JSON.stringify({ orderId: data.order.id, paymentMethod: "bank" })
+        });
+      } catch (payErr) {
+        // If payment fails, surface error but still attempt to refresh cart
+        setStatusIsError(true);
+        setStatus(getErrorMessage(payErr));
+      }
       await refreshCart();
       onCouponConsumed();
       navigate(`/orders/${data.order.id}`);

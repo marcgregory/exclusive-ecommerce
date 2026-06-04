@@ -102,6 +102,7 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
           <p className="eyebrow">Order confirmed</p>
           <h1 className="page-title">Thanks for your purchase.</h1>
           <p>Your order was placed on {formatDate(order.createdAt)} and is currently {formatStatus(order.status)}.</p>
+          {order.status === "shipped" ? <p className="eyebrow">Payment received — thank you.</p> : null}
         </div>
         <div className="order-meta">
           <span>Order ID</span>

@@ -24,18 +24,32 @@ export async function query<T extends QueryResultRow = QueryResultRow>(sql: stri
 }
 
 export async function withTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
-  const client = await getPool().connect();
-  try {
-    await client.query("BEGIN");
-    const result = await callback(client);
-    await client.query("COMMIT");
-    return result;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const client = await getPool().connect();
+    try {
+      await client.query("BEGIN");
+      const result = await callback(client);
+      await client.query("COMMIT");
+      return result;
+    } catch (error: any) {
+      await client.query("ROLLBACK");
+      // Retry on Postgres deadlock (SQLSTATE 40P01)
+      if (attempt < maxAttempts && error && error.code === "40P01") {
+        const backoff = attempt * 50;
+        await new Promise((r) => setTimeout(r, backoff));
+        // release and retry
+        client.release();
+        continue;
+      }
+      client.release();
+      throw error;
+    } finally {
+      // ensure release if not already released
+      try { client.release(); } catch (_) {}
+    }
   }
+  throw new Error("Transaction failed after retries");
 }
 
 export async function closePool(): Promise<void> {

@@ -332,6 +332,37 @@ app.post(
   }),
 );
 
+// Payment stub: simulate a payment provider response and mark order shipped
+app.post(
+  "/api/payments",
+  requireUser,
+  asyncRoute(async (req, res) => {
+    const { orderId, paymentMethod = "bank" } = req.body || {};
+    if (!orderId) return res.status(400).json({ message: "orderId is required" });
+    const order = await getOrder(req.user.id, orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // Simulate successful payment
+    const payment = {
+      id: `pay-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      status: "succeeded",
+      method: String(paymentMethod),
+      provider: "stub",
+    };
+
+    // Update order status to shipped to represent a completed flow (no real fulfillment here)
+    try {
+      await updateOrderStatus(orderId, "shipped");
+    } catch (err) {
+      // ignore update errors; still return payment result
+      console.error("Failed to update order status after payment:", err);
+    }
+
+    const updatedOrder = await getOrder(req.user.id, orderId);
+    res.status(201).json({ payment, order: updatedOrder });
+  }),
+);
+
 app.get(
   "/api/orders",
   requireUser,

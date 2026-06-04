@@ -57,6 +57,7 @@ import {
   validateProfileInput,
   validateRegisterInput,
 } from "./auth.js";
+import { createPayment } from "./payments.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -330,7 +331,8 @@ app.post(
   }),
 );
 
-// Payment stub: simulate a payment provider response and mark order shipped
+// Payment provider entrypoint. Defaults to the local simulator unless
+// PAYMENT_PROVIDER=stripe is configured.
 app.post(
   "/api/payments",
   requireUser,
@@ -341,18 +343,19 @@ app.post(
     const order = await getOrder(req.user.id, orderId);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    const payment = {
-      id: `pay-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      status: "succeeded",
-      method: String(paymentMethod),
-      provider: "stub",
-    };
+    const payment = await createPayment(
+      order,
+      req.user.id,
+      String(paymentMethod),
+    );
 
-    const paidOrder = await updateOrderStatus(orderId, "shipped");
-    if (!paidOrder)
-      throw Object.assign(new Error("Payment could not update order status"), {
-        status: 500,
-      });
+    if (payment.status === "succeeded") {
+      const paidOrder = await updateOrderStatus(orderId, "shipped");
+      if (!paidOrder)
+        throw Object.assign(new Error("Payment could not update order status"), {
+          status: 500,
+        });
+    }
     const updatedOrder = await getOrder(req.user.id, orderId);
     if (!updatedOrder)
       throw Object.assign(new Error("Payment completed but order was not found"), {

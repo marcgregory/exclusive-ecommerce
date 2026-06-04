@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { describe, expect, it, beforeAll, beforeEach, afterAll } from "vitest";
+import { describe, expect, it, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import request from "supertest";
 import {
   DEV_SESSION_SECRET,
@@ -158,6 +158,14 @@ describe("auth validation", () => {
 });
 
 describe("auth endpoints", () => {
+  function restoreEnv(name: string, value: string | undefined) {
+    if (value === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = value;
+    }
+  }
+
   beforeAll(async () => {
     if (!process.env.TEST_DATABASE_URL) {
       throw new Error("TEST_DATABASE_URL is required for auth endpoint tests");
@@ -429,7 +437,7 @@ describe("auth endpoints", () => {
       expect(res.body).toMatchObject({ message: "orderId is required" });
     });
 
-    it("marks the authenticated user's order shipped after payment", async () => {
+    it("marks the authenticated user's order shipped after local payment", async () => {
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
 
@@ -441,12 +449,109 @@ describe("auth endpoints", () => {
       expect(res.body.payment).toMatchObject({
         status: "succeeded",
         method: "bank",
-        provider: "stub",
+        provider: "local",
       });
       expect(res.body.order).toMatchObject({
         id: order.id,
         status: "shipped",
       });
+    });
+
+    it("creates a Stripe PaymentIntent and leaves the order processing until payment succeeds", async () => {
+      const originalProvider = process.env.PAYMENT_PROVIDER;
+      const originalSecret = process.env.STRIPE_SECRET_KEY;
+      const originalCurrency = process.env.STRIPE_CURRENCY;
+      const originalMultiplier = process.env.STRIPE_AMOUNT_MULTIPLIER;
+      const originalFetch = globalThis.fetch;
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: "pi_test_123",
+          status: "requires_payment_method",
+          client_secret: "pi_test_123_secret_456",
+        }),
+      });
+
+      process.env.PAYMENT_PROVIDER = "stripe";
+      process.env.STRIPE_SECRET_KEY = "sk_test_123";
+      process.env.STRIPE_CURRENCY = "usd";
+      process.env.STRIPE_AMOUNT_MULTIPLIER = "100";
+      globalThis.fetch = fetchMock;
+
+      try {
+        const res = await agent
+          .post("/api/payments")
+          .send({ orderId: order.id, paymentMethod: "stripe" });
+
+        expect(res.status).toBe(201);
+        expect(res.body.payment).toMatchObject({
+          id: "pi_test_123",
+          status: "requires_payment_method",
+          method: "stripe",
+          provider: "stripe",
+          clientSecret: "pi_test_123_secret_456",
+        });
+        expect(res.body.order).toMatchObject({
+          id: order.id,
+          status: "processing",
+        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          "https://api.stripe.com/v1/payment_intents",
+          expect.objectContaining({
+            method: "POST",
+            headers: expect.objectContaining({
+              Authorization: "Bearer sk_test_123",
+              "Content-Type": "application/x-www-form-urlencoded",
+            }),
+          }),
+        );
+        const body = fetchMock.mock.calls[0][1].body as URLSearchParams;
+        expect(body.get("amount")).toBe(String(order.total * 100));
+        expect(body.get("currency")).toBe("usd");
+        expect(body.get("automatic_payment_methods[enabled]")).toBe("true");
+        expect(body.get("metadata[orderId]")).toBe(order.id);
+        expect(body.get("metadata[paymentMethod]")).toBe("stripe");
+      } finally {
+        restoreEnv("PAYMENT_PROVIDER", originalProvider);
+        restoreEnv("STRIPE_SECRET_KEY", originalSecret);
+        restoreEnv("STRIPE_CURRENCY", originalCurrency);
+        restoreEnv("STRIPE_AMOUNT_MULTIPLIER", originalMultiplier);
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("surfaces Stripe provider errors", async () => {
+      const originalProvider = process.env.PAYMENT_PROVIDER;
+      const originalSecret = process.env.STRIPE_SECRET_KEY;
+      const originalFetch = globalThis.fetch;
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+
+      process.env.PAYMENT_PROVIDER = "stripe";
+      process.env.STRIPE_SECRET_KEY = "sk_test_123";
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 402,
+        json: async () => ({ error: { message: "Your card was declined." } }),
+      });
+
+      try {
+        const res = await agent
+          .post("/api/payments")
+          .send({ orderId: order.id, paymentMethod: "stripe" });
+
+        expect(res.status).toBe(402);
+        expect(res.body).toMatchObject({
+          message: "Your card was declined.",
+        });
+      } finally {
+        restoreEnv("PAYMENT_PROVIDER", originalProvider);
+        restoreEnv("STRIPE_SECRET_KEY", originalSecret);
+        globalThis.fetch = originalFetch;
+      }
     });
 
     it("does not allow payment for another user's order", async () => {

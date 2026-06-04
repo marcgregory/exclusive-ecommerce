@@ -73,6 +73,8 @@ The next work should focus on turning this from a prototype into a production-re
   - Product option validation for size and color on the product details page.
   - Variant stock checks during add-to-cart, cart quantity updates, and checkout.
   - Wishlist page remove and move-to-cart behavior.
+  - End-to-end checkout coverage across cart, checkout, payment, confirmation, and order history.
+  - Stripe server-side PaymentIntent creation behind `PAYMENT_PROVIDER=stripe`, with local simulation kept for development and tests.
 - Remaining:
   - Finish product filtering and sorting UI:
     - Category
@@ -81,8 +83,7 @@ The next work should focus on turning this from a prototype into a production-re
     - Best selling
     - Price ascending/descending
     - Rating
-  - Add end-to-end checkout coverage across cart, checkout, payment, confirmation, and order history.
-  - Integrate the selected payment provider beyond the current local payment simulation.
+  - Add client-side Stripe confirmation with Stripe.js/Elements and webhook-based order status reconciliation.
 
 ## Phase 6: Admin Readiness
 
@@ -117,10 +118,10 @@ The next work should focus on turning this from a prototype into a production-re
     - Account guest/profile/order-history loading/error/rendering/detail navigation
     - Order detail guest/loading/error/not-found/rendering/payment-status paths
     - Wishlist guest/loading/error/empty/rendering, remove, move-to-cart, and action-error paths
+    - E2E checkout flow with order confirmation and history verification
   - Remaining:
     - Account profile update submission
     - Contact form submission
-    - E2E checkout flow with order confirmation and history verification
 - Visual QA:
   - Desktop 1440px screenshots against Figma
   - Mobile no-overlap checks
@@ -133,11 +134,11 @@ The next work should focus on turning this from a prototype into a production-re
 - Add logging and request error handling.
 - Add API rate limiting for auth and contact endpoints.
 - Add image hosting strategy.
-- Add payment provider integration when selected.
+- Finish payment provider integration with client-side confirmation and webhooks.
 - Add monitoring checks for frontend, API, and database.
 
 ## Recommended Next Sprint
 
-1. Add E2E checkout coverage from cart through order history.
-2. Select and integrate the real Stripe/payment provider path.
-3. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+1. Finish Stripe client confirmation and webhook reconciliation.
+2. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+3. Add the remaining account profile update and contact form submission tests.

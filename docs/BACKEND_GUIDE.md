@@ -45,8 +45,11 @@ Product listing supports `category`, `q`, `flag`, `sort`, `page`, and `limit`.
 
 - `POST /api/coupons/validate`
 - `POST /api/orders`
+- `POST /api/payments`
 - `GET /api/orders`
 - `GET /api/orders/:id`
+
+`POST /api/payments` uses `PAYMENT_PROVIDER=local` by default, which simulates a successful payment and marks the order shipped. Set `PAYMENT_PROVIDER=stripe` with `STRIPE_SECRET_KEY` to create a Stripe PaymentIntent. Stripe mode returns the PaymentIntent `clientSecret` and only marks the order shipped if the provider reports `succeeded`; otherwise the order remains `processing` until client confirmation/webhook reconciliation is added.
 
 ### Contact
 
@@ -57,6 +60,13 @@ Product listing supports `category`, `q`, `flag`, `sort`, `page`, and `limit`.
 `server/store.ts` exposes PostgreSQL-backed repository functions. `server/db.ts` owns the shared `pg` pool, and `server/types.ts` defines backend domain types.
 
 The app requires `DATABASE_URL` at runtime. `SESSION_SECRET` is optional in development, but production requires a non-default value with at least 32 characters. Session cookies are `httpOnly`, `sameSite: "lax"`, and use `secure: true` when `NODE_ENV=production`.
+
+Payment configuration:
+
+- `PAYMENT_PROVIDER`: `local` or `stripe`; defaults to `local`.
+- `STRIPE_SECRET_KEY`: required when `PAYMENT_PROVIDER=stripe`.
+- `STRIPE_CURRENCY`: Stripe currency code; defaults to `usd`.
+- `STRIPE_AMOUNT_MULTIPLIER`: multiplier from app totals to Stripe smallest currency units; defaults to `100`.
 
 Initialize development data with:
 

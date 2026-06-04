@@ -102,6 +102,15 @@ function clearPendingCheckout() {
   sessionStorage.removeItem(pendingCheckoutStorageKey);
 }
 
+function getApiStatus(error: unknown) {
+  return typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    typeof error.status === "number"
+    ? error.status
+    : undefined;
+}
+
 type CheckoutPageProps = {
   authStatus: AuthStatus;
   cart: Cart;
@@ -257,6 +266,13 @@ export function CheckoutPage({
       setStatusIsError(false);
       await startStripePayment(pendingStripePayment);
     } catch (error) {
+      if (getApiStatus(error) === 404) {
+        clearPendingCheckout();
+        setPendingStripePayment(null);
+        setStatusIsError(true);
+        setStatus("Saved checkout session expired. Please place your order again.");
+        return;
+      }
       setStatusIsError(true);
       setStatus(getErrorMessage(error));
     } finally {

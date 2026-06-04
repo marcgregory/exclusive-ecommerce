@@ -11,7 +11,7 @@ import {
   validateRegisterInput,
 } from "./auth.js";
 import type { User } from "./types.js";
-import { closePool } from "./db.js";
+import { closePool, query } from "./db.js";
 import { migrate } from "./migrate.js";
 import { seedDatabase } from "./seed-db.js";
 
@@ -539,7 +539,7 @@ describe("auth endpoints", () => {
       }
     });
 
-    it("reuses an order when checkout is retried with the same idempotency key", async () => {
+    it("reuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key", async () => {
       const agent = request.agent(testApp);
       await agent.post("/api/auth/register").send({
         email: "checkout-idempotency@example.com",
@@ -552,11 +552,21 @@ describe("auth endpoints", () => {
         selectedColor: "#db4444",
         selectedSize: "M",
       });
+      const stockBefore = await query(
+        "SELECT stock FROM product_variants WHERE product_id = $1 AND color = $2 AND size = $3",
+        ["havic-gamepad", "#db4444", "M"],
+      );
 
       const first = await agent.post("/api/orders").send({
         billing,
         paymentMethod: "stripe",
         idempotencyKey: "checkout-api-retry-1",
+      });
+      await agent.post("/api/cart/items").send({
+        productId: "havic-gamepad",
+        quantity: 1,
+        selectedColor: "#db4444",
+        selectedSize: "M",
       });
       const second = await agent.post("/api/orders").send({
         billing,
@@ -564,11 +574,18 @@ describe("auth endpoints", () => {
         idempotencyKey: "checkout-api-retry-1",
       });
       const orders = await agent.get("/api/orders");
+      const cart = await agent.get("/api/cart");
+      const stockAfter = await query(
+        "SELECT stock FROM product_variants WHERE product_id = $1 AND color = $2 AND size = $3",
+        ["havic-gamepad", "#db4444", "M"],
+      );
 
       expect(first.status).toBe(201);
       expect(second.status).toBe(201);
-      expect(second.body.order.id).toBe(first.body.order.id);
+      expect(second.body.order).toEqual(first.body.order);
       expect(orders.body.orders).toHaveLength(1);
+      expect(cart.body.cart.items).toHaveLength(1);
+      expect(Number(stockAfter.rows[0].stock)).toBe(Number(stockBefore.rows[0].stock) - 1);
     });
 
     it("surfaces Stripe provider errors", async () => {

@@ -320,6 +320,50 @@ describe("CheckoutPage", () => {
     await waitFor(() => expect(mount).toHaveBeenCalled());
   });
 
+  it("clears stale pending Stripe checkout state when the stored order no longer exists", async () => {
+    sessionStorage.setItem(
+      "exclusive.pendingStripeCheckout",
+      JSON.stringify({
+        orderId: "missing-order",
+        idempotencyKey: "checkout-stale-1",
+      }),
+    );
+    mockedApi.mockRejectedValueOnce(
+      Object.assign(new Error("Order not found"), { status: 404 }),
+    );
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={vi.fn()}
+        navigate={vi.fn()}
+        appliedCoupon=""
+        onCouponConsumed={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", { name: /Place Order/i })
+        .disabled,
+    ).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: /Resume Payment/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Saved checkout session expired/i),
+      ).toBeDefined(),
+    );
+    expect(sessionStorage.getItem("exclusive.pendingStripeCheckout")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Resume Payment/i })).toBeNull();
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", { name: /Place Order/i })
+        .disabled,
+    ).toBe(false);
+  });
+
   it("stays on checkout and shows an error when payment fails", async () => {
     const refreshCart = vi.fn();
     const navigate = vi.fn();

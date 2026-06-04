@@ -175,6 +175,75 @@ button {
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
 
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.state-view {
+  min-height: 260px;
+  padding: 48px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  text-align: center;
+  background: #fff;
+}
+
+.state-view h1 {
+  font-family: Inter, sans-serif;
+  font-size: 28px;
+  line-height: 36px;
+  margin: 0;
+}
+
+.state-view p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 24px;
+}
+
+.state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.state-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: state-spin 0.8s linear infinite;
+}
+
+.state-view--error {
+  border-color: rgba(219, 68, 68, 0.28);
+}
+
+.form-status {
+  margin-top: 16px;
+  color: var(--muted);
+  line-height: 24px;
+}
+
+.form-status--error {
+  color: var(--accent);
+}
+
+@keyframes state-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .hero-zone {
   display: grid;
   grid-template-columns: 217px 1fr;

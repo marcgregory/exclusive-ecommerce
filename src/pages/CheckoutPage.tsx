@@ -56,7 +56,6 @@ export function CheckoutPage({
         }),
       });
 
-      // Call payment stub to simulate payment provider
       try {
         await api(`/api/payments`, {
           method: "POST",
@@ -66,9 +65,10 @@ export function CheckoutPage({
           }),
         });
       } catch (payErr) {
-        // If payment fails, surface error but still attempt to refresh cart
         setStatusIsError(true);
         setStatus(getErrorMessage(payErr));
+        await refreshCart();
+        return;
       }
       await refreshCart();
       onCouponConsumed();

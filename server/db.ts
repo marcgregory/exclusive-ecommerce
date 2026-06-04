@@ -37,6 +37,7 @@ export async function withTransaction<T>(
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const client = await getPool().connect();
+    let shouldRetry = false;
     try {
       await client.query("BEGIN");
       const result = await callback(client);
@@ -44,22 +45,17 @@ export async function withTransaction<T>(
       return result;
     } catch (error: any) {
       await client.query("ROLLBACK");
-      // Retry on Postgres deadlock (SQLSTATE 40P01)
       if (attempt < maxAttempts && error && error.code === "40P01") {
         const backoff = attempt * 50;
         await new Promise((r) => setTimeout(r, backoff));
-        // release and retry
-        client.release();
-        continue;
+        shouldRetry = true;
+      } else {
+        throw error;
       }
-      client.release();
-      throw error;
     } finally {
-      // ensure release if not already released
-      try {
-        client.release();
-      } catch (_) {}
+      client.release();
     }
+    if (shouldRetry) continue;
   }
   throw new Error("Transaction failed after retries");
 }

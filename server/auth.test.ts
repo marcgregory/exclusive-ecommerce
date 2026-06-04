@@ -394,6 +394,102 @@ describe("auth endpoints", () => {
     });
   });
 
+  describe("POST /api/payments", () => {
+    const billing = {
+      firstName: "Payment",
+      streetAddress: "123 Maple Drive",
+      townCity: "Townsville",
+      phone: "555-0123",
+      email: "payment@example.com",
+    };
+
+    async function createOrderForAgent(agent: ReturnType<typeof request.agent>) {
+      await agent
+        .post("/api/auth/register")
+        .send({
+          email: `payment-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+          password: "password123",
+          confirmPassword: "password123",
+        });
+      await agent.post("/api/cart/items").send({
+        productId: "havic-gamepad",
+        quantity: 1,
+        selectedColor: "#db4444",
+        selectedSize: "M",
+      });
+      const orderRes = await agent.post("/api/orders").send({
+        billing,
+        paymentMethod: "bank",
+      });
+      expect(orderRes.status).toBe(201);
+      return orderRes.body.order;
+    }
+
+    it("requires authentication", async () => {
+      const res = await request(testApp)
+        .post("/api/payments")
+        .send({ orderId: "order-1" });
+
+      expect(res.status).toBe(401);
+    });
+
+    it("requires an orderId", async () => {
+      const agent = request.agent(testApp);
+      await agent
+        .post("/api/auth/register")
+        .send({
+          email: "missing-order-id@example.com",
+          password: "password123",
+          confirmPassword: "password123",
+        });
+
+      const res = await agent.post("/api/payments").send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ message: "orderId is required" });
+    });
+
+    it("marks the authenticated user's order shipped after payment", async () => {
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+
+      const res = await agent
+        .post("/api/payments")
+        .send({ orderId: order.id, paymentMethod: "bank" });
+
+      expect(res.status).toBe(201);
+      expect(res.body.payment).toMatchObject({
+        status: "succeeded",
+        method: "bank",
+        provider: "stub",
+      });
+      expect(res.body.order).toMatchObject({
+        id: order.id,
+        status: "shipped",
+      });
+    });
+
+    it("does not allow payment for another user's order", async () => {
+      const owner = request.agent(testApp);
+      const otherUser = request.agent(testApp);
+      const order = await createOrderForAgent(owner);
+      await otherUser
+        .post("/api/auth/register")
+        .send({
+          email: "other-payment-user@example.com",
+          password: "password123",
+          confirmPassword: "password123",
+        });
+
+      const res = await otherUser
+        .post("/api/payments")
+        .send({ orderId: order.id, paymentMethod: "bank" });
+
+      expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({ message: "Order not found" });
+    });
+  });
+
   describe("GET /api/me", () => {
     it("returns current user when authenticated", async () => {
       const agent = request.agent(testApp);

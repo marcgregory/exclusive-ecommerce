@@ -134,7 +134,12 @@ describe("CheckoutPage", () => {
     const refreshCart = vi.fn();
     const navigate = vi.fn();
     const onCouponConsumed = vi.fn();
-    mockedApi.mockResolvedValue({ order: { id: "order-1" } });
+    mockedApi
+      .mockResolvedValueOnce({ order: { id: "order-1" } })
+      .mockResolvedValueOnce({
+        payment: { id: "pay-1", status: "succeeded" },
+        order: { id: "order-1", status: "shipped" }
+      });
 
     render(
       <CheckoutPage
@@ -166,10 +171,52 @@ describe("CheckoutPage", () => {
       paymentMethod: "bank",
       couponCode: "SAVE10"
     });
+    expect(mockedApi).toHaveBeenNthCalledWith(2, "/api/payments", {
+      method: "POST",
+      body: JSON.stringify({
+        orderId: "order-1",
+        paymentMethod: "bank"
+      })
+    });
 
     expect(refreshCart).toHaveBeenCalled();
     expect(onCouponConsumed).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith("/orders/order-1");
+  });
+
+  it("stays on checkout and shows an error when payment fails", async () => {
+    const refreshCart = vi.fn();
+    const navigate = vi.fn();
+    const onCouponConsumed = vi.fn();
+    mockedApi
+      .mockResolvedValueOnce({ order: { id: "order-1" } })
+      .mockRejectedValueOnce(new Error("Payment failed"));
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={refreshCart}
+        navigate={navigate}
+        appliedCoupon="SAVE10"
+        onCouponConsumed={onCouponConsumed}
+      />
+    );
+
+    await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
+    await userEvent.type(screen.getByLabelText(/street Address/i), "123 Maple Drive");
+    await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
+    await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
+    await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
+
+    await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
+
+    await waitFor(() => expect(screen.getByText(/Payment failed/i)).toBeDefined());
+    expect(refreshCart).toHaveBeenCalled();
+    expect(onCouponConsumed).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("shows an error status when checkout submission fails", async () => {

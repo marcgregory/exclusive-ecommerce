@@ -341,7 +341,6 @@ app.post(
     const order = await getOrder(req.user.id, orderId);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    // Simulate successful payment
     const payment = {
       id: `pay-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       status: "succeeded",
@@ -349,15 +348,16 @@ app.post(
       provider: "stub",
     };
 
-    // Update order status to shipped to represent a completed flow (no real fulfillment here)
-    try {
-      await updateOrderStatus(orderId, "shipped");
-    } catch (err) {
-      // ignore update errors; still return payment result
-      console.error("Failed to update order status after payment:", err);
-    }
-
+    const paidOrder = await updateOrderStatus(orderId, "shipped");
+    if (!paidOrder)
+      throw Object.assign(new Error("Payment could not update order status"), {
+        status: 500,
+      });
     const updatedOrder = await getOrder(req.user.id, orderId);
+    if (!updatedOrder)
+      throw Object.assign(new Error("Payment completed but order was not found"), {
+        status: 500,
+      });
     res.status(201).json({ payment, order: updatedOrder });
   }),
 );

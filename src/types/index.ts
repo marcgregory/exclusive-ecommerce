@@ -67,6 +67,11 @@ export type Order = {
   createdAt: string;
 };
 
+export type AdminOrder = Order & {
+  customerEmail: string;
+  customerName: string;
+};
+
 export type AsyncState<T> = {
   data: T;
   loading: boolean;
@@ -141,6 +146,13 @@ export type PaymentResponse = {
 
 export type OrdersResponse = {
   orders: Order[];
+};
+
+export type AdminOrdersResponse = {
+  orders: AdminOrder[];
+  total: number;
+  page: number;
+  limit: number;
 };
 
 export type WishlistResponse = {

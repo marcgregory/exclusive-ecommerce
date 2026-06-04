@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { describe, expect, it, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import request from "supertest";
 import {
@@ -415,6 +416,15 @@ describe("auth endpoints", () => {
       return orderRes.body.order;
     }
 
+    function stripeSignature(payload: string, secret: string) {
+      const timestamp = "1780000000";
+      const signature = crypto
+        .createHmac("sha256", secret)
+        .update(`${timestamp}.${payload}`)
+        .digest("hex");
+      return `t=${timestamp},v1=${signature}`;
+    }
+
     it("requires authentication", async () => {
       const res = await request(testApp)
         .post("/api/payments")
@@ -438,23 +448,29 @@ describe("auth endpoints", () => {
     });
 
     it("marks the authenticated user's order shipped after local payment", async () => {
+      const originalProvider = process.env.PAYMENT_PROVIDER;
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
+      process.env.PAYMENT_PROVIDER = "local";
 
-      const res = await agent
-        .post("/api/payments")
-        .send({ orderId: order.id, paymentMethod: "bank" });
+      try {
+        const res = await agent
+          .post("/api/payments")
+          .send({ orderId: order.id, paymentMethod: "bank" });
 
-      expect(res.status).toBe(201);
-      expect(res.body.payment).toMatchObject({
-        status: "succeeded",
-        method: "bank",
-        provider: "local",
-      });
-      expect(res.body.order).toMatchObject({
-        id: order.id,
-        status: "shipped",
-      });
+        expect(res.status).toBe(201);
+        expect(res.body.payment).toMatchObject({
+          status: "succeeded",
+          method: "bank",
+          provider: "local",
+        });
+        expect(res.body.order).toMatchObject({
+          id: order.id,
+          status: "shipped",
+        });
+      } finally {
+        restoreEnv("PAYMENT_PROVIDER", originalProvider);
+      }
     });
 
     it("creates a Stripe PaymentIntent and leaves the order processing until payment succeeds", async () => {
@@ -570,6 +586,103 @@ describe("auth endpoints", () => {
 
       expect(res.status).toBe(404);
       expect(res.body).toMatchObject({ message: "Order not found" });
+    });
+
+    it("marks an order shipped from a verified Stripe payment_intent.succeeded webhook", async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = "whsec_test_123";
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+      const payload = JSON.stringify({
+        id: "evt_test_1",
+        type: "payment_intent.succeeded",
+        data: {
+          object: {
+            id: "pi_test_123",
+            status: "succeeded",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
+
+      try {
+        const res = await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .send(payload);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({ received: true });
+        const orderRes = await agent.get(`/api/orders/${order.id}`);
+        expect(orderRes.body.order).toMatchObject({
+          id: order.id,
+          status: "shipped",
+        });
+      } finally {
+        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+      }
+    });
+
+    it("keeps failed Stripe orders visible by marking them cancelled", async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = "whsec_test_123";
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+      const payload = JSON.stringify({
+        id: "evt_test_2",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_test_123",
+            status: "requires_payment_method",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
+
+      try {
+        const res = await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .send(payload);
+
+        expect(res.status).toBe(200);
+        const orderRes = await agent.get(`/api/orders/${order.id}`);
+        expect(orderRes.body.order).toMatchObject({
+          id: order.id,
+          status: "cancelled",
+        });
+      } finally {
+        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+      }
+    });
+
+    it("rejects Stripe webhooks with invalid signatures", async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const payload = JSON.stringify({
+        type: "payment_intent.succeeded",
+        data: { object: { metadata: { orderId: "order-1" } } },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_123";
+
+      try {
+        const res = await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", "t=1780000000,v1=bad")
+          .send(payload);
+
+        expect(res.status).toBe(400);
+        expect(res.body).toMatchObject({
+          message: "Stripe signature verification failed",
+        });
+      } finally {
+        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+      }
     });
   });
 

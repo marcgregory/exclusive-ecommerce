@@ -126,6 +126,19 @@ export type OrderResponse = {
   order: Order;
 };
 
+export type PaymentResult = {
+  id: string;
+  status: string;
+  method: string;
+  provider: "local" | "stripe";
+  clientSecret?: string | null;
+};
+
+export type PaymentResponse = {
+  payment: PaymentResult;
+  order: Order;
+};
+
 export type OrdersResponse = {
   orders: Order[];
 };

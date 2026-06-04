@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
@@ -11,8 +11,58 @@ import type {
   Cart,
   Navigate,
   OrderResponse,
+  PaymentResponse,
   RefreshCart,
 } from "../types";
+
+type StripeConstructor = (publishableKey: string) => StripeInstance | null;
+
+type StripeInstance = {
+  elements: (options: { clientSecret: string }) => StripeElements;
+  confirmPayment: (options: {
+    elements: StripeElements;
+    confirmParams: { return_url: string };
+    redirect: "if_required";
+  }) => Promise<{
+    error?: { message?: string };
+    paymentIntent?: { status?: string };
+  }>;
+};
+
+type StripeElements = {
+  create: (type: "payment") => StripePaymentElement;
+};
+
+type StripePaymentElement = {
+  mount: (target: HTMLElement) => void;
+  unmount: () => void;
+};
+
+declare global {
+  interface Window {
+    Stripe?: StripeConstructor;
+  }
+}
+
+let stripeScriptPromise: Promise<StripeConstructor> | null = null;
+
+function loadStripeScript(): Promise<StripeConstructor> {
+  if (window.Stripe) return Promise.resolve(window.Stripe);
+  if (!stripeScriptPromise) {
+    stripeScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://js.stripe.com/v3/";
+      script.async = true;
+      script.onload = () => {
+        if (window.Stripe) resolve(window.Stripe);
+        else reject(new Error("Stripe.js did not initialize"));
+      };
+      script.onerror = () => reject(new Error("Stripe.js could not be loaded"));
+      document.head.appendChild(script);
+    });
+  }
+  return stripeScriptPromise;
+}
 
 type CheckoutPageProps = {
   authStatus: AuthStatus;
@@ -38,6 +88,56 @@ export function CheckoutPage({
   const [status, setStatus] = useState("");
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [stripeReady, setStripeReady] = useState(false);
+  const [pendingStripePayment, setPendingStripePayment] = useState<{
+    orderId: string;
+    clientSecret: string;
+  } | null>(null);
+  const stripeContainerRef = useRef<HTMLDivElement | null>(null);
+  const stripeRef = useRef<StripeInstance | null>(null);
+  const stripeElementsRef = useRef<StripeElements | null>(null);
+
+  useEffect(() => {
+    if (!pendingStripePayment) return;
+    const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
+    let active = true;
+    let paymentElement: StripePaymentElement | null = null;
+
+    async function mountStripeElement() {
+      try {
+        setStripeReady(false);
+        if (!publishableKey) {
+          throw new Error("VITE_STRIPE_PUBLISHABLE_KEY is required for Stripe checkout");
+        }
+        const Stripe = await loadStripeScript();
+        const stripe = Stripe(publishableKey);
+        if (!stripe) throw new Error("Stripe checkout could not be initialized");
+        if (!active || !stripeContainerRef.current) return;
+        const elements = stripe.elements({
+          clientSecret: pendingStripePayment.clientSecret,
+        });
+        paymentElement = elements.create("payment");
+        paymentElement.mount(stripeContainerRef.current);
+        stripeRef.current = stripe;
+        stripeElementsRef.current = elements;
+        setStripeReady(true);
+      } catch (error) {
+        if (!active) return;
+        setStatusIsError(true);
+        setStatus(getErrorMessage(error));
+      }
+    }
+
+    void mountStripeElement();
+
+    return () => {
+      active = false;
+      paymentElement?.unmount();
+      stripeRef.current = null;
+      stripeElementsRef.current = null;
+      setStripeReady(false);
+    };
+  }, [pendingStripePayment]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -51,19 +151,30 @@ export function CheckoutPage({
         method: "POST",
         body: JSON.stringify({
           billing,
-          paymentMethod: "bank",
+          paymentMethod: "stripe",
           couponCode: appliedCoupon || undefined,
         }),
       });
 
       try {
-        await api(`/api/payments`, {
+        const paymentData = await api<PaymentResponse>(`/api/payments`, {
           method: "POST",
           body: JSON.stringify({
             orderId: data.order.id,
-            paymentMethod: "bank",
+            paymentMethod: "stripe",
           }),
         });
+        if (
+          paymentData.payment.provider === "stripe" &&
+          paymentData.payment.clientSecret
+        ) {
+          setPendingStripePayment({
+            orderId: data.order.id,
+            clientSecret: paymentData.payment.clientSecret,
+          });
+          setStatus("Enter your payment details to confirm the order.");
+          return;
+        }
       } catch (payErr) {
         setStatusIsError(true);
         setStatus(getErrorMessage(payErr));
@@ -73,6 +184,44 @@ export function CheckoutPage({
       await refreshCart();
       onCouponConsumed();
       navigate(`/orders/${data.order.id}`);
+    } catch (error) {
+      setStatusIsError(true);
+      setStatus(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const confirmStripePayment = async () => {
+    if (!pendingStripePayment) return;
+    const stripe = stripeRef.current;
+    const elements = stripeElementsRef.current;
+    if (!stripe || !elements) {
+      setStatusIsError(true);
+      setStatus("Stripe checkout is still loading. Please try again.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setStatus("");
+      setStatusIsError(false);
+      const result = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/orders/${pendingStripePayment.orderId}`,
+        },
+        redirect: "if_required",
+      });
+      if (result.error) throw new Error(result.error.message || "Payment failed");
+      if (result.paymentIntent?.status !== "succeeded") {
+        throw new Error(
+          `Payment is ${result.paymentIntent?.status || "not complete"}.`,
+        );
+      }
+      await refreshCart();
+      onCouponConsumed();
+      navigate(`/orders/${pendingStripePayment.orderId}`);
     } catch (error) {
       setStatusIsError(true);
       setStatus(getErrorMessage(error));
@@ -181,7 +330,19 @@ export function CheckoutPage({
         </div>
         <div>
           <OrderSummary cart={cart} />
-          <Button type="submit" disabled={submitting}>
+          {pendingStripePayment && (
+            <div className="stripe-payment-panel">
+              <div ref={stripeContainerRef} className="stripe-payment-element" />
+              <Button
+                type="button"
+                onClick={confirmStripePayment}
+                disabled={submitting || !stripeReady}
+              >
+                {submitting ? "Confirming Payment..." : "Pay Now"}
+              </Button>
+            </div>
+          )}
+          <Button type="submit" disabled={submitting || !!pendingStripePayment}>
             {submitting ? "Placing Order..." : "Place Order"}
           </Button>
           {status && (

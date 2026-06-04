@@ -58,6 +58,7 @@ import {
   validateRegisterInput,
 } from "./auth.js";
 import { createPayment } from "./payments.js";
+import { verifyStripeWebhookEvent } from "./payments.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -67,6 +68,31 @@ const isTest = process.env.NODE_ENV === "test";
 const sessionSecret = getSessionSecret();
 
 app.use(cors({ origin: webOrigin, credentials: true }));
+app.post(
+  "/api/webhooks/stripe",
+  express.raw({ type: "application/json" }),
+  asyncRoute(async (req, res) => {
+    const event = verifyStripeWebhookEvent(
+      req.body as Buffer,
+      req.headers["stripe-signature"] as string | undefined,
+    );
+    const intent = event.data?.object;
+    const orderId = intent?.metadata?.orderId;
+
+    if (orderId && event.type === "payment_intent.succeeded") {
+      await updateOrderStatus(orderId, "shipped");
+    }
+    if (
+      orderId &&
+      (event.type === "payment_intent.payment_failed" ||
+        event.type === "payment_intent.canceled")
+    ) {
+      await updateOrderStatus(orderId, "cancelled");
+    }
+
+    res.json({ received: true });
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 app.use(

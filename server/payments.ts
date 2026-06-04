@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import type { Order } from "./types.js";
 
 export type PaymentProvider = "local" | "stripe";
@@ -14,10 +15,69 @@ type StripePaymentIntent = {
   id: string;
   status: string;
   client_secret?: string | null;
+  metadata?: Record<string, string>;
+};
+
+export type StripeWebhookEvent = {
+  id?: string;
+  type?: string;
+  data?: {
+    object?: StripePaymentIntent;
+  };
 };
 
 export function getPaymentProvider(env = process.env): PaymentProvider {
   return env.PAYMENT_PROVIDER === "stripe" ? "stripe" : "local";
+}
+
+export function verifyStripeWebhookEvent(
+  payload: Buffer,
+  signatureHeader: string | undefined,
+  env = process.env,
+): StripeWebhookEvent {
+  const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    throw Object.assign(new Error("STRIPE_WEBHOOK_SECRET is required"), {
+      status: 500,
+    });
+  }
+  if (!signatureHeader) {
+    throw Object.assign(new Error("Stripe signature is required"), {
+      status: 400,
+    });
+  }
+
+  const parts = new Map(
+    signatureHeader.split(",").map((part) => {
+      const [key, value = ""] = part.split("=");
+      return [key, value] as const;
+    }),
+  );
+  const timestamp = parts.get("t");
+  const signature = parts.get("v1");
+  if (!timestamp || !signature) {
+    throw Object.assign(new Error("Stripe signature is malformed"), {
+      status: 400,
+    });
+  }
+
+  const signedPayload = `${timestamp}.${payload.toString("utf8")}`;
+  const expected = crypto
+    .createHmac("sha256", webhookSecret)
+    .update(signedPayload)
+    .digest("hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+  const actualBuffer = Buffer.from(signature, "hex");
+  if (
+    expectedBuffer.length !== actualBuffer.length ||
+    !crypto.timingSafeEqual(expectedBuffer, actualBuffer)
+  ) {
+    throw Object.assign(new Error("Stripe signature verification failed"), {
+      status: 400,
+    });
+  }
+
+  return JSON.parse(payload.toString("utf8")) as StripeWebhookEvent;
 }
 
 export function getStripeAmount(order: Order, env = process.env) {

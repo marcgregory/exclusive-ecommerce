@@ -51,6 +51,8 @@ describe("CheckoutPage", () => {
 
   afterEach(() => {
     cleanup();
+    vi.unstubAllEnvs();
+    delete window.Stripe;
   });
 
   it("shows loading state while checking out", () => {
@@ -175,17 +177,86 @@ describe("CheckoutPage", () => {
     expect(options?.method).toBe("POST");
     expect(JSON.parse(options?.body as string)).toMatchObject({
       billing: expect.any(Object),
-      paymentMethod: "bank",
+      paymentMethod: "stripe",
       couponCode: "SAVE10",
     });
     expect(mockedApi).toHaveBeenNthCalledWith(2, "/api/payments", {
       method: "POST",
       body: JSON.stringify({
         orderId: "order-1",
-        paymentMethod: "bank",
+        paymentMethod: "stripe",
       }),
     });
 
+    expect(refreshCart).toHaveBeenCalled();
+    expect(onCouponConsumed).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/orders/order-1");
+  });
+
+  it("confirms Stripe payments in the browser before navigating", async () => {
+    vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "pk_test_123");
+    const refreshCart = vi.fn();
+    const navigate = vi.fn();
+    const onCouponConsumed = vi.fn();
+    const mount = vi.fn();
+    const unmount = vi.fn();
+    const confirmPayment = vi.fn().mockResolvedValue({
+      paymentIntent: { status: "succeeded" },
+    });
+    const elements = {
+      create: vi.fn(() => ({ mount, unmount })),
+    };
+    window.Stripe = vi.fn(() => ({
+      elements: vi.fn(() => elements),
+      confirmPayment,
+    }));
+    mockedApi
+      .mockResolvedValueOnce({ order: { id: "order-1" } })
+      .mockResolvedValueOnce({
+        payment: {
+          id: "pi_1",
+          status: "requires_payment_method",
+          provider: "stripe",
+          clientSecret: "pi_1_secret_test",
+        },
+        order: { id: "order-1", status: "processing" },
+      });
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={refreshCart}
+        navigate={navigate}
+        appliedCoupon=""
+        onCouponConsumed={onCouponConsumed}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
+    await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
+    await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
+    await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
+    await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
+
+    expect(navigate).not.toHaveBeenCalled();
+    await waitFor(() => expect(mount).toHaveBeenCalled());
+    await userEvent.click(screen.getByRole("button", { name: /Pay Now/i }));
+
+    await waitFor(() =>
+      expect(confirmPayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          elements,
+          redirect: "if_required",
+        }),
+      ),
+    );
     expect(refreshCart).toHaveBeenCalled();
     expect(onCouponConsumed).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith("/orders/order-1");

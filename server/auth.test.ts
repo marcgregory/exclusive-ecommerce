@@ -539,6 +539,38 @@ describe("auth endpoints", () => {
       }
     });
 
+    it("reuses an order when checkout is retried with the same idempotency key", async () => {
+      const agent = request.agent(testApp);
+      await agent.post("/api/auth/register").send({
+        email: "checkout-idempotency@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      });
+      await agent.post("/api/cart/items").send({
+        productId: "havic-gamepad",
+        quantity: 1,
+        selectedColor: "#db4444",
+        selectedSize: "M",
+      });
+
+      const first = await agent.post("/api/orders").send({
+        billing,
+        paymentMethod: "stripe",
+        idempotencyKey: "checkout-api-retry-1",
+      });
+      const second = await agent.post("/api/orders").send({
+        billing,
+        paymentMethod: "stripe",
+        idempotencyKey: "checkout-api-retry-1",
+      });
+      const orders = await agent.get("/api/orders");
+
+      expect(first.status).toBe(201);
+      expect(second.status).toBe(201);
+      expect(second.body.order.id).toBe(first.body.order.id);
+      expect(orders.body.orders).toHaveLength(1);
+    });
+
     it("surfaces Stripe provider errors", async () => {
       const originalProvider = process.env.PAYMENT_PROVIDER;
       const originalSecret = process.env.STRIPE_SECRET_KEY;

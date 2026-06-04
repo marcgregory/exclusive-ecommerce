@@ -47,12 +47,14 @@ const cart: Cart = {
 describe("CheckoutPage", () => {
   beforeEach(() => {
     mockedApi.mockReset();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
     cleanup();
     vi.unstubAllEnvs();
     delete window.Stripe;
+    sessionStorage.clear();
   });
 
   it("shows loading state while checking out", () => {
@@ -179,6 +181,7 @@ describe("CheckoutPage", () => {
       billing: expect.any(Object),
       paymentMethod: "stripe",
       couponCode: "SAVE10",
+      idempotencyKey: expect.any(String),
     });
     expect(mockedApi).toHaveBeenNthCalledWith(2, "/api/payments", {
       method: "POST",
@@ -262,6 +265,61 @@ describe("CheckoutPage", () => {
     expect(navigate).toHaveBeenCalledWith("/orders/order-1");
   });
 
+  it("resumes a pending Stripe order after refresh without creating another order", async () => {
+    vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "pk_test_123");
+    const mount = vi.fn();
+    const unmount = vi.fn();
+    const elements = {
+      create: vi.fn(() => ({ mount, unmount })),
+    };
+    window.Stripe = vi.fn(() => ({
+      elements: vi.fn(() => elements),
+      confirmPayment: vi.fn(),
+    }));
+    sessionStorage.setItem(
+      "exclusive.pendingStripeCheckout",
+      JSON.stringify({
+        orderId: "order-1",
+        idempotencyKey: "checkout-existing-1",
+      }),
+    );
+    mockedApi.mockResolvedValueOnce({
+      payment: {
+        id: "pi_1",
+        status: "requires_payment_method",
+        provider: "stripe",
+        clientSecret: "pi_1_secret_test",
+      },
+      order: { id: "order-1", status: "processing" },
+    });
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={{ ...cart, items: [] }}
+        cartLoading={false}
+        cartError=""
+        refreshCart={vi.fn()}
+        navigate={vi.fn()}
+        appliedCoupon=""
+        onCouponConsumed={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/waiting for payment confirmation/i)).toBeDefined();
+    await userEvent.click(screen.getByRole("button", { name: /Resume Payment/i }));
+
+    expect(mockedApi).toHaveBeenCalledTimes(1);
+    expect(mockedApi).toHaveBeenCalledWith("/api/payments", {
+      method: "POST",
+      body: JSON.stringify({
+        orderId: "order-1",
+        paymentMethod: "stripe",
+      }),
+    });
+    await waitFor(() => expect(mount).toHaveBeenCalled());
+  });
+
   it("stays on checkout and shows an error when payment fails", async () => {
     const refreshCart = vi.fn();
     const navigate = vi.fn();
@@ -300,6 +358,46 @@ describe("CheckoutPage", () => {
     expect(refreshCart).toHaveBeenCalled();
     expect(onCouponConsumed).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("keeps the created order available for payment retry when payment setup fails", async () => {
+    const refreshCart = vi.fn();
+    mockedApi
+      .mockResolvedValueOnce({ order: { id: "order-1" } })
+      .mockRejectedValueOnce(new Error("Stripe unavailable"));
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={refreshCart}
+        navigate={vi.fn()}
+        appliedCoupon=""
+        onCouponConsumed={vi.fn()}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
+    await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
+    await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
+    await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
+    await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Stripe unavailable/i)).toBeDefined(),
+    );
+    expect(screen.getByRole("button", { name: /Resume Payment/i })).toBeDefined();
+    expect(JSON.parse(sessionStorage.getItem("exclusive.pendingStripeCheckout") || "{}")).toMatchObject({
+      orderId: "order-1",
+      idempotencyKey: expect.any(String),
+    });
+    expect(refreshCart).toHaveBeenCalled();
   });
 
   it("shows an error status when checkout submission fails", async () => {

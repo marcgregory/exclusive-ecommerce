@@ -940,6 +940,7 @@ button {
 .breadcrumbs {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 80px;
   font-size: 14px;
@@ -1167,11 +1168,109 @@ button {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .cart-row .product-visual {
+  flex: 0 0 54px;
   width: 54px;
   height: 54px;
+  overflow: hidden;
+}
+
+.cart-row .product-visual--gamepad-red span,
+.cart-row .product-visual--havic-gamepad span,
+.cart-row .product-visual--gamepad-black span {
+  inset: 13px 5px;
+  border-radius: 18px 18px 12px 12px;
+}
+
+.cart-row .product-visual--gamepad-red i,
+.cart-row .product-visual--havic-gamepad i,
+.cart-row .product-visual--gamepad-black i {
+  left: 13px;
+  top: 25px;
+  width: 16px;
+  height: 16px;
+  box-shadow: 20px 0 0 #111;
+}
+
+.cart-row .product-visual--gamepad-red b,
+.cart-row .product-visual--havic-gamepad b,
+.cart-row .product-visual--gamepad-black b {
+  right: 12px;
+  top: 18px;
+  width: 6px;
+  height: 6px;
+  box-shadow: 8px 0 0 #fff, 4px 7px 0 #fff;
+}
+
+.cart-row .product-visual--keyboard span {
+  left: 5px;
+  right: 5px;
+  top: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.cart-row .product-visual--monitor span,
+.cart-row .product-visual--laptop span {
+  left: 7px;
+  right: 7px;
+  top: 9px;
+  height: 30px;
+}
+
+.cart-row .product-visual--monitor i {
+  left: 24px;
+  top: 38px;
+  width: 6px;
+  height: 11px;
+}
+
+.cart-row .product-visual--monitor b {
+  left: 17px;
+  top: 48px;
+  width: 21px;
+  height: 3px;
+}
+
+.cart-row .product-visual--laptop i {
+  left: 7px;
+  right: 7px;
+  bottom: 10px;
+  height: 4px;
+}
+
+.cart-row .product-visual--cooler span {
+  left: 7px;
+  top: 16px;
+  width: 20px;
+  height: 20px;
+  box-shadow: 23px 0 0 #111;
+}
+
+.cart-row .product-visual--toycar i {
+  left: 13px;
+  bottom: 11px;
+  width: 10px;
+  height: 10px;
+  box-shadow: 26px 0 0 #111;
+}
+
+.cart-row .product-visual--chair span,
+.cart-row .product-visual--coat span,
+.cart-row .product-visual--bag span,
+.cart-row .product-visual--bookshelf span,
+.cart-row .product-visual--dogfood span,
+.cart-row .product-visual--camera span,
+.cart-row .product-visual--skincare span,
+.cart-row .product-visual--toycar span,
+.cart-row .product-visual--cleats span,
+.cart-row .product-visual--jacket span,
+.cart-row .product-visual--default span {
+  inset: 10px 14px;
+  border-radius: 9px;
 }
 
 .cart-actions,
@@ -1182,8 +1281,13 @@ button {
   margin-top: 32px;
 }
 
+.checkout-strip {
+  align-items: flex-start;
+}
+
 .coupon {
   display: flex;
+  align-items: flex-start;
   gap: 16px;
 }
 
@@ -1217,7 +1321,7 @@ button {
 .contact-layout,
 .account-layout {
   display: grid;
-  grid-template-columns: 1fr 470px;
+  grid-template-columns: minmax(0, 1fr) 470px;
   gap: 170px;
 }
 
@@ -1240,6 +1344,7 @@ button {
   display: grid;
   gap: 8px;
   color: rgba(0, 0, 0, 0.65);
+  min-width: 0;
 }
 
 .form-field b {
@@ -1248,6 +1353,8 @@ button {
 
 .form-field input,
 .form-field textarea {
+  width: 100%;
+  min-width: 0;
   min-height: 50px;
   border: 0;
   border-radius: 4px;
@@ -1448,7 +1555,7 @@ button {
 }
 
 .contact-layout {
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 340px minmax(0, 1fr);
   gap: 30px;
 }
 
@@ -1857,7 +1964,29 @@ button {
   }
 
   .cart-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 24px;
+  }
+
+  .cart-row > div:first-child {
+    display: grid;
+    grid-template-columns: 54px 28px minmax(0, 1fr);
+    gap: 10px 12px;
+  }
+
+  .cart-row > div:first-child span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .cart-row > span,
+  .cart-row > strong {
+    justify-self: start;
+  }
+
+  .cart-row .quantity {
+    justify-self: start;
   }
 
   .cart-totals,
@@ -1880,6 +2009,14 @@ button {
 
   .product-info {
     padding-left: 0;
+  }
+
+  .breadcrumbs {
+    margin-bottom: 56px;
+  }
+
+  .welcome {
+    margin: -24px 0 48px;
   }
 }
 
@@ -1922,6 +2059,29 @@ button {
   .order-items-panel,
   .order-side-panel {
     padding: 28px 20px;
+  }
+
+  .page {
+    padding: 72px 0 96px;
+  }
+
+  .cart-table {
+    gap: 24px;
+  }
+
+  .cart-actions,
+  .checkout-strip {
+    margin-top: 24px;
+  }
+
+  .button {
+    width: 100%;
+    padding-inline: 24px;
+  }
+
+  .top-header__inner {
+    align-items: center;
+    gap: 8px 14px;
   }
 
   .thumbs {

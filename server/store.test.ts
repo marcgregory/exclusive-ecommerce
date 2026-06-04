@@ -152,6 +152,28 @@ describe("PostgreSQL persistence", () => {
     expect((await getUserCart("demo-user")).items).toHaveLength(0);
   });
 
+  it("returns the same pending order when checkout retries with the same idempotency key", async () => {
+    const billing = { firstName: "Md", streetAddress: "123 Main", townCity: "Dhaka", phone: "123", email: "rimel@example.com" };
+    const firstOrder = await createOrder(
+      "demo-user",
+      billing,
+      "stripe",
+      "EXCLUSIVE10",
+      "checkout-retry-1"
+    );
+    const retriedOrder = await createOrder(
+      "demo-user",
+      billing,
+      "stripe",
+      "EXCLUSIVE10",
+      "checkout-retry-1"
+    );
+
+    expect(retriedOrder.id).toBe(firstOrder.id);
+    expect(retriedOrder.items).toHaveLength(firstOrder.items.length);
+    expect((await getUserCart("demo-user")).items).toHaveLength(0);
+  });
+
   it("checks stock during checkout and decrements purchased variants", async () => {
     await query("UPDATE product_variants SET stock = 1 WHERE product_id = $1 AND color = $2 AND size = $3", ["havic-gamepad", "#db4444", "M"]);
 

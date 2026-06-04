@@ -352,6 +352,9 @@ app.post(
       req.body.billing,
       req.body.paymentMethod || "bank",
       req.body.couponCode,
+      typeof req.body.idempotencyKey === "string"
+        ? req.body.idempotencyKey
+        : undefined,
     );
     res.status(201).json({ order });
   }),

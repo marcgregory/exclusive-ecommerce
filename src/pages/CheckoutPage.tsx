@@ -45,6 +45,13 @@ declare global {
 }
 
 let stripeScriptPromise: Promise<StripeConstructor> | null = null;
+const pendingCheckoutStorageKey = "exclusive.pendingStripeCheckout";
+
+type PendingStripeCheckout = {
+  orderId: string;
+  idempotencyKey: string;
+  clientSecret?: string;
+};
 
 function loadStripeScript(): Promise<StripeConstructor> {
   if (window.Stripe) return Promise.resolve(window.Stripe);
@@ -62,6 +69,37 @@ function loadStripeScript(): Promise<StripeConstructor> {
     });
   }
   return stripeScriptPromise;
+}
+
+function createCheckoutIdempotencyKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `checkout-${crypto.randomUUID()}`;
+  }
+  return `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function readPendingCheckout(): PendingStripeCheckout | null {
+  try {
+    const raw = sessionStorage.getItem(pendingCheckoutStorageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PendingStripeCheckout>;
+    if (!parsed.orderId || !parsed.idempotencyKey) return null;
+    return {
+      orderId: parsed.orderId,
+      idempotencyKey: parsed.idempotencyKey,
+      clientSecret: parsed.clientSecret,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePendingCheckout(checkout: PendingStripeCheckout) {
+  sessionStorage.setItem(pendingCheckoutStorageKey, JSON.stringify(checkout));
+}
+
+function clearPendingCheckout() {
+  sessionStorage.removeItem(pendingCheckoutStorageKey);
 }
 
 type CheckoutPageProps = {
@@ -89,16 +127,14 @@ export function CheckoutPage({
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stripeReady, setStripeReady] = useState(false);
-  const [pendingStripePayment, setPendingStripePayment] = useState<{
-    orderId: string;
-    clientSecret: string;
-  } | null>(null);
+  const [pendingStripePayment, setPendingStripePayment] =
+    useState<PendingStripeCheckout | null>(() => readPendingCheckout());
   const stripeContainerRef = useRef<HTMLDivElement | null>(null);
   const stripeRef = useRef<StripeInstance | null>(null);
   const stripeElementsRef = useRef<StripeElements | null>(null);
 
   useEffect(() => {
-    if (!pendingStripePayment) return;
+    if (!pendingStripePayment?.clientSecret) return;
     const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
     let active = true;
     let paymentElement: StripePaymentElement | null = null;
@@ -139,10 +175,37 @@ export function CheckoutPage({
     };
   }, [pendingStripePayment]);
 
+  const startStripePayment = async (checkout: PendingStripeCheckout) => {
+    const paymentData = await api<PaymentResponse>(`/api/payments`, {
+      method: "POST",
+      body: JSON.stringify({
+        orderId: checkout.orderId,
+        paymentMethod: "stripe",
+      }),
+    });
+    if (
+      paymentData.payment.provider === "stripe" &&
+      paymentData.payment.clientSecret
+    ) {
+      const nextCheckout = {
+        ...checkout,
+        clientSecret: paymentData.payment.clientSecret,
+      };
+      setPendingStripePayment(nextCheckout);
+      writePendingCheckout(nextCheckout);
+      setStatus("Enter your payment details to confirm the order.");
+      return true;
+    }
+    return false;
+  };
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const billing = Object.fromEntries(form.entries());
+    const existingCheckout = readPendingCheckout();
+    const idempotencyKey =
+      existingCheckout?.idempotencyKey || createCheckoutIdempotencyKey();
     try {
       setSubmitting(true);
       setStatus("");
@@ -153,26 +216,19 @@ export function CheckoutPage({
           billing,
           paymentMethod: "stripe",
           couponCode: appliedCoupon || undefined,
+          idempotencyKey,
         }),
       });
 
+      const checkout: PendingStripeCheckout = {
+        orderId: data.order.id,
+        idempotencyKey,
+      };
+      setPendingStripePayment(checkout);
+      writePendingCheckout(checkout);
+
       try {
-        const paymentData = await api<PaymentResponse>(`/api/payments`, {
-          method: "POST",
-          body: JSON.stringify({
-            orderId: data.order.id,
-            paymentMethod: "stripe",
-          }),
-        });
-        if (
-          paymentData.payment.provider === "stripe" &&
-          paymentData.payment.clientSecret
-        ) {
-          setPendingStripePayment({
-            orderId: data.order.id,
-            clientSecret: paymentData.payment.clientSecret,
-          });
-          setStatus("Enter your payment details to confirm the order.");
+        if (await startStripePayment(checkout)) {
           return;
         }
       } catch (payErr) {
@@ -183,7 +239,23 @@ export function CheckoutPage({
       }
       await refreshCart();
       onCouponConsumed();
+      clearPendingCheckout();
       navigate(`/orders/${data.order.id}`);
+    } catch (error) {
+      setStatusIsError(true);
+      setStatus(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const retryStripePaymentSetup = async () => {
+    if (!pendingStripePayment) return;
+    try {
+      setSubmitting(true);
+      setStatus("");
+      setStatusIsError(false);
+      await startStripePayment(pendingStripePayment);
     } catch (error) {
       setStatusIsError(true);
       setStatus(getErrorMessage(error));
@@ -221,6 +293,7 @@ export function CheckoutPage({
       }
       await refreshCart();
       onCouponConsumed();
+      clearPendingCheckout();
       navigate(`/orders/${pendingStripePayment.orderId}`);
     } catch (error) {
       setStatusIsError(true);
@@ -282,7 +355,7 @@ export function CheckoutPage({
     );
   }
 
-  if (!cart.items.length) {
+  if (!cart.items.length && !pendingStripePayment) {
     return (
       <main className="container page">
         <Breadcrumbs
@@ -329,17 +402,37 @@ export function CheckoutPage({
           ))}
         </div>
         <div>
-          <OrderSummary cart={cart} />
+          {cart.items.length ? (
+            <OrderSummary cart={cart} />
+          ) : (
+            <div className="stripe-payment-panel">
+              <p className="form-status">
+                Your order is waiting for payment confirmation.
+              </p>
+            </div>
+          )}
           {pendingStripePayment && (
             <div className="stripe-payment-panel">
-              <div ref={stripeContainerRef} className="stripe-payment-element" />
-              <Button
-                type="button"
-                onClick={confirmStripePayment}
-                disabled={submitting || !stripeReady}
-              >
-                {submitting ? "Confirming Payment..." : "Pay Now"}
-              </Button>
+              {pendingStripePayment.clientSecret ? (
+                <>
+                  <div ref={stripeContainerRef} className="stripe-payment-element" />
+                  <Button
+                    type="button"
+                    onClick={confirmStripePayment}
+                    disabled={submitting || !stripeReady}
+                  >
+                    {submitting ? "Confirming Payment..." : "Pay Now"}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={retryStripePaymentSetup}
+                  disabled={submitting}
+                >
+                  {submitting ? "Resuming Payment..." : "Resume Payment"}
+                </Button>
+              )}
             </div>
           )}
           <Button type="submit" disabled={submitting || !!pendingStripePayment}>

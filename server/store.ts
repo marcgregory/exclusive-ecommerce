@@ -100,6 +100,21 @@ function mapOrder(row: QueryResultRow, items: Array<CartItem & { name: string; p
   };
 }
 
+async function getIdempotentOrder(
+  userId: string,
+  idempotencyKey: string | undefined,
+  client?: Queryable,
+): Promise<Order | undefined> {
+  if (!idempotencyKey) return undefined;
+  const result = await run(client).query(
+    "SELECT * FROM orders WHERE user_id = $1 AND idempotency_key = $2 LIMIT 1",
+    [userId, idempotencyKey],
+  );
+  if (!result.rows[0]) return undefined;
+  const orderId = String(result.rows[0].id);
+  return mapOrder(result.rows[0], await getOrderItemsWithClient(orderId, client));
+}
+
 function mapContactMessage(row: QueryResultRow): ContactMessage {
   return {
     id: String(row.id),
@@ -409,59 +424,88 @@ export async function validateCoupon(code: string): Promise<Coupon | null> {
   return findCoupon(code);
 }
 
-export async function createOrder(userId: string, billing: Record<string, string>, paymentMethod = "bank", couponCode?: string): Promise<Order> {
-  return withTransaction(async (client: PoolClient) => {
-    const cart = await getCartByUserId(userId, client);
-    const totals = await toCartResponse(cart, couponCode, client);
-    if (!totals.items.length) throw Object.assign(new Error("Cart is empty"), { status: 400 });
+export async function createOrder(
+  userId: string,
+  billing: Record<string, string>,
+  paymentMethod = "bank",
+  couponCode?: string,
+  idempotencyKey?: string,
+): Promise<Order> {
+  const normalizedIdempotencyKey = idempotencyKey?.trim() || undefined;
 
-    for (const item of totals.items) {
-      const product = await findProduct(item.productId, client);
-      if (!product) throw Object.assign(new Error(`Product ${item.productId} is no longer available`), { status: 409 });
-      if (product.colors.length > 0 && !item.selectedColor) {
-        throw Object.assign(new Error(`Please choose a color for ${product.name}`), { status: 400 });
+  try {
+    return await withTransaction(async (client: PoolClient) => {
+      const existingOrder = await getIdempotentOrder(userId, normalizedIdempotencyKey, client);
+      if (existingOrder) return existingOrder;
+
+      const cart = await getCartByUserId(userId, client);
+      const totals = await toCartResponse(cart, couponCode, client);
+      if (!totals.items.length) throw Object.assign(new Error("Cart is empty"), { status: 400 });
+
+      for (const item of totals.items) {
+        const product = await findProduct(item.productId, client);
+        if (!product) throw Object.assign(new Error(`Product ${item.productId} is no longer available`), { status: 409 });
+        if (product.colors.length > 0 && !item.selectedColor) {
+          throw Object.assign(new Error(`Please choose a color for ${product.name}`), { status: 400 });
+        }
+        if (product.sizes.length > 0 && !item.selectedSize) {
+          throw Object.assign(new Error(`Please choose a size for ${product.name}`), { status: 400 });
+        }
+        await assertCartItemStock(product, item.quantity, item.selectedColor, item.selectedSize, client);
       }
-      if (product.sizes.length > 0 && !item.selectedSize) {
-        throw Object.assign(new Error(`Please choose a size for ${product.name}`), { status: 400 });
-      }
-      await assertCartItemStock(product, item.quantity, item.selectedColor, item.selectedSize, client);
-    }
 
-    const orderId = nowId("order");
-    const orderResult = await client.query(
-      `INSERT INTO orders (id, user_id, billing, payment_method, subtotal, discount, shipping, total, status)
-       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, 'processing')
-       RETURNING *`,
-      [orderId, userId, JSON.stringify(billing), paymentMethod, totals.subtotal, totals.discount, totals.shipping, totals.total]
-    );
-
-    const orderItems: Array<CartItem & { name: string; price: number }> = [];
-    for (const item of totals.items) {
-      const orderItem = {
-        id: nowId("oi"),
-        productId: item.productId,
-        quantity: item.quantity,
-        selectedColor: item.selectedColor,
-        selectedSize: item.selectedSize,
-        name: item.product.name,
-        price: item.product.price
-      };
-      await client.query(
-        `INSERT INTO order_items (id, order_id, product_id, name, price, quantity, selected_color, selected_size)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [orderItem.id, orderId, orderItem.productId, orderItem.name, orderItem.price, orderItem.quantity, orderItem.selectedColor, orderItem.selectedSize]
+      const orderId = nowId("order");
+      const orderResult = await client.query(
+        `INSERT INTO orders (id, user_id, idempotency_key, billing, payment_method, subtotal, discount, shipping, total, status)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, 'processing')
+         RETURNING *`,
+        [
+          orderId,
+          userId,
+          normalizedIdempotencyKey || null,
+          JSON.stringify(billing),
+          paymentMethod,
+          totals.subtotal,
+          totals.discount,
+          totals.shipping,
+          totals.total
+        ]
       );
-      await decrementVariantStock(item.product, item.quantity, item.selectedColor, item.selectedSize, client);
-      orderItems.push(orderItem);
-    }
 
-    await client.query("DELETE FROM cart_items WHERE cart_id = $1", [cart.id]);
-    return mapOrder(orderResult.rows[0], orderItems);
-  });
+      const orderItems: Array<CartItem & { name: string; price: number }> = [];
+      for (const item of totals.items) {
+        const orderItem = {
+          id: nowId("oi"),
+          productId: item.productId,
+          quantity: item.quantity,
+          selectedColor: item.selectedColor,
+          selectedSize: item.selectedSize,
+          name: item.product.name,
+          price: item.product.price
+        };
+        await client.query(
+          `INSERT INTO order_items (id, order_id, product_id, name, price, quantity, selected_color, selected_size)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [orderItem.id, orderId, orderItem.productId, orderItem.name, orderItem.price, orderItem.quantity, orderItem.selectedColor, orderItem.selectedSize]
+        );
+        await decrementVariantStock(item.product, item.quantity, item.selectedColor, item.selectedSize, client);
+        orderItems.push(orderItem);
+      }
+
+      await client.query("DELETE FROM cart_items WHERE cart_id = $1", [cart.id]);
+      return mapOrder(orderResult.rows[0], orderItems);
+    });
+  } catch (error: any) {
+    if (normalizedIdempotencyKey && error?.code === "23505") {
+      const existingOrder = await getIdempotentOrder(userId, normalizedIdempotencyKey);
+      if (existingOrder) return existingOrder;
+    }
+    throw error;
+  }
 }
 
-async function getOrderItems(orderId: string): Promise<Array<CartItem & { name: string; price: number }>> {
-  const result = await query("SELECT * FROM order_items WHERE order_id = $1 ORDER BY id", [orderId]);
+async function getOrderItemsWithClient(orderId: string, client?: Queryable): Promise<Array<CartItem & { name: string; price: number }>> {
+  const result = await run(client).query("SELECT * FROM order_items WHERE order_id = $1 ORDER BY id", [orderId]);
   return result.rows.map((row) => ({
     id: String(row.id),
     productId: String(row.product_id),
@@ -471,6 +515,10 @@ async function getOrderItems(orderId: string): Promise<Array<CartItem & { name: 
     name: String(row.name),
     price: toNumber(row.price)
   }));
+}
+
+async function getOrderItems(orderId: string): Promise<Array<CartItem & { name: string; price: number }>> {
+  return getOrderItemsWithClient(orderId);
 }
 
 export async function listOrders(userId: string): Promise<Order[]> {

@@ -137,6 +137,70 @@ async function findCoupon(code: string | undefined, client?: Queryable): Promise
   return result.rows[0] ? mapCoupon(result.rows[0]) : null;
 }
 
+async function getVariantStock(productId: string, selectedColor: string, selectedSize: string, client?: Queryable): Promise<number | null> {
+  const db = run(client);
+  const variantCount = await db.query<{ count: string }>("SELECT COUNT(*) AS count FROM product_variants WHERE product_id = $1", [productId]);
+  if (Number(variantCount.rows[0]?.count || 0) === 0) return null;
+
+  const result = await db.query<{ stock: string | number }>(
+    `SELECT stock
+     FROM product_variants
+     WHERE product_id = $1
+       AND COALESCE(color, '') = $2
+       AND COALESCE(size, '') = $3
+     LIMIT 1`,
+    [productId, selectedColor || "", selectedSize || ""]
+  );
+  return result.rows[0] ? Number(result.rows[0].stock || 0) : 0;
+}
+
+async function assertCartItemStock(
+  product: Product,
+  quantity: number,
+  selectedColor: string,
+  selectedSize: string,
+  client?: Queryable,
+): Promise<void> {
+  if (product.stockStatus === "Out of Stock") {
+    throw Object.assign(new Error(`${product.name} is out of stock`), { status: 409 });
+  }
+  const stock = await getVariantStock(product.id, selectedColor, selectedSize, client);
+  if (stock !== null && quantity > stock) {
+    throw Object.assign(new Error(stockAvailabilityMessage(product.name, stock)), { status: 409 });
+  }
+}
+
+function stockAvailabilityMessage(productName: string, stock: number) {
+  return `Only ${stock} ${productName} item${stock === 1 ? "" : "s"} ${stock === 1 ? "is" : "are"} available`;
+}
+
+async function decrementVariantStock(
+  product: Product,
+  quantity: number,
+  selectedColor: string,
+  selectedSize: string,
+  client: Queryable,
+): Promise<void> {
+  const stock = await getVariantStock(product.id, selectedColor, selectedSize, client);
+  if (stock === null) return;
+  if (quantity > stock) {
+    throw Object.assign(new Error(stockAvailabilityMessage(product.name, stock)), { status: 409 });
+  }
+
+  const result = await client.query(
+    `UPDATE product_variants
+     SET stock = stock - $4
+     WHERE product_id = $1
+       AND COALESCE(color, '') = $2
+       AND COALESCE(size, '') = $3
+       AND stock >= $4`,
+    [product.id, selectedColor || "", selectedSize || "", quantity]
+  );
+  if ((result.rowCount ?? 0) === 0) {
+    throw Object.assign(new Error(`${product.name} does not have enough stock`), { status: 409 });
+  }
+}
+
 export async function loadStore(): Promise<void> {
   await query("SELECT 1");
 }
@@ -264,9 +328,6 @@ export async function toCartResponse(cart: Cart, couponCode?: string, client?: Q
 export async function addCartItem(userId: string, input: Omit<CartItem, "id">): Promise<CartResponse> {
   const product = await findProduct(input.productId);
   if (!product) throw Object.assign(new Error("Product not found"), { status: 404 });
-  if (product.stockStatus === "Out of Stock") {
-    throw Object.assign(new Error(`${product.name} is out of stock`), { status: 409 });
-  }
   if (product.colors.length > 0 && !input.selectedColor) {
     throw Object.assign(new Error(`Please choose a color for ${product.name}`), { status: 400 });
   }
@@ -280,6 +341,8 @@ export async function addCartItem(userId: string, input: Omit<CartItem, "id">): 
   const existing = cart.items.find(
     (item) => item.productId === input.productId && item.selectedColor === input.selectedColor && item.selectedSize === input.selectedSize
   );
+  const requestedQuantity = input.quantity + (existing?.quantity || 0);
+  await assertCartItemStock(product, requestedQuantity, input.selectedColor, input.selectedSize);
   if (existing) {
     await query("UPDATE cart_items SET quantity = quantity + $2 WHERE id = $1", [existing.id, input.quantity]);
   } else {
@@ -297,8 +360,13 @@ export async function addCartItem(userId: string, input: Omit<CartItem, "id">): 
 
 export async function updateCartItem(userId: string, itemId: string, quantity: number): Promise<CartResponse | undefined> {
   const cart = await getUserCart(userId);
-  if (!cart.items.some((item) => item.id === itemId)) return undefined;
-  await query("UPDATE cart_items SET quantity = $2 WHERE id = $1", [itemId, Math.max(1, Number(quantity))]);
+  const item = cart.items.find((entry) => entry.id === itemId);
+  if (!item) return undefined;
+  const product = await findProduct(item.productId);
+  if (!product) throw Object.assign(new Error("Product not found"), { status: 404 });
+  const nextQuantity = Math.max(1, Number(quantity));
+  await assertCartItemStock(product, nextQuantity, item.selectedColor, item.selectedSize);
+  await query("UPDATE cart_items SET quantity = $2 WHERE id = $1", [itemId, nextQuantity]);
   return toCartResponse(await getUserCart(userId));
 }
 
@@ -350,15 +418,13 @@ export async function createOrder(userId: string, billing: Record<string, string
     for (const item of totals.items) {
       const product = await findProduct(item.productId, client);
       if (!product) throw Object.assign(new Error(`Product ${item.productId} is no longer available`), { status: 409 });
-      if (product.stockStatus === "Out of Stock") {
-        throw Object.assign(new Error(`${product.name} is out of stock`), { status: 409 });
-      }
       if (product.colors.length > 0 && !item.selectedColor) {
         throw Object.assign(new Error(`Please choose a color for ${product.name}`), { status: 400 });
       }
       if (product.sizes.length > 0 && !item.selectedSize) {
         throw Object.assign(new Error(`Please choose a size for ${product.name}`), { status: 400 });
       }
+      await assertCartItemStock(product, item.quantity, item.selectedColor, item.selectedSize, client);
     }
 
     const orderId = nowId("order");
@@ -385,6 +451,7 @@ export async function createOrder(userId: string, billing: Record<string, string
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [orderItem.id, orderId, orderItem.productId, orderItem.name, orderItem.price, orderItem.quantity, orderItem.selectedColor, orderItem.selectedSize]
       );
+      await decrementVariantStock(item.product, item.quantity, item.selectedColor, item.selectedSize, client);
       orderItems.push(orderItem);
     }
 
@@ -808,4 +875,3 @@ export async function updateContactMessageStatus(messageId: string, status: stri
   const result = await query("UPDATE contact_messages SET status = $2 WHERE id = $1 RETURNING *", [messageId, status]);
   return result.rows[0] ? mapContactMessage(result.rows[0]) : undefined;
 }
-

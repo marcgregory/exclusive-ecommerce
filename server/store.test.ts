@@ -101,6 +101,17 @@ describe("PostgreSQL persistence", () => {
     expect(deleted.items.some((entry) => entry.id === item!.id)).toBe(false);
   });
 
+  it("rejects cart quantities above available variant stock", async () => {
+    await query("UPDATE product_variants SET stock = 2 WHERE product_id = $1 AND color = $2 AND size = $3", ["rgb-cooler", "#111111", ""]);
+
+    await expect(addCartItem("demo-user", { productId: "rgb-cooler", quantity: 3, selectedColor: "#111111", selectedSize: "" })).rejects.toThrow("Only 2 RGB Liquid CPU Cooler items are available");
+
+    const added = await addCartItem("demo-user", { productId: "rgb-cooler", quantity: 2, selectedColor: "#111111", selectedSize: "" });
+    const item = added.items.find((entry) => entry.productId === "rgb-cooler");
+
+    await expect(updateCartItem("demo-user", item!.id, 3)).rejects.toThrow("Only 2 RGB Liquid CPU Cooler items are available");
+  });
+
   it("adds, lists, and removes wishlist products", async () => {
     const added = await addWishlistProduct("demo-user", "havic-gamepad");
     expect(added.map((product) => product.id)).toContain("havic-gamepad");
@@ -139,6 +150,29 @@ describe("PostgreSQL persistence", () => {
     expect(order.items).toHaveLength(1);
     expect(order.total).toBe(232);
     expect((await getUserCart("demo-user")).items).toHaveLength(0);
+  });
+
+  it("checks stock during checkout and decrements purchased variants", async () => {
+    await query("UPDATE product_variants SET stock = 1 WHERE product_id = $1 AND color = $2 AND size = $3", ["havic-gamepad", "#db4444", "M"]);
+
+    await expect(
+      createOrder(
+        "demo-user",
+        { firstName: "Md", streetAddress: "123 Main", townCity: "Dhaka", phone: "123", email: "rimel@example.com" },
+        "bank"
+      )
+    ).rejects.toThrow("Only 1 HAVIT HV-G92 Gamepad item is available");
+
+    await query("UPDATE cart_items SET quantity = 1 WHERE id = $1", ["ci-1"]);
+    const order = await createOrder(
+      "demo-user",
+      { firstName: "Md", streetAddress: "123 Main", townCity: "Dhaka", phone: "123", email: "rimel@example.com" },
+      "bank"
+    );
+    const stock = await query("SELECT stock FROM product_variants WHERE product_id = $1 AND color = $2 AND size = $3", ["havic-gamepad", "#db4444", "M"]);
+
+    expect(order.items[0].quantity).toBe(1);
+    expect(Number(stock.rows[0].stock)).toBe(0);
   });
 
   it("persists contact submissions with API-shaped fields", async () => {

@@ -71,6 +71,7 @@ The next work should focus on turning this from a prototype into a production-re
   - Order confirmation page after checkout.
   - Order history UI in the account page.
   - Product option validation for size and color on the product details page.
+  - Variant stock checks during add-to-cart, cart quantity updates, and checkout.
 - Remaining:
   - Finish product filtering and sorting UI:
     - Category
@@ -79,7 +80,6 @@ The next work should focus on turning this from a prototype into a production-re
     - Best selling
     - Price ascending/descending
     - Rating
-  - Add stock checks during add-to-cart and checkout.
   - Add wishlist page remove/move-to-cart behavior.
   - Add end-to-end checkout coverage across cart, checkout, payment, confirmation, and order history.
   - Integrate the selected payment provider beyond the current local payment simulation.
@@ -113,6 +113,7 @@ The next work should focus on turning this from a prototype into a production-re
     - Product details loading/error/rendering, option validation, cart, and wishlist actions
     - Cart quantity changes
     - Checkout guest/error/empty/submission/payment failure paths
+    - Stock-limit failures during cart quantity updates and checkout
     - Account guest/profile/order-history loading/error/rendering/detail navigation
     - Order detail guest/loading/error/not-found/rendering/payment-status paths
   - Remaining:
@@ -137,8 +138,7 @@ The next work should focus on turning this from a prototype into a production-re
 ## Recommended Next Sprint
 
 1. Finish authentication and session hardening, including logout coverage.
-2. Add stock checks during add-to-cart and checkout.
-3. Add wishlist remove and move-to-cart behavior.
-4. Add E2E checkout coverage from cart through order history.
-5. Select and integrate the real Stripe/payment provider path.
-6. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+2. Add wishlist remove and move-to-cart behavior.
+3. Add E2E checkout coverage from cart through order history.
+4. Select and integrate the real Stripe/payment provider path.
+5. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.

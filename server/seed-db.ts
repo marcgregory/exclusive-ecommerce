@@ -49,6 +49,17 @@ export async function seedDatabase(): Promise<void> {
           index
         ]
       );
+
+      const colors = product.colors.length ? product.colors : [""];
+      const sizes = product.sizes.length ? product.sizes : [""];
+      for (const color of colors) {
+        for (const size of sizes) {
+          await client.query(
+            "INSERT INTO product_variants (id, product_id, color, size, stock) VALUES ($1, $2, $3, $4, $5)",
+            [`pv-${product.id}-${color || "default"}-${size || "default"}`, product.id, color, size, product.stockStatus === "Out of Stock" ? 0 : 10]
+          );
+        }
+      }
     }
 
     for (const coupon of state.coupons) {

@@ -262,4 +262,36 @@ describe("CheckoutPage", () => {
       expect(screen.getByText(/Checkout failed/i)).toBeDefined(),
     );
   });
+
+  it("shows stock errors when inventory changes before purchase", async () => {
+    mockedApi.mockRejectedValue(new Error("Only 0 Checkout Product items are available"));
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={vi.fn()}
+        navigate={vi.fn()}
+        appliedCoupon=""
+        onCouponConsumed={vi.fn()}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
+    await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
+    await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
+    await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
+
+    await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Only 0 Checkout Product items are available/i)).toBeDefined(),
+    );
+  });
 });

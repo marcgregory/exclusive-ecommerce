@@ -207,4 +207,28 @@ describe("CartPage", () => {
     await waitFor(() => expect(screen.getByText(/Update failed/i)).toBeDefined());
     expect(refreshCart).not.toHaveBeenCalled();
   });
+
+  it("shows stock errors when quantity exceeds availability", async () => {
+    const refreshCart = vi.fn();
+    mockedApi.mockRejectedValue(new Error("Only 2 Test Product items are available"));
+
+    const row = render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={refreshCart}
+        appliedCoupon=""
+        onAppliedCouponChange={vi.fn()}
+      />
+    );
+
+    const plusButton = row.container.querySelectorAll(".quantity button")[1];
+    await userEvent.click(plusButton!);
+
+    await waitFor(() => expect(screen.getByText(/Only 2 Test Product items are available/i)).toBeDefined());
+    expect(refreshCart).not.toHaveBeenCalled();
+  });
 });

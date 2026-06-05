@@ -68,6 +68,7 @@ import { createPayment } from "./payments.js";
 import { verifyStripeWebhookEvent } from "./payments.js";
 import { createSessionOptions } from "./session-store.js";
 import { getErrorLogFields, logError, logInfo } from "./logger.js";
+import { migrate } from "./migrate.js";
 import {
   addCartItemSchema,
   adminCategorySchema,
@@ -814,6 +815,7 @@ export default app;
 
 // Only start server if running directly (not imported for testing)
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  await migrate();
   await loadStore();
   app.listen(config.port, () => {
     console.log(`Exclusive API listening on http://127.0.0.1:${config.port}`);

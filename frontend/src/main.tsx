@@ -1,12 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { Provider, useDispatch } from "react-redux";
 import { createRoot } from "react-dom/client";
-import { ApiError, api } from "./api/client";
+import {
+  ecommerceApi,
+  useAddCartItemMutation,
+  useAddWishlistProductMutation,
+  useGetCartQuery,
+  useGetCategoriesQuery,
+  useGetMeQuery,
+  useGetProductsQuery,
+  useGetWishlistQuery,
+  useLogoutMutation,
+} from "./api/ecommerceApi";
+import { store, type AppDispatch } from "./app/store";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ErrorState, LoadingState } from "./components/StateViews";
 import { TopHeader } from "./components/TopHeader";
 import { getErrorMessage } from "./lib/errors";
+import { getRtkErrorMessage, getRtkStatus } from "./lib/rtkErrors";
 import { useRoute } from "./lib/router";
 import { useClientErrorReporting } from "./lib/useClientErrorReporting";
 import { AboutPage } from "./pages/AboutPage";
@@ -23,132 +36,99 @@ import { HomePage } from "./pages/HomePage";
 import { OrderPage } from "./pages/OrderPage";
 import { ProductDetailsPage } from "./pages/ProductDetailsPage";
 import { WishlistPage } from "./pages/WishlistPage";
-import type { AsyncState, AuthStatus, Cart, CategoriesResponse, Category, MeResponse, ProductsResponse, Product, PublicUser, WishlistResponse } from "./types";
+import type { AsyncState, AuthStatus, Cart, Category, Product, PublicUser } from "./types";
 import "./styles.css";
 
 const emptyCart: Cart = { items: [], subtotal: 0, discount: 0, shipping: 0, total: 0 };
 
 function App() {
   useClientErrorReporting();
+  const dispatch = useDispatch<AppDispatch>();
   const { path, query, navigate } = useRoute();
-  const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
-  const [categories, setCategories] = useState<AsyncState<Category[]>>({ data: [], loading: true, error: "" });
-  const [userState, setUserState] = useState<AsyncState<PublicUser | null>>({ data: null, loading: true, error: "" });
-  const [cart, setCart] = useState<AsyncState<Cart>>({ data: emptyCart, loading: false, error: "" });
-  const [wishlistCount, setWishlistCount] = useState<AsyncState<number>>({ data: 0, loading: false, error: "" });
   const [appliedCoupon, setAppliedCoupon] = useState("");
-  const [logoutSaving, setLogoutSaving] = useState(false);
+
+  const productsQuery = useGetProductsQuery();
+  const categoriesQuery = useGetCategoriesQuery();
+  const userQuery = useGetMeQuery();
+  const user = userQuery.data?.user ?? null;
+  const cartQuery = useGetCartQuery(appliedCoupon || undefined, { skip: !user });
+  const wishlistQuery = useGetWishlistQuery(undefined, { skip: !user });
+  const [addCartItem] = useAddCartItemMutation();
+  const [addWishlistProduct] = useAddWishlistProductMutation();
+  const [logout, logoutState] = useLogoutMutation();
+
+  const products: AsyncState<Product[]> = {
+    data: productsQuery.data?.products ?? [],
+    loading: productsQuery.isLoading,
+    error: getRtkErrorMessage(productsQuery.error),
+  };
+  const categories: AsyncState<Category[]> = {
+    data: categoriesQuery.data?.categories ?? [],
+    loading: categoriesQuery.isLoading,
+    error: getRtkErrorMessage(categoriesQuery.error),
+  };
+  const userState: AsyncState<PublicUser | null> = {
+    data: user,
+    loading: userQuery.isLoading,
+    error: getRtkStatus(userQuery.error) === 401 ? "" : getRtkErrorMessage(userQuery.error),
+  };
+  const cart: AsyncState<Cart> = {
+    data: cartQuery.data?.cart ?? emptyCart,
+    loading: cartQuery.isLoading,
+    error: getRtkErrorMessage(cartQuery.error),
+  };
+  const wishlistCount: AsyncState<number> = {
+    data: wishlistQuery.data?.products.length ?? 0,
+    loading: wishlistQuery.isLoading,
+    error: getRtkErrorMessage(wishlistQuery.error),
+  };
 
   const authStatus: AuthStatus = userState.loading ? "checking" : userState.data ? "authenticated" : "guest";
 
-  const resetPrivateState = useCallback(() => {
-    setCart({ data: emptyCart, loading: false, error: "" });
-    setWishlistCount({ data: 0, loading: false, error: "" });
-  }, []);
-
-  const loadProducts = useCallback(async () => {
-    setProducts((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<ProductsResponse>("/api/products");
-      setProducts({ data: data.products, loading: false, error: "" });
-    } catch (error) {
-      setProducts((current) => ({ ...current, loading: false, error: getErrorMessage(error) }));
-    }
-  }, []);
-
-  const loadCategories = useCallback(async () => {
-    setCategories((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<CategoriesResponse>("/api/categories");
-      setCategories({ data: data.categories, loading: false, error: "" });
-    } catch (error) {
-      setCategories((current) => ({ ...current, loading: false, error: getErrorMessage(error) }));
-    }
-  }, []);
-
   const refreshCart = useCallback(async (coupon = "") => {
-    if (!userState.data) {
-      resetPrivateState();
-      return;
-    }
-    setCart((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<{ cart: Cart }>(`/api/cart${coupon ? `?coupon=${encodeURIComponent(coupon)}` : ""}`);
-      setCart({ data: data.cart, loading: false, error: "" });
-    } catch (error) {
-      setCart((current) => ({ ...current, loading: false, error: getErrorMessage(error) }));
-    }
-  }, [resetPrivateState, userState.data]);
+    if (coupon !== appliedCoupon) setAppliedCoupon(coupon);
+    await dispatch(ecommerceApi.endpoints.getCart.initiate(coupon || undefined, { forceRefetch: true })).unwrap();
+  }, [appliedCoupon, dispatch]);
 
   const refreshWishlist = useCallback(async () => {
-    if (!userState.data) {
-      resetPrivateState();
-      return;
-    }
-    setWishlistCount((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<WishlistResponse>("/api/wishlist");
-      setWishlistCount({ data: data.products.length, loading: false, error: "" });
-    } catch (error) {
-      setWishlistCount((current) => ({ ...current, loading: false, error: getErrorMessage(error) }));
-    }
-  }, [resetPrivateState, userState.data]);
+    if (!userState.data) return;
+    await dispatch(ecommerceApi.endpoints.getWishlist.initiate(undefined, { forceRefetch: true })).unwrap();
+  }, [dispatch, userState.data]);
 
   const loadUser = useCallback(async () => {
-    setUserState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<MeResponse>("/api/me");
-      setUserState({ data: data.user, loading: false, error: "" });
-    } catch (error) {
-      setUserState({ data: null, loading: false, error: error instanceof ApiError && error.status === 401 ? "" : getErrorMessage(error) });
-      resetPrivateState();
-    }
-  }, [resetPrivateState]);
-
-  useEffect(() => {
-    loadProducts();
-    loadCategories();
-    loadUser();
-  }, [loadProducts, loadCategories, loadUser]);
-
-  useEffect(() => {
-    if (!userState.data) return;
-    refreshCart();
-    refreshWishlist();
-  }, [refreshCart, refreshWishlist, userState.data]);
+    await dispatch(ecommerceApi.endpoints.getMe.initiate(undefined, { forceRefetch: true })).unwrap();
+  }, [dispatch]);
+  const loadProducts = productsQuery.refetch;
+  const loadCategories = categoriesQuery.refetch;
 
   const onAdd = useCallback(async (productId: string, quantity = 1, selectedColor = "", selectedSize = "") => {
     if (!userState.data) {
       navigate("/account");
       return;
     }
-    await api("/api/cart/items", { method: "POST", body: JSON.stringify({ productId, quantity, selectedColor, selectedSize }) });
-    refreshCart();
-  }, [navigate, refreshCart, userState.data]);
+    await addCartItem({ productId, quantity, selectedColor, selectedSize }).unwrap();
+  }, [addCartItem, navigate, userState.data]);
 
   const onWishlist = useCallback(async (productId: string) => {
     if (!userState.data) {
       navigate("/account");
       return;
     }
-    await api(`/api/wishlist/${productId}`, { method: "POST" });
-    refreshWishlist();
-  }, [navigate, refreshWishlist, userState.data]);
+    await addWishlistProduct(productId).unwrap();
+  }, [addWishlistProduct, navigate, userState.data]);
 
   const handleAuthChanged = useCallback((user: PublicUser) => {
-    setUserState({ data: user, loading: false, error: "" });
-  }, []);
+    dispatch(ecommerceApi.util.upsertQueryData("getMe", undefined, { user }));
+    dispatch(ecommerceApi.util.invalidateTags(["Cart", "Wishlist"]));
+  }, [dispatch]);
 
   const handleLogout = useCallback(async () => {
     try {
-      setLogoutSaving(true);
-      await api("/api/auth/logout", { method: "POST" });
+      await logout().unwrap();
     } finally {
-      setLogoutSaving(false);
-      setUserState({ data: null, loading: false, error: "" });
-      resetPrivateState();
+      dispatch(ecommerceApi.util.resetApiState());
     }
-  }, [resetPrivateState]);
+  }, [dispatch, logout]);
 
   const page = useMemo(() => {
     const catalogRetry = () => {
@@ -222,7 +202,7 @@ function App() {
         cartCount={cart.data.items.reduce((sum, item) => sum + item.quantity, 0)}
         wishlistCount={wishlistCount.data}
         onLogout={handleLogout}
-        logoutSaving={logoutSaving}
+        logoutSaving={logoutState.isLoading}
       />
       {page}
       <button className="back-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>↑</button>
@@ -233,6 +213,8 @@ function App() {
 
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
-    <App />
+    <Provider store={store}>
+      <App />
+    </Provider>
   </ErrorBoundary>,
 );

@@ -1,4 +1,7 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { api } from "../api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
@@ -17,6 +20,30 @@ type AccountPageProps = {
 
 type AuthMode = "login" | "register";
 
+const authSchema = z.object({
+  firstName: z.string().trim().optional().default(""),
+  lastName: z.string().trim().optional().default(""),
+  email: z.string().trim().email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+  confirmPassword: z.string().optional().default(""),
+  address: z.string().trim().optional().default(""),
+});
+
+const profileSchema = z.object({
+  firstName: z.string().trim().optional().default(""),
+  lastName: z.string().trim().optional().default(""),
+  email: z.string().trim().email("Enter a valid email address"),
+  address: z.string().trim().optional().default(""),
+  currentPassword: z.string().optional().default(""),
+  newPassword: z.string().optional().default(""),
+  confirmPassword: z.string().optional().default(""),
+});
+
+type AuthFormInput = z.input<typeof authSchema>;
+type AuthForm = z.output<typeof authSchema>;
+type ProfileFormInput = z.input<typeof profileSchema>;
+type ProfileForm = z.output<typeof profileSchema>;
+
 function formatOrderDate(value: string) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
@@ -31,9 +58,14 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
   const [authStatusIsError, setAuthStatusIsError] = useState(false);
   const [profileStatus, setProfileStatus] = useState("");
   const [profileStatusIsError, setProfileStatusIsError] = useState(false);
-  const [savingAuth, setSavingAuth] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
   const [ordersState, setOrdersState] = useState<AsyncState<Order[]>>({ data: [], loading: false, error: "" });
+  const authForm = useForm<AuthFormInput, unknown, AuthForm>({
+    resolver: zodResolver(authSchema),
+    defaultValues: { firstName: "", lastName: "", email: "", password: "", confirmPassword: "", address: "" },
+  });
+  const profileForm = useForm<ProfileFormInput, unknown, ProfileForm>({
+    resolver: zodResolver(profileSchema),
+  });
 
   const loadOrders = useCallback(async () => {
     if (!userState.data) {
@@ -53,13 +85,10 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
     loadOrders();
   }, [loadOrders]);
 
-  const submitAuth = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const submitAuth = authForm.handleSubmit(async (payload) => {
     const endpoint = authMode === "login" ? "/api/auth/login" : "/api/auth/register";
 
     try {
-      setSavingAuth(true);
       setAuthStatus("");
       setAuthStatusIsError(false);
       const data = await api<AuthResponse>(endpoint, { method: "POST", body: JSON.stringify(payload) });
@@ -68,40 +97,39 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
     } catch (error) {
       setAuthStatusIsError(true);
       setAuthStatus(getErrorMessage(error));
-    } finally {
-      setSavingAuth(false);
     }
-  };
+  });
 
-  const submitProfile = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const payload = Object.fromEntries(new FormData(form).entries());
+  const submitProfile = profileForm.handleSubmit(async (payload) => {
+    const nextPayload = { ...payload };
 
     // Strip empty password fields so the backend doesn't treat a non-password
     // profile save as an attempted password change (it requires all three
     // password fields once any of them is present).
     for (const key of ["currentPassword", "newPassword", "confirmPassword"] as const) {
-      if (!payload[key]) delete payload[key];
+      if (!nextPayload[key]) delete nextPayload[key];
     }
 
     try {
-      setSavingProfile(true);
       setProfileStatus("");
       setProfileStatusIsError(false);
-      const data = await api<AuthResponse>("/api/me", { method: "PATCH", body: JSON.stringify(payload) });
+      const data = await api<AuthResponse>("/api/me", { method: "PATCH", body: JSON.stringify(nextPayload) });
       onAuthChanged(data.user);
       setProfileStatus("Profile saved.");
-      form.querySelectorAll<HTMLInputElement>("input[type='password']").forEach((input) => {
-        input.value = "";
+      profileForm.reset({
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        email: data.user.email,
+        address: data.user.address,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
     } catch (error) {
       setProfileStatusIsError(true);
       setProfileStatus(getErrorMessage(error));
-    } finally {
-      setSavingProfile(false);
     }
-  };
+  });
 
   if (userState.loading) {
     return <main className="container page"><LoadingState title="Loading account" message="We are checking your account." /></main>;
@@ -136,23 +164,23 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
             <h2>{authMode === "login" ? "Sign In" : "Create Account"}</h2>
             {authMode === "register" && (
               <div className="two-col">
-                <FormField label="First Name" name="firstName" />
-                <FormField label="Last Name" name="lastName" />
+                <FormField label="First Name" name="firstName" register={authForm.register("firstName")} error={authForm.formState.errors.firstName?.message} />
+                <FormField label="Last Name" name="lastName" register={authForm.register("lastName")} error={authForm.formState.errors.lastName?.message} />
               </div>
             )}
-            <FormField label="Email" name="email" type="email" required />
-            <FormField label="Password" name="password" type="password" required />
+            <FormField label="Email" name="email" type="email" required register={authForm.register("email")} error={authForm.formState.errors.email?.message} />
+            <FormField label="Password" name="password" type="password" required register={authForm.register("password")} error={authForm.formState.errors.password?.message} />
             {authMode === "register" && (
               <>
-                <FormField label="Confirm Password" name="confirmPassword" type="password" required />
-                <FormField label="Address" name="address" />
+                <FormField label="Confirm Password" name="confirmPassword" type="password" required register={authForm.register("confirmPassword")} error={authForm.formState.errors.confirmPassword?.message} />
+                <FormField label="Address" name="address" register={authForm.register("address")} error={authForm.formState.errors.address?.message} />
               </>
             )}
             <div className="form-actions">
               <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}>
                 {authMode === "login" ? "Create account" : "Sign in instead"}
               </button>
-              <Button type="submit" disabled={savingAuth}>{savingAuth ? "Please wait..." : authMode === "login" ? "Sign In" : "Create Account"}</Button>
+              <Button type="submit" disabled={authForm.formState.isSubmitting}>{authForm.formState.isSubmitting ? "Please wait..." : authMode === "login" ? "Sign In" : "Create Account"}</Button>
             </div>
             {authStatus && <p className={`form-status ${authStatusIsError ? "form-status--error" : ""}`}>{authStatus}</p>}
           </form>
@@ -173,17 +201,17 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
           <form className="profile-card" onSubmit={submitProfile}>
             <h2>Edit Your Profile</h2>
             <div className="two-col">
-              <FormField label="First Name" name="firstName" defaultValue={user.firstName} />
-              <FormField label="Last Name" name="lastName" defaultValue={user.lastName} />
-              <FormField label="Email" name="email" type="email" defaultValue={user.email} />
-              <FormField label="Address" name="address" defaultValue={user.address} />
+              <FormField label="First Name" name="firstName" defaultValue={user.firstName} register={profileForm.register("firstName")} error={profileForm.formState.errors.firstName?.message} />
+              <FormField label="Last Name" name="lastName" defaultValue={user.lastName} register={profileForm.register("lastName")} error={profileForm.formState.errors.lastName?.message} />
+              <FormField label="Email" name="email" type="email" defaultValue={user.email} register={profileForm.register("email")} error={profileForm.formState.errors.email?.message} />
+              <FormField label="Address" name="address" defaultValue={user.address} register={profileForm.register("address")} error={profileForm.formState.errors.address?.message} />
             </div>
             <div className="password-grid">
-              <FormField label="Current Password" name="currentPassword" type="password" />
-              <FormField label="New Password" name="newPassword" type="password" />
-              <FormField label="Confirm New Password" name="confirmPassword" type="password" />
+              <FormField label="Current Password" name="currentPassword" type="password" register={profileForm.register("currentPassword")} error={profileForm.formState.errors.currentPassword?.message} />
+              <FormField label="New Password" name="newPassword" type="password" register={profileForm.register("newPassword")} error={profileForm.formState.errors.newPassword?.message} />
+              <FormField label="Confirm New Password" name="confirmPassword" type="password" register={profileForm.register("confirmPassword")} error={profileForm.formState.errors.confirmPassword?.message} />
             </div>
-            <div className="form-actions"><button type="button" onClick={onUserRefresh}>Cancel</button><Button type="submit" disabled={savingProfile}>{savingProfile ? "Saving..." : "Save Changes"}</Button></div>
+            <div className="form-actions"><button type="button" onClick={onUserRefresh}>Cancel</button><Button type="submit" disabled={profileForm.formState.isSubmitting}>{profileForm.formState.isSubmitting ? "Saving..." : "Save Changes"}</Button></div>
             {profileStatus && <p className={`form-status ${profileStatusIsError ? "form-status--error" : ""}`}>{profileStatus}</p>}
           </form>
 

@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Elements,
   PaymentElement,
@@ -6,6 +7,8 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe, type StripeElements } from "@stripe/stripe-js";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { api } from "../api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
@@ -86,6 +89,19 @@ type StripePaymentFormProps = {
   onConfirm: (stripe: Stripe, elements: StripeElements) => Promise<void>;
 };
 
+const billingSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required"),
+  companyName: z.string().trim().optional().default(""),
+  streetAddress: z.string().trim().min(1, "Street address is required"),
+  apartment: z.string().trim().optional().default(""),
+  townCity: z.string().trim().min(1, "Town/city is required"),
+  phone: z.string().trim().min(1, "Phone is required"),
+  email: z.string().trim().email("Enter a valid email address"),
+});
+
+type BillingFormInput = z.input<typeof billingSchema>;
+type BillingForm = z.output<typeof billingSchema>;
+
 function StripePaymentForm({
   submitting,
   onConfirm,
@@ -122,6 +138,22 @@ export function CheckoutPage({
   const [status, setStatus] = useState("");
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const {
+    formState: { errors },
+    handleSubmit,
+    register,
+  } = useForm<BillingFormInput, unknown, BillingForm>({
+    resolver: zodResolver(billingSchema),
+    defaultValues: {
+      firstName: "",
+      companyName: "",
+      streetAddress: "",
+      apartment: "",
+      townCity: "",
+      phone: "",
+      email: "",
+    },
+  });
   const [pendingStripePayment, setPendingStripePayment] =
     useState<PendingStripeCheckout | null>(() => readPendingCheckout());
   const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
@@ -164,10 +196,7 @@ export function CheckoutPage({
     return false;
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const billing = Object.fromEntries(form.entries());
+  const submit = handleSubmit(async (billing) => {
     const existingCheckout = readPendingCheckout();
     const idempotencyKey =
       existingCheckout?.idempotencyKey || createCheckoutIdempotencyKey();
@@ -212,7 +241,7 @@ export function CheckoutPage({
     } finally {
       setSubmitting(false);
     }
-  };
+  });
 
   const retryStripePaymentSetup = async () => {
     if (!pendingStripePayment) return;
@@ -359,6 +388,8 @@ export function CheckoutPage({
               key={name}
               name={name}
               label={name.replace(/([A-Z])/g, " $1")}
+              register={register(name as keyof BillingFormInput)}
+              error={errors[name as keyof BillingFormInput]?.message}
               required={[
                 "firstName",
                 "streetAddress",

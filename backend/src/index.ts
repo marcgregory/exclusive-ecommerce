@@ -67,6 +67,25 @@ import { createPayment } from "./payments.js";
 import { verifyStripeWebhookEvent } from "./payments.js";
 import { createSessionOptions } from "./session-store.js";
 import { getErrorLogFields, logError, logInfo } from "./logger.js";
+import {
+  addCartItemSchema,
+  adminCategorySchema,
+  adminCategoryUpdateSchema,
+  adminCouponSchema,
+  adminOrderListQuerySchema,
+  adminOrderUpdateSchema,
+  adminProductSchema,
+  adminProductUpdateSchema,
+  clientErrorSchema,
+  contactMessageStatusSchema,
+  contactSchema,
+  couponValidationSchema,
+  createOrderSchema,
+  createPaymentSchema,
+  parseInput,
+  productListQuerySchema,
+  updateCartItemSchema,
+} from "./validation.js";
 
 const config = loadRuntimeConfig();
 const app = express();
@@ -247,7 +266,7 @@ app.post(
   "/api/client-errors",
   clientErrorLimiter,
   asyncRoute(async (req, res) => {
-    const body = req.body || {};
+    const body = parseInput(clientErrorSchema, req.body || {});
     logError("client.error", {
       requestId: req.requestId,
       message: String(body.message || "Client error").slice(0, 500),
@@ -334,21 +353,17 @@ app.get(
 app.get(
   "/api/products",
   asyncRoute(async (req, res) => {
-    const {
-      category,
-      q,
-      flag,
-      sort = "featured",
-      page = "1",
-      limit = "24",
-    } = req.query;
+    const { category, q, flag, sort, page, limit } = parseInput(
+      productListQuerySchema,
+      req.query,
+    );
     const result = await listProducts({
-      category: category ? String(category) : undefined,
-      q: q ? String(q) : undefined,
-      flag: flag ? String(flag) : undefined,
-      sort: String(sort),
-      page: Number(page),
-      limit: Number(limit),
+      category: category || undefined,
+      q: q || undefined,
+      flag: flag || undefined,
+      sort,
+      page,
+      limit,
     });
     res.json(result);
   }),
@@ -381,15 +396,13 @@ app.post(
   "/api/cart/items",
   requireUser,
   asyncRoute(async (req, res) => {
-    const {
-      productId,
-      quantity = 1,
-      selectedColor = "",
-      selectedSize = "",
-    } = req.body;
+    const { productId, quantity, selectedColor, selectedSize } = parseInput(
+      addCartItemSchema,
+      req.body,
+    );
     const cart = await addCartItem(req.user.id, {
       productId,
-      quantity: Number(quantity),
+      quantity,
       selectedColor,
       selectedSize,
     });
@@ -401,10 +414,11 @@ app.patch(
   "/api/cart/items/:id",
   requireUser,
   asyncRoute(async (req, res) => {
+    const { quantity } = parseInput(updateCartItemSchema, req.body);
     const cart = await updateCartItem(
       req.user.id,
       req.params.id,
-      Number(req.body.quantity),
+      quantity,
     );
     if (!cart) return res.status(404).json({ message: "Cart item not found" });
     res.json({ cart });
@@ -450,7 +464,8 @@ app.delete(
 app.post(
   "/api/coupons/validate",
   asyncRoute(async (req, res) => {
-    const coupon = await validateCoupon(String(req.body.code || ""));
+    const { code } = parseInput(couponValidationSchema, req.body);
+    const coupon = await validateCoupon(code);
     if (!coupon)
       return res
         .status(404)
@@ -463,26 +478,16 @@ app.post(
   "/api/orders",
   requireUser,
   asyncRoute(async (req, res) => {
-    const required = [
-      "firstName",
-      "streetAddress",
-      "townCity",
-      "phone",
-      "email",
-    ];
-    const missing = required.filter((field) => !req.body.billing?.[field]);
-    if (missing.length)
-      return res
-        .status(400)
-        .json({ message: `Missing billing fields: ${missing.join(", ")}` });
+    const body = parseInput(createOrderSchema, req.body);
+    const billing = Object.fromEntries(
+      Object.entries(body.billing).map(([key, value]) => [key, String(value)]),
+    );
     const order = await createOrder(
       req.user.id,
-      req.body.billing,
-      req.body.paymentMethod || "bank",
-      req.body.couponCode,
-      typeof req.body.idempotencyKey === "string"
-        ? req.body.idempotencyKey
-        : undefined,
+      billing,
+      body.paymentMethod || "bank",
+      body.couponCode || undefined,
+      body.idempotencyKey || undefined,
     );
     res.status(201).json({ order });
   }),
@@ -494,9 +499,7 @@ app.post(
   "/api/payments",
   requireUser,
   asyncRoute(async (req, res) => {
-    const { orderId, paymentMethod = "bank" } = req.body || {};
-    if (!orderId)
-      return res.status(400).json({ message: "orderId is required" });
+    const { orderId, paymentMethod } = parseInput(createPaymentSchema, req.body || {});
     const order = await getOrder(req.user.id, orderId);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -550,11 +553,7 @@ app.post(
   "/api/contact",
   contactLimiter,
   asyncRoute(async (req, res) => {
-    const { name, email, phone = "", message } = req.body;
-    if (!name || !email || !message)
-      return res
-        .status(400)
-        .json({ message: "Name, email, and message are required" });
+    const { name, email, phone, message } = parseInput(contactSchema, req.body);
     const contactMessage = await createContactMessage({
       name,
       email,
@@ -574,14 +573,17 @@ app.get(
   "/api/admin/orders",
   requireAdmin,
   asyncRoute(async (req, res) => {
-    const { status, email, from, to, page = "1", limit = "25" } = req.query;
+    const { status, email, from, to, page, limit } = parseInput(
+      adminOrderListQuerySchema,
+      req.query,
+    );
     const result = await listAdminOrders({
-      status: status ? String(status) : undefined,
-      email: email ? String(email) : undefined,
-      from: from ? String(from) : undefined,
-      to: to ? String(to) : undefined,
-      page: Number(page),
-      limit: Number(limit),
+      status: status || undefined,
+      email: email || undefined,
+      from: from || undefined,
+      to: to || undefined,
+      page,
+      limit,
     });
     res.json(result);
   }),
@@ -602,7 +604,7 @@ app.patch(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const body = req.body || {};
+    const body = parseInput(adminOrderUpdateSchema, req.body || {});
     const order = await updateAdminOrder(req.params.id, {
       ...(Object.prototype.hasOwnProperty.call(body, "status")
         ? { status: String(body.status || "") }
@@ -621,12 +623,15 @@ app.get(
   "/api/admin/products",
   requireAdmin,
   asyncRoute(async (req, res) => {
-    const { q, sort = "featured", page = "1", limit = "25" } = req.query;
+    const { q, sort, page, limit } = parseInput(productListQuerySchema, {
+      ...req.query,
+      limit: req.query.limit || "25",
+    });
     const result = await listProducts({
-      q: q ? String(q) : undefined,
-      sort: String(sort),
-      page: Number(page),
-      limit: Number(limit),
+      q: q || undefined,
+      sort,
+      page,
+      limit,
     });
     res.json(result);
   }),
@@ -637,7 +642,7 @@ app.post(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const product = await createProduct(req.body);
+    const product = await createProduct(parseInput(adminProductSchema, req.body));
     res.status(201).json({ product });
   }),
 );
@@ -647,7 +652,10 @@ app.patch(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const product = await updateProduct(req.params.id, req.body);
+    const product = await updateProduct(
+      req.params.id,
+      parseInput(adminProductUpdateSchema, req.body),
+    );
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json({ product });
   }),
@@ -670,7 +678,7 @@ app.post(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const category = await createCategory(req.body);
+    const category = await createCategory(parseInput(adminCategorySchema, req.body));
     res.status(201).json({ category });
   }),
 );
@@ -680,7 +688,10 @@ app.patch(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const category = await updateCategory(req.params.id, req.body);
+    const category = await updateCategory(
+      req.params.id,
+      parseInput(adminCategoryUpdateSchema, req.body),
+    );
     if (!category)
       return res.status(404).json({ message: "Category not found" });
     res.json({ category });
@@ -705,7 +716,7 @@ app.post(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const coupon = await createCoupon(req.body);
+    const coupon = await createCoupon(parseInput(adminCouponSchema, req.body));
     res.status(201).json({ coupon });
   }),
 );
@@ -715,7 +726,10 @@ app.patch(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
-    const coupon = await updateCoupon(req.params.code, req.body);
+    const coupon = await updateCoupon(
+      req.params.code,
+      parseInput(adminCouponSchema.partial().passthrough(), req.body),
+    );
     if (!coupon) return res.status(404).json({ message: "Coupon not found" });
     res.json({ coupon });
   }),
@@ -752,9 +766,10 @@ app.patch(
   requireAdmin,
   adminWriteLimiter,
   asyncRoute(async (req, res) => {
+    const { status } = parseInput(contactMessageStatusSchema, req.body);
     const message = await updateContactMessageStatus(
       req.params.id,
-      String(req.body.status || ""),
+      status,
     );
     if (!message) return res.status(404).json({ message: "Message not found" });
     res.json({ message });

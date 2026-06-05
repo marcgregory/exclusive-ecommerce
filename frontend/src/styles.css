@@ -1404,6 +1404,12 @@ button {
   resize: vertical;
 }
 
+.field-error {
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
 .order-summary {
   margin-bottom: 32px;
 }

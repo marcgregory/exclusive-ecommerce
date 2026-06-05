@@ -1,15 +1,15 @@
 import type { Category, Coupon, Product, StoreState } from "./types.js";
 
 export const categories: Category[] = [
-  { id: "womens-fashion", label: "Woman's Fashion", slug: "womens-fashion", icon: "Dress", children: ["Dresses", "Shoes", "Bags"] },
-  { id: "mens-fashion", label: "Men's Fashion", slug: "mens-fashion", icon: "Shirt", children: ["Shirts", "Sneakers", "Watches"] },
-  { id: "electronics", label: "Electronics", slug: "electronics", icon: "Monitor", children: [] },
-  { id: "home-lifestyle", label: "Home & Lifestyle", slug: "home-lifestyle", icon: "Home", children: [] },
-  { id: "medicine", label: "Medicine", slug: "medicine", icon: "HeartPulse", children: [] },
-  { id: "sports-outdoor", label: "Sports & Outdoor", slug: "sports-outdoor", icon: "Dumbbell", children: [] },
-  { id: "babys-toys", label: "Baby's & Toys", slug: "babys-toys", icon: "Gamepad2", children: [] },
-  { id: "groceries-pets", label: "Groceries & Pets", slug: "groceries-pets", icon: "ShoppingBasket", children: [] },
-  { id: "health-beauty", label: "Health & Beauty", slug: "health-beauty", icon: "Sparkles", children: [] }
+  { id: "womens-fashion", label: "Woman's Fashion", slug: "womens-fashion", icon: "Dress", children: ["Dresses", "Shoes", "Bags"], sortOrder: 0, parentId: null },
+  { id: "mens-fashion", label: "Men's Fashion", slug: "mens-fashion", icon: "Shirt", children: ["Shirts", "Sneakers", "Watches"], sortOrder: 1, parentId: null },
+  { id: "electronics", label: "Electronics", slug: "electronics", icon: "Monitor", children: [], sortOrder: 2, parentId: null },
+  { id: "home-lifestyle", label: "Home & Lifestyle", slug: "home-lifestyle", icon: "Home", children: [], sortOrder: 3, parentId: null },
+  { id: "medicine", label: "Medicine", slug: "medicine", icon: "HeartPulse", children: [], sortOrder: 4, parentId: null },
+  { id: "sports-outdoor", label: "Sports & Outdoor", slug: "sports-outdoor", icon: "Dumbbell", children: [], sortOrder: 5, parentId: null },
+  { id: "babys-toys", label: "Baby's & Toys", slug: "babys-toys", icon: "Gamepad2", children: [], sortOrder: 6, parentId: null },
+  { id: "groceries-pets", label: "Groceries & Pets", slug: "groceries-pets", icon: "ShoppingBasket", children: [], sortOrder: 7, parentId: null },
+  { id: "health-beauty", label: "Health & Beauty", slug: "health-beauty", icon: "Sparkles", children: [], sortOrder: 8, parentId: null }
 ];
 
 export const products: Product[] = [

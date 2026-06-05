@@ -124,6 +124,14 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS app_sessions (
+  sid TEXT PRIMARY KEY,
+  sess JSONB NOT NULL,
+  expire TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS app_sessions_expire_idx ON app_sessions (expire);
+
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS children JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS colors TEXT[] NOT NULL DEFAULT '{}';

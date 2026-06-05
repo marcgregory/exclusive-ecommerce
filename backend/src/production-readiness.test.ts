@@ -1,6 +1,10 @@
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadRuntimeConfig } from "./config.js";
+import {
+  createSessionOptions,
+  PostgreSqlSessionStore,
+} from "./session-store.js";
 
 describe("runtime config", () => {
   it("rejects unsafe production configuration", () => {
@@ -57,6 +61,28 @@ describe("runtime config", () => {
       port: 4000,
       webOrigin: "http://127.0.0.1:5173",
     });
+  });
+});
+
+describe("session config", () => {
+  it("uses PostgreSQL session storage only in production", () => {
+    const productionConfig = loadRuntimeConfig({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgres://example/prod",
+      WEB_ORIGIN: "https://shop.example.com",
+      SESSION_SECRET: "a".repeat(32),
+    } as NodeJS.ProcessEnv);
+
+    const testConfig = loadRuntimeConfig({
+      NODE_ENV: "test",
+      DATABASE_URL: "postgres://example/test",
+      SESSION_SECRET: "test-session-secret-with-at-least-32-chars",
+    } as NodeJS.ProcessEnv);
+
+    expect(createSessionOptions(productionConfig).store).toBeInstanceOf(
+      PostgreSqlSessionStore,
+    );
+    expect(createSessionOptions(testConfig).store).toBeUndefined();
   });
 });
 

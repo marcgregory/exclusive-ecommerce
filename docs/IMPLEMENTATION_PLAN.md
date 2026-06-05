@@ -88,7 +88,6 @@ The next work should focus on turning this from a prototype into a production-re
   - Add role field to users.
   - Protect admin routes with role-based authorization.
   - Add admin order review/detail UI.
-- Current sprint:
   - Add admin product CRUD UI.
   - Add admin category CRUD UI.
   - Keep image management scoped to editing the existing product image key string.
@@ -140,9 +139,10 @@ The next work should focus on turning this from a prototype into a production-re
   - Add request IDs to responses and structured request/error logs.
   - Preserve API error `message` fields while adding `requestId` metadata.
   - Add rate limiting for auth, admin writes, and contact submission endpoints.
+  - Add PostgreSQL-backed production session storage with development/test retaining local session behavior.
   - Add production Docker start path using compiled output and `npm start`.
   - Add Render/Vercel deployment documentation in `docs/DEPLOYMENT.md`.
-  - Add backend tests for runtime config, health/readiness, error metadata, and rate limits.
+  - Add backend tests for runtime config, production session config, health/readiness, error metadata, and rate limits.
 - Production deployment acceptance:
   - Render `/api/health` responds without DB dependency.
   - Render `/api/ready` proves Postgres connectivity.
@@ -155,8 +155,6 @@ The next work should focus on turning this from a prototype into a production-re
 
 ## Recommended Next Sprint
 
-1. Finish and verify the admin product/category CRUD UI.
-2. Add auth/contact rate limiting and production deployment documentation/config.
-3. Add monitoring/logging for frontend, API, and database.
-4. Finish Stripe client confirmation and webhook reconciliation.
-5. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+1. Add monitoring/logging for frontend, API, and database.
+2. Finish Stripe client confirmation and webhook reconciliation.
+3. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.

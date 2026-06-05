@@ -6,11 +6,13 @@ import {
   addCartItem,
   addWishlistProduct,
   createContactMessage,
+  createCategory,
   createCoupon,
   createOrder,
   createProduct,
   createUser,
   deleteCartItem,
+  deleteCategory,
   deleteCoupon,
   deleteProduct,
   deleteWishlistProduct,
@@ -25,6 +27,7 @@ import {
   setCouponActive,
   toCartResponse,
   updateCartItem,
+  updateCategory,
   updateContactMessageStatus,
   updateAdminOrder,
   updateOrderStatus,
@@ -237,6 +240,49 @@ describe("PostgreSQL persistence", () => {
 
     expect(await deleteProduct(product.id)).toBe(true);
     expect(await deleteProduct(product.id)).toBe(false);
+  });
+
+  it("creates, partially updates, and deletes categories via the admin repo", async () => {
+    const parent = await createCategory({
+      label: "Admin Test Parent",
+      slug: "admin-test-parent",
+      icon: "folder",
+      children: [],
+      sortOrder: 7,
+      parentId: null
+    });
+    const category = await createCategory({
+      label: "Admin Test Accessories",
+      slug: "admin-test-accessories",
+      icon: "spark",
+      children: ["cables"],
+      sortOrder: 12,
+      parentId: parent.id
+    });
+
+    expect(category).toMatchObject({
+      label: "Admin Test Accessories",
+      slug: "admin-test-accessories",
+      sortOrder: 12,
+      parentId: parent.id
+    });
+
+    const updated = await updateCategory(category.id, {
+      label: "Admin Test Gear",
+      children: ["cables", "chargers"]
+    });
+
+    expect(updated).toMatchObject({
+      label: "Admin Test Gear",
+      slug: "admin-test-accessories",
+      children: ["cables", "chargers"],
+      sortOrder: 12,
+      parentId: parent.id
+    });
+
+    expect(await deleteCategory(category.id)).toBe(true);
+    expect(await deleteCategory(parent.id)).toBe(true);
+    expect(await deleteCategory(category.id)).toBe(false);
   });
 
   it("advances order status through valid transitions", async () => {

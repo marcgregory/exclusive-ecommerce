@@ -15,6 +15,8 @@ Required environment variables:
 - `SESSION_SECRET`: random secret with at least 32 characters.
 - `WEB_ORIGIN`: deployed Vercel origin, for example `https://exclusive.example.com`.
 
+`NODE_ENV=production` stores Express sessions in PostgreSQL using the same `DATABASE_URL`. Run migrations before serving traffic so the `app_sessions` table exists.
+
 Optional payment environment:
 
 - `PAYMENT_PROVIDER=local` or `stripe`; defaults to `local`.

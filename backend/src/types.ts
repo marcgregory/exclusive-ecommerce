@@ -4,6 +4,8 @@ export type Category = {
   slug: string;
   icon: string;
   children: string[];
+  sortOrder: number;
+  parentId: string | null;
 };
 
 export type Product = {

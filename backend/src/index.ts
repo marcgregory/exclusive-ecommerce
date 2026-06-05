@@ -62,6 +62,7 @@ import {
 import { loadRuntimeConfig } from "./config.js";
 import { createPayment } from "./payments.js";
 import { verifyStripeWebhookEvent } from "./payments.js";
+import { createSessionOptions } from "./session-store.js";
 
 const config = loadRuntimeConfig();
 const app = express();
@@ -122,20 +123,7 @@ app.post(
 );
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-  session({
-    name: "exclusive.sid",
-    secret: config.sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: config.isProduction,
-      maxAge: 1000 * 60 * 60 * 24 * 14,
-    },
-  }),
-);
+app.use(session(createSessionOptions(config)));
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

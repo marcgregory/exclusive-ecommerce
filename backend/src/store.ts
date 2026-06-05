@@ -41,7 +41,9 @@ function mapCategory(row: QueryResultRow): Category {
     label: String(row.label || ""),
     slug: String(row.slug || ""),
     icon: String(row.icon || ""),
-    children: Array.isArray(row.children) ? row.children.map(String) : []
+    children: Array.isArray(row.children) ? row.children.map(String) : [],
+    sortOrder: Number(row.sort_order ?? 0),
+    parentId: row.parent_id ? String(row.parent_id) : null
   };
 }
 
@@ -263,7 +265,9 @@ export async function updateUser(userId: string, input: UpdateUserInput): Promis
 }
 
 export async function listCategories(): Promise<Category[]> {
-  const result = await query("SELECT id, label, slug, icon, children FROM categories ORDER BY sort_order ASC, id ASC");
+  const result = await query(
+    "SELECT id, label, slug, icon, children, sort_order, parent_id FROM categories ORDER BY sort_order ASC, id ASC"
+  );
   return result.rows.map(mapCategory);
 }
 
@@ -843,8 +847,8 @@ export async function updateCategory(categoryId: string, input: Partial<Category
     slug: existing.slug,
     icon: existing.icon,
     children: existing.children,
-    sortOrder: 0,
-    parentId: null,
+    sortOrder: existing.sortOrder ?? 0,
+    parentId: existing.parentId ?? null,
     ...input
   };
   const data = validateCategoryInput(merged);

@@ -3,10 +3,12 @@ import { createRoot } from "react-dom/client";
 import { ApiError, api } from "./api/client";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ErrorState, LoadingState } from "./components/StateViews";
 import { TopHeader } from "./components/TopHeader";
 import { getErrorMessage } from "./lib/errors";
 import { useRoute } from "./lib/router";
+import { useClientErrorReporting } from "./lib/useClientErrorReporting";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { AdminCategoriesPage } from "./pages/AdminCategoriesPage";
@@ -27,6 +29,7 @@ import "./styles.css";
 const emptyCart: Cart = { items: [], subtotal: 0, discount: 0, shipping: 0, total: 0 };
 
 function App() {
+  useClientErrorReporting();
   const { path, query, navigate } = useRoute();
   const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
   const [categories, setCategories] = useState<AsyncState<Category[]>>({ data: [], loading: true, error: "" });
@@ -228,4 +231,8 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
+);

@@ -17,6 +17,8 @@ cd backend
 
 - `GET /api/health`: liveness only; does not touch PostgreSQL.
 - `GET /api/ready`: readiness check; returns database connectivity status.
+- `GET /api/diagnostics/database`: production-safe database diagnostic with status, response time, and check timestamp. It does not expose connection strings, database names, users, SQL text beyond the ping, or schema details.
+- `POST /api/client-errors`: accepts frontend error reports and writes them to structured backend logs.
 
 ### Auth
 
@@ -96,7 +98,19 @@ Use `backend/src/schema.sql` as the PostgreSQL migration source. It includes use
 - `authLimiter` on `POST /api/auth/register` and `POST /api/auth/login`: 10 requests per 15 minutes per IP.
 - `contactLimiter` on `POST /api/contact`: 5 requests per hour per IP.
 - `adminWriteLimiter` on admin write endpoints: 30 requests per minute per IP.
+- `clientErrorLimiter` on `POST /api/client-errors`: 20 reports per minute per IP.
 
 Rate limiting is bypassed under `NODE_ENV=test` unless `DISABLE_RATE_LIMIT_BYPASS=true` is set for tests that intentionally verify 429 behavior.
 
 For production with multiple API instances, swap the in-memory store for a shared backend such as Redis (`rate-limit-redis`) so all instances see the same counters.
+
+## Logging and Monitoring
+
+Every API response includes an `x-request-id` header. If the caller sends `x-request-id`, the API preserves it; otherwise the API generates one. JSON response bodies for handled API errors include `requestId` alongside the existing `message` field.
+
+The backend writes structured JSON logs with `level`, `event`, and `timestamp`. Important event names:
+
+- `api.request`: method, path, status, duration, and request ID for each response.
+- `api.error`: backend exception details tied to the request ID.
+- `database.diagnostic_failed`: database diagnostic failures without exposing connection secrets.
+- `client.error`: browser error reports posted by the frontend.

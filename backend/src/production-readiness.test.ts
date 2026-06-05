@@ -152,6 +152,50 @@ describe("health, readiness, and error metadata", () => {
     });
   });
 
+  it("returns safe database diagnostics when the ping succeeds", async () => {
+    query.mockResolvedValue({ rows: [{ "?column?": 1 }] });
+    const { default: app } = await import("./index.js");
+
+    const res = await request(app).get("/api/diagnostics/database");
+
+    expect(res.status).toBe(200);
+    expect(query).toHaveBeenCalledWith("SELECT 1");
+    expect(res.body).toEqual({
+      ok: true,
+      service: "exclusive-api",
+      database: {
+        status: "ok",
+        responseTimeMs: expect.any(Number),
+        checkedAt: expect.any(String),
+      },
+    });
+    expect(JSON.stringify(res.body)).not.toContain("postgres://");
+  });
+
+  it("returns unavailable diagnostics and logs database failures", async () => {
+    query.mockRejectedValue(new Error("database down"));
+    const { default: app } = await import("./index.js");
+
+    const res = await request(app).get("/api/diagnostics/database");
+
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({
+      ok: false,
+      service: "exclusive-api",
+      database: {
+        status: "unavailable",
+        responseTimeMs: expect.any(Number),
+        checkedAt: expect.any(String),
+      },
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"database.diagnostic_failed"'),
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"errorMessage":"database down"'),
+    );
+  });
+
   it("adds requestId to client error responses", async () => {
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_123";
     const { default: app } = await import("./index.js");
@@ -168,5 +212,34 @@ describe("health, readiness, and error metadata", () => {
       requestId: "req-test-1",
     });
     expect(res.headers["x-request-id"]).toBe("req-test-1");
+  });
+
+  it("accepts client error reports and logs a sanitized payload", async () => {
+    const { default: app } = await import("./index.js");
+
+    const res = await request(app)
+      .post("/api/client-errors")
+      .set("x-request-id", "req-client-1")
+      .send({
+        message: "Browser crashed during checkout",
+        name: "TypeError",
+        path: "/checkout",
+        source: "react.error_boundary",
+        userAgent: "Vitest",
+        stack: "stack line",
+        ignored: "not logged",
+      });
+
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual({ ok: true, requestId: "req-client-1" });
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"client.error"'),
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"requestId":"req-client-1"'),
+    );
+    expect(console.error).not.toHaveBeenCalledWith(
+      expect.stringContaining("not logged"),
+    );
   });
 });

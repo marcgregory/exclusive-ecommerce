@@ -63,6 +63,7 @@ import { loadRuntimeConfig } from "./config.js";
 import { createPayment } from "./payments.js";
 import { verifyStripeWebhookEvent } from "./payments.js";
 import { createSessionOptions } from "./session-store.js";
+import { getErrorLogFields, logError, logInfo } from "./logger.js";
 
 const config = loadRuntimeConfig();
 const app = express();
@@ -82,15 +83,13 @@ app.use((req, res, next) => {
   const startedAt = performance.now();
   res.on("finish", () => {
     const durationMs = Math.round(performance.now() - startedAt);
-    console.log(
-      JSON.stringify({
-        requestId: req.requestId,
-        method: req.method,
-        path: req.originalUrl,
-        status: res.statusCode,
-        durationMs,
-      }),
-    );
+    logInfo("api.request", {
+      requestId: req.requestId,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs,
+    });
   });
   next();
 });
@@ -152,6 +151,15 @@ const contactLimiter = rateLimit({
   message: { message: "Too many messages. Please try again later." },
 });
 
+const clientErrorLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: shouldSkipRateLimit,
+  message: { message: "Too many error reports. Try again later." },
+});
+
 app.get("/api/health", (_req, res) =>
   res.json({ ok: true, service: "exclusive-api" }),
 );
@@ -171,6 +179,67 @@ app.get(
           database: "unavailable",
         });
     }
+  }),
+);
+
+app.get(
+  "/api/diagnostics/database",
+  asyncRoute(async (_req, res) => {
+    const startedAt = performance.now();
+    try {
+      await query("SELECT 1");
+      const responseTimeMs = Math.round(performance.now() - startedAt);
+      res.json({
+        ok: true,
+        service: "exclusive-api",
+        database: {
+          status: "ok",
+          responseTimeMs,
+          checkedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      const responseTimeMs = Math.round(performance.now() - startedAt);
+      logError("database.diagnostic_failed", {
+        responseTimeMs,
+        ...getErrorLogFields(error),
+      });
+      res.status(503).json({
+        ok: false,
+        service: "exclusive-api",
+        database: {
+          status: "unavailable",
+          responseTimeMs,
+          checkedAt: new Date().toISOString(),
+        },
+      });
+    }
+  }),
+);
+
+app.post(
+  "/api/client-errors",
+  clientErrorLimiter,
+  asyncRoute(async (req, res) => {
+    const body = req.body || {};
+    logError("client.error", {
+      requestId: req.requestId,
+      message: String(body.message || "Client error").slice(0, 500),
+      name: typeof body.name === "string" ? body.name.slice(0, 120) : undefined,
+      path: typeof body.path === "string" ? body.path.slice(0, 300) : undefined,
+      source:
+        typeof body.source === "string" ? body.source.slice(0, 120) : undefined,
+      userAgent:
+        typeof body.userAgent === "string"
+          ? body.userAgent.slice(0, 300)
+          : undefined,
+      stack: typeof body.stack === "string" ? body.stack.slice(0, 2000) : undefined,
+      componentStack:
+        typeof body.componentStack === "string"
+          ? body.componentStack.slice(0, 2000)
+          : undefined,
+    });
+    res.status(202).json({ ok: true, requestId: req.requestId });
   }),
 );
 
@@ -667,7 +736,13 @@ app.patch(
 );
 
 app.use((err, req, res, _next) => {
-  console.error({ requestId: req.requestId, err });
+  logError("api.error", {
+    requestId: req.requestId,
+    method: req.method,
+    path: req.originalUrl,
+    status: err.status || 500,
+    ...getErrorLogFields(err),
+  });
   res
     .status(err.status || 500)
     .json({

@@ -35,6 +35,10 @@ Required environment variables:
 
 - `VITE_API_BASE`: deployed Render API origin, for example `https://exclusive-api.onrender.com`.
 
+Optional monitoring environment:
+
+- `VITE_ENABLE_CLIENT_ERROR_REPORTING=true`: sends browser render, global error, and unhandled promise rejection reports to `POST /api/client-errors`.
+
 Optional payment environment:
 
 - `VITE_STRIPE_PUBLISHABLE_KEY`: required by browser checkout when the backend uses Stripe.
@@ -49,4 +53,26 @@ $env:DATABASE_URL="postgres://..."
 npm run db:migrate
 ```
 
-Use `/api/health` for process liveness. Use `/api/ready` when the caller needs proof that the API can reach PostgreSQL.
+Use `/api/health` for process liveness. Use `/api/ready` when the caller needs proof that the API can reach PostgreSQL. Use `/api/diagnostics/database` for a production-safe database diagnostic that includes only availability, response time, and timestamp.
+
+## Monitoring Setup
+
+Render:
+
+- Configure the service health check path as `/api/health` so Render restarts only on process liveness failures.
+- Add an external uptime check for `/api/ready` from your monitoring provider to alert when the API cannot reach PostgreSQL.
+- Add a lower-frequency external check for `/api/diagnostics/database` to track database response time without exposing connection details.
+- Review Render logs for structured events: `api.request`, `api.error`, `client.error`, and `database.diagnostic_failed`.
+
+Vercel:
+
+- Enable deployment/build notifications for failed frontend deploys.
+- Set `VITE_ENABLE_CLIENT_ERROR_REPORTING=true` for production so browser errors are forwarded to the API logs.
+- Add an external check for the deployed frontend origin, usually `/`, and alert on non-2xx responses or unexpected latency.
+
+Expected healthy checks:
+
+- Frontend `/`: 2xx from Vercel.
+- API `/api/health`: 200 with `{ "ok": true, "service": "exclusive-api" }`.
+- API `/api/ready`: 200 with database status `ok`.
+- API `/api/diagnostics/database`: 200 with database status `ok` and `responseTimeMs`.

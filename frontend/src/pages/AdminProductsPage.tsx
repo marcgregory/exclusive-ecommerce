@@ -322,6 +322,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
         <div className="admin-catalog-nav" aria-label="Admin sections">
           <Button onClick={() => navigate("/admin/products")}>Products</Button>
           <Button variant="ghost" onClick={() => navigate("/admin/categories")}>Categories</Button>
+          <Button variant="ghost" onClick={() => navigate("/admin/coupons")}>Coupons</Button>
           <Button variant="ghost" onClick={() => navigate("/admin/orders")}>Orders</Button>
         </div>
       </section>

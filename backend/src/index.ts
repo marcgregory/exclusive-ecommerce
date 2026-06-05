@@ -39,6 +39,7 @@ import {
   getWishlistProducts,
   listAdminOrders,
   listContactMessages,
+  listCoupons,
   loadStore,
   listCategories,
   listOrders,
@@ -711,6 +712,14 @@ app.delete(
 );
 
 // Coupons
+app.get(
+  "/api/admin/coupons",
+  requireAdmin,
+  asyncRoute(async (_req, res) => {
+    res.json({ coupons: await listCoupons() });
+  }),
+);
+
 app.post(
   "/api/admin/coupons",
   requireAdmin,

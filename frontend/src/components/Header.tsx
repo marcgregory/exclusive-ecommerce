@@ -31,6 +31,7 @@ export function Header({ navigate, user, cartCount, wishlistCount, onLogout, log
       ? [
           ["/admin/products", "Products"],
           ["/admin/categories", "Categories"],
+          ["/admin/coupons", "Coupons"],
           ["/admin/orders", "Orders"],
         ]
       : []),

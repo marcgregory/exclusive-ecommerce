@@ -973,6 +973,13 @@ export async function createCoupon(input: Partial<CouponInput>): Promise<Coupon>
   return mapCoupon(result.rows[0]);
 }
 
+export async function listCoupons(): Promise<Coupon[]> {
+  const result = await query(
+    "SELECT * FROM coupons ORDER BY active DESC, code ASC",
+  );
+  return result.rows.map(mapCoupon);
+}
+
 export async function updateCoupon(code: string, input: Partial<CouponInput>): Promise<Coupon | undefined> {
   const existing = await query("SELECT * FROM coupons WHERE UPPER(code) = UPPER($1) LIMIT 1", [code]);
   if (!existing.rows[0]) return undefined;

@@ -1778,6 +1778,16 @@ button {
   color: var(--text);
 }
 
+.admin-status-pill--active {
+  color: #107c41;
+  background: rgba(16, 124, 65, 0.1) !important;
+}
+
+.admin-status-pill--inactive {
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
 .admin-catalog-row__actions {
   display: flex;
   align-items: center;

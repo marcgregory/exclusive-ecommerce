@@ -26,6 +26,13 @@ export type Category = {
   parentId?: string | null;
 };
 
+export type Coupon = {
+  code: string;
+  type: "percent" | "fixed";
+  amount: number;
+  active: boolean;
+};
+
 export type CartItem = {
   id: string;
   productId: string;
@@ -162,6 +169,16 @@ export type AdminCategoryListResponse = CategoriesResponse;
 
 export type AdminCategoryResponse = {
   category: Category;
+};
+
+export type AdminCouponInput = Coupon;
+
+export type AdminCouponListResponse = {
+  coupons: Coupon[];
+};
+
+export type AdminCouponResponse = {
+  coupon: Coupon;
 };
 
 export type CartResponse = {

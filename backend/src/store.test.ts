@@ -23,6 +23,7 @@ import {
   getWishlistProducts,
   listAdminOrders,
   listContactMessages,
+  listCoupons,
   listProducts,
   setCouponActive,
   toCartResponse,
@@ -346,6 +347,7 @@ describe("PostgreSQL persistence", () => {
   it("soft-toggles and creates coupons", async () => {
     const created = await createCoupon({ code: "SUMMER25", type: "percent", amount: 25, active: true });
     expect(created).toMatchObject({ code: "SUMMER25", amount: 25, active: true });
+    expect((await listCoupons()).map((coupon) => coupon.code)).toContain("SUMMER25");
 
     const toggled = await setCouponActive("SUMMER25", false);
     expect(toggled).toMatchObject({ code: "SUMMER25", active: false });

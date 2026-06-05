@@ -113,10 +113,9 @@ The next work should focus on turning this from a prototype into a production-re
     - Account guest/profile/order-history loading/error/rendering/detail navigation
     - Order detail guest/loading/error/not-found/rendering/payment-status paths
     - Wishlist guest/loading/error/empty/rendering, remove, move-to-cart, and action-error paths
-    - E2E checkout flow with order confirmation and history verification
-  - Remaining:
     - Account profile update submission
     - Contact form submission
+    - E2E checkout flow with order confirmation and history verification
 - Visual QA:
   - Desktop 1440px screenshots against Figma
   - Mobile no-overlap checks
@@ -153,5 +152,8 @@ The next work should focus on turning this from a prototype into a production-re
 
 ## Recommended Next Sprint
 
-1. Finish Stripe client confirmation and webhook reconciliation.
-2. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+1. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+2. Start admin/catalog production-depth work:
+   - Product image upload/hosting workflows.
+   - Product variant management UI.
+   - Coupon management UI.

@@ -2689,6 +2689,10 @@ button {
     padding-inline: 24px;
   }
 
+  .back-top {
+    display: none;
+  }
+
   .top-header__inner {
     align-items: center;
     gap: 8px 14px;

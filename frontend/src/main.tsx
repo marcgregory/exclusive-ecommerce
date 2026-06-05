@@ -9,8 +9,10 @@ import { getErrorMessage } from "./lib/errors";
 import { useRoute } from "./lib/router";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
+import { AdminCategoriesPage } from "./pages/AdminCategoriesPage";
 import { AdminOrderDetailPage } from "./pages/AdminOrderDetailPage";
 import { AdminOrdersPage } from "./pages/AdminOrdersPage";
+import { AdminProductsPage } from "./pages/AdminProductsPage";
 import { CartPage } from "./pages/CartPage";
 import { CategoryPage } from "./pages/CategoryPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
@@ -169,6 +171,7 @@ function App() {
       return (
         <CategoryPage
           categorySlug={path.split("/").pop()}
+          query={query}
           categories={categories.data}
           navigate={navigate}
           onAdd={onAdd}
@@ -182,6 +185,7 @@ function App() {
       return (
         <CategoryPage
           searchQuery={query.get("q") || ""}
+          query={query}
           categories={categories.data}
           navigate={navigate}
           onAdd={onAdd}
@@ -191,6 +195,8 @@ function App() {
     }
     if (path.startsWith("/product/")) return <ProductDetailsPage id={path.split("/").pop()} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} />;
     if (path.startsWith("/orders/")) return <OrderPage authStatus={authStatus} id={path.split("/").pop()} navigate={navigate} />;
+    if (path === "/admin" || path === "/admin/products") return <AdminProductsPage userState={userState} navigate={navigate} />;
+    if (path === "/admin/categories") return <AdminCategoriesPage userState={userState} navigate={navigate} />;
     if (path.startsWith("/admin/orders/")) return <AdminOrderDetailPage id={path.split("/").pop()} userState={userState} navigate={navigate} />;
     if (path === "/admin/orders") return <AdminOrdersPage userState={userState} navigate={navigate} />;
     if (path === "/cart") return <CartPage authStatus={authStatus} cart={cart.data} cartLoading={cart.loading} cartError={cart.error} navigate={navigate} refreshCart={refreshCart} appliedCoupon={appliedCoupon} onAppliedCouponChange={setAppliedCoupon} />;

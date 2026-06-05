@@ -70,34 +70,32 @@ The next work should focus on turning this from a prototype into a production-re
 - Completed:
   - Order confirmation page after checkout.
   - Order history UI in the account page.
+  - Product discovery, filtering, search, sorting, and pagination for category and search routes.
   - Product option validation for size and color on the product details page.
   - Variant stock checks during add-to-cart, cart quantity updates, and checkout.
   - Wishlist page remove and move-to-cart behavior.
   - End-to-end checkout coverage across cart, checkout, payment, confirmation, and order history.
   - Stripe server-side PaymentIntent creation behind `PAYMENT_PROVIDER=stripe`, with local simulation kept for development and tests.
 - Remaining:
-  - Finish product filtering and sorting UI:
-    - Category
-    - Search
-    - Sale items
-    - Best selling
-    - Price ascending/descending
-    - Rating
-  - Add client-side Stripe confirmation with Stripe.js/Elements and webhook-based order status reconciliation.
+  - Finish the last Stripe production pieces:
+    - Client-side Stripe confirmation with Stripe.js/Elements.
+    - Webhook-based order status reconciliation.
 
-## Phase 6: Admin Readiness
+## Phase 6: Admin Readiness - Active
 
-- Add backend endpoints for admin product/category management.
-- Add role field to users.
-- Protect admin routes with role-based authorization.
-- Add admin CRUD for:
-  - Products
-  - Categories
-  - Product images
-  - Product variants
-  - Coupons
-  - Orders
-- Admin UI can be added after storefront parity is stable.
+- Completed:
+  - Add backend endpoints for admin product/category management.
+  - Add role field to users.
+  - Protect admin routes with role-based authorization.
+  - Add admin order review/detail UI.
+- Current sprint:
+  - Add admin product CRUD UI.
+  - Add admin category CRUD UI.
+  - Keep image management scoped to editing the existing product image key string.
+- Later admin follow-up:
+  - Product image upload/hosting workflows.
+  - Product variant management UI.
+  - Coupon management UI.
 
 ## Phase 7: Testing
 
@@ -139,6 +137,8 @@ The next work should focus on turning this from a prototype into a production-re
 
 ## Recommended Next Sprint
 
-1. Finish Stripe client confirmation and webhook reconciliation.
-2. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
-3. Add the remaining account profile update and contact form submission tests.
+1. Finish and verify the admin product/category CRUD UI.
+2. Add auth/contact rate limiting and production deployment documentation/config.
+3. Add monitoring/logging for frontend, API, and database.
+4. Finish Stripe client confirmation and webhook reconciliation.
+5. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.

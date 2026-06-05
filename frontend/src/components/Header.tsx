@@ -27,7 +27,13 @@ export function Header({ navigate, user, cartCount, wishlistCount, onLogout, log
     ["/contact", "Contact"],
     ["/about", "About"],
     ["/account", user ? "Account" : "Sign Up"],
-    ...(user?.role === "admin" ? [["/admin/orders", "Admin"]] : []),
+    ...(user?.role === "admin"
+      ? [
+          ["/admin/products", "Products"],
+          ["/admin/categories", "Categories"],
+          ["/admin/orders", "Orders"],
+        ]
+      : []),
   ];
 
   const logout = async () => {

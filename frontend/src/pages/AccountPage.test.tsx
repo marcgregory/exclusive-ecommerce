@@ -128,4 +128,46 @@ describe("AccountPage", () => {
 
     expect(navigate).toHaveBeenCalledWith("/orders/order-1");
   });
+
+  it("submits profile updates without blank password fields", async () => {
+    const updatedUser: PublicUser = {
+      ...user,
+      firstName: "Janet",
+      lastName: "Stone",
+      address: "456 Oak Street",
+    };
+    const onAuthChanged = vi.fn();
+    mockedApi
+      .mockResolvedValueOnce({ orders: [] })
+      .mockResolvedValueOnce({ user: updatedUser });
+    renderPage({ onAuthChanged });
+
+    await userEvent.clear(screen.getByLabelText(/First Name/i));
+    await userEvent.type(screen.getByLabelText(/First Name/i), "Janet");
+    await userEvent.clear(screen.getByLabelText(/Last Name/i));
+    await userEvent.type(screen.getByLabelText(/Last Name/i), "Stone");
+    await userEvent.clear(screen.getByLabelText(/Address/i));
+    await userEvent.type(screen.getByLabelText(/Address/i), "456 Oak Street");
+
+    await userEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+
+    await waitFor(() =>
+      expect(mockedApi).toHaveBeenCalledWith(
+        "/api/me",
+        expect.objectContaining({ method: "PATCH" }),
+      ),
+    );
+    const [, options] = mockedApi.mock.calls.find(([path]) => path === "/api/me")!;
+    expect(JSON.parse(options?.body as string)).toMatchObject({
+      firstName: "Janet",
+      lastName: "Stone",
+      email: "jane@example.com",
+      address: "456 Oak Street",
+    });
+    expect(JSON.parse(options?.body as string)).not.toHaveProperty("currentPassword");
+    expect(JSON.parse(options?.body as string)).not.toHaveProperty("newPassword");
+    expect(JSON.parse(options?.body as string)).not.toHaveProperty("confirmPassword");
+    expect(onAuthChanged).toHaveBeenCalledWith(updatedUser);
+    expect(await screen.findByText(/Profile saved/i)).toBeDefined();
+  });
 });

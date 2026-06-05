@@ -13,13 +13,14 @@ export function ContactPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const form = event.currentTarget;
     try {
       setSubmitting(true);
       setStatus("");
       setStatusIsError(false);
-      await api("/api/contact", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget).entries())) });
+      await api("/api/contact", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(form).entries())) });
       setStatus("Message sent.");
-      event.currentTarget.reset();
+      form.reset();
     } catch (error) {
       setStatusIsError(true);
       setStatus(getErrorMessage(error));

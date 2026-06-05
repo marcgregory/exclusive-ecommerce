@@ -22,6 +22,8 @@ export type Category = {
   slug: string;
   icon: string;
   children?: string[];
+  sortOrder?: number;
+  parentId?: string | null;
 };
 
 export type CartItem = {
@@ -111,6 +113,29 @@ export type ProductsResponse = {
   limit: number;
 };
 
+export type AdminProductInput = {
+  name: string;
+  category: string;
+  description: string;
+  price: number;
+  originalPrice: number;
+  discountPercent: number;
+  rating: number;
+  reviewCount: number;
+  stockStatus: string;
+  colors: string[];
+  sizes: string[];
+  isNew: boolean;
+  flags: string[];
+  image: string;
+};
+
+export type AdminProductListResponse = ProductsResponse;
+
+export type AdminProductResponse = {
+  product: Product;
+};
+
 export type ProductSort = "featured" | "price-asc" | "price-desc" | "rating";
 
 export const PRODUCT_SORTS: { value: ProductSort; label: string }[] = [
@@ -122,6 +147,21 @@ export const PRODUCT_SORTS: { value: ProductSort; label: string }[] = [
 
 export type CategoriesResponse = {
   categories: Category[];
+};
+
+export type AdminCategoryInput = {
+  label: string;
+  slug: string;
+  icon: string;
+  children: string[];
+  sortOrder: number;
+  parentId: string | null;
+};
+
+export type AdminCategoryListResponse = CategoriesResponse;
+
+export type AdminCategoryResponse = {
+  category: Category;
 };
 
 export type CartResponse = {

@@ -47,7 +47,7 @@ describe("runtime config", () => {
     ).toMatchObject({
       databaseUrl: "postgres://example/prod",
       isProduction: true,
-      webOrigin: "https://shop.example.com",
+      webOrigins: ["https://shop.example.com"],
     });
 
     expect(
@@ -59,7 +59,24 @@ describe("runtime config", () => {
       isProduction: false,
       paymentProvider: "local",
       port: 4000,
-      webOrigin: "http://127.0.0.1:5173",
+      webOrigins: ["http://127.0.0.1:5173"],
+    });
+  });
+
+  it("accepts a comma-separated production CORS allowlist", () => {
+    expect(
+      loadRuntimeConfig({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgres://example/prod",
+        WEB_ORIGINS:
+          "https://shop.example.com, https://exclusive-git-main.vercel.app/",
+        SESSION_SECRET: "a".repeat(32),
+      } as NodeJS.ProcessEnv),
+    ).toMatchObject({
+      webOrigins: [
+        "https://shop.example.com",
+        "https://exclusive-git-main.vercel.app",
+      ],
     });
   });
 });
@@ -170,6 +187,27 @@ describe("health, readiness, and error metadata", () => {
       },
     });
     expect(JSON.stringify(res.body)).not.toContain("postgres://");
+  });
+
+  it("reflects only configured CORS origins", async () => {
+    process.env.WEB_ORIGINS =
+      "https://shop.example.com,https://preview.example.com";
+    const { default: app } = await import("./index.js");
+
+    const allowed = await request(app)
+      .get("/api/health")
+      .set("Origin", "https://preview.example.com");
+    const blocked = await request(app)
+      .get("/api/health")
+      .set("Origin", "https://attacker.example.com");
+
+    expect(allowed.status).toBe(200);
+    expect(allowed.headers["access-control-allow-origin"]).toBe(
+      "https://preview.example.com",
+    );
+    expect(allowed.headers["access-control-allow-credentials"]).toBe("true");
+    expect(blocked.status).toBe(200);
+    expect(blocked.headers["access-control-allow-origin"]).toBeUndefined();
   });
 
   it("returns unavailable diagnostics and logs database failures", async () => {

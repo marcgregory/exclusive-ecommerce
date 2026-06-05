@@ -77,7 +77,7 @@ The webhook endpoint must receive the raw Stripe JSON payload and a valid `strip
 
 `backend/src/store.ts` exposes PostgreSQL-backed repository functions. `backend/src/db.ts` owns the shared `pg` pool, and `backend/src/types.ts` defines backend domain types.
 
-The app validates runtime configuration on startup. `DATABASE_URL` is always required. `WEB_ORIGIN` is required when `NODE_ENV=production` and is used as the credentialed CORS origin. `SESSION_SECRET` is optional in development, but production requires a non-default value with at least 32 characters. Production sets Express `trust proxy` so secure session cookies work behind Render. Session cookies are `httpOnly`, `sameSite: "lax"`, and use `secure: true` when `NODE_ENV=production`.
+The app validates runtime configuration on startup. `DATABASE_URL` is always required. `WEB_ORIGIN` is required when `NODE_ENV=production` and is used as the credentialed CORS origin. Set `WEB_ORIGINS` to a comma-separated allowlist when production needs more than one frontend origin, such as a canonical Vercel domain and preview/deployment URLs. `SESSION_SECRET` is optional in development, but production requires a non-default value with at least 32 characters. Production sets Express `trust proxy` so secure session cookies work behind Render. Session cookies are `httpOnly`, `sameSite: "lax"`, and use `secure: true` when `NODE_ENV=production`.
 
 Production sessions use the PostgreSQL-backed `app_sessions` table through the existing `DATABASE_URL`; development and test keep the default in-process session store. Run `npm run db:migrate` before production traffic so the `app_sessions` table and expiration index exist.
 

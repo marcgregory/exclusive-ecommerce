@@ -8,7 +8,7 @@ export type RuntimeConfig = {
   port: number;
   sessionSecret: string;
   stripeSecretKey?: string;
-  webOrigin: string;
+  webOrigins: string[];
 };
 
 export const DEV_SESSION_SECRET = "exclusive-dev-secret";
@@ -20,13 +20,32 @@ function requireValue(env: NodeJS.ProcessEnv, name: string) {
   return value;
 }
 
+function normalizeWebOrigin(origin: string) {
+  try {
+    return new URL(origin.trim()).origin;
+  } catch {
+    throw new Error(`Invalid WEB_ORIGIN value: ${origin}`);
+  }
+}
+
+function parseWebOrigins(value: string) {
+  const origins = value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map(normalizeWebOrigin);
+
+  return [...new Set(origins)];
+}
+
 export function loadRuntimeConfig(env = process.env): RuntimeConfig {
   const nodeEnv = env.NODE_ENV || "development";
   const isProduction = nodeEnv === "production";
   const databaseUrl = requireValue(env, "DATABASE_URL");
-  const webOrigin = isProduction
-    ? requireValue(env, "WEB_ORIGIN")
-    : env.WEB_ORIGIN || DEFAULT_WEB_ORIGIN;
+  const webOriginValue = isProduction
+    ? env.WEB_ORIGINS || requireValue(env, "WEB_ORIGIN")
+    : env.WEB_ORIGINS || env.WEB_ORIGIN || DEFAULT_WEB_ORIGIN;
+  const webOrigins = parseWebOrigins(webOriginValue);
   const sessionSecret = env.SESSION_SECRET || DEV_SESSION_SECRET;
   const paymentProvider: PaymentProvider =
     env.PAYMENT_PROVIDER === "stripe" ? "stripe" : "local";
@@ -54,6 +73,6 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
     port: Number(env.PORT || 4000),
     sessionSecret,
     stripeSecretKey: env.STRIPE_SECRET_KEY,
-    webOrigin,
+    webOrigins,
   };
 }

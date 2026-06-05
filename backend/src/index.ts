@@ -93,6 +93,7 @@ const app = express();
 const shouldSkipRateLimit = () =>
   process.env.NODE_ENV === "test" &&
   process.env.DISABLE_RATE_LIMIT_BYPASS !== "true";
+const allowedWebOrigins = new Set(config.webOrigins);
 
 if (config.isProduction) app.set("trust proxy", 1);
 
@@ -117,7 +118,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({ origin: config.webOrigin, credentials: true }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedWebOrigins.has(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+  }),
+);
 app.post(
   "/api/webhooks/stripe",
   express.raw({ type: "application/json" }),

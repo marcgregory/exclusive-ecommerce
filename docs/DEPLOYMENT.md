@@ -14,6 +14,7 @@ Required environment variables:
 - `DATABASE_URL`: managed PostgreSQL connection string.
 - `SESSION_SECRET`: random secret with at least 32 characters.
 - `WEB_ORIGIN`: deployed Vercel origin, for example `https://exclusive.example.com`.
+- `WEB_ORIGINS`: optional comma-separated CORS allowlist. Use this instead of `WEB_ORIGIN` when you need to allow the production domain plus Vercel preview/deployment domains, for example `https://exclusive.example.com,https://exclusive-git-main.vercel.app`.
 
 `NODE_ENV=production` stores Express sessions in PostgreSQL using the same `DATABASE_URL`. Run migrations before serving traffic so the `app_sessions` table exists.
 

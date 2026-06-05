@@ -13,6 +13,11 @@ cd backend
 
 ## API Groups
 
+### Operations
+
+- `GET /api/health`: liveness only; does not touch PostgreSQL.
+- `GET /api/ready`: readiness check; returns database connectivity status.
+
 ### Auth
 
 - `POST /api/auth/register`
@@ -60,7 +65,7 @@ Product listing supports `category`, `q`, `flag`, `sort`, `page`, and `limit`.
 
 `backend/src/store.ts` exposes PostgreSQL-backed repository functions. `backend/src/db.ts` owns the shared `pg` pool, and `backend/src/types.ts` defines backend domain types.
 
-The app requires `DATABASE_URL` at runtime. `SESSION_SECRET` is optional in development, but production requires a non-default value with at least 32 characters. Session cookies are `httpOnly`, `sameSite: "lax"`, and use `secure: true` when `NODE_ENV=production`.
+The app validates runtime configuration on startup. `DATABASE_URL` is always required. `WEB_ORIGIN` is required when `NODE_ENV=production` and is used as the credentialed CORS origin. `SESSION_SECRET` is optional in development, but production requires a non-default value with at least 32 characters. Production sets Express `trust proxy` so secure session cookies work behind Render. Session cookies are `httpOnly`, `sameSite: "lax"`, and use `secure: true` when `NODE_ENV=production`.
 
 Payment configuration:
 
@@ -84,9 +89,12 @@ Use `backend/src/schema.sql` as the PostgreSQL migration source. It includes use
 
 ## Rate Limiting
 
-`backend/src/index.ts` mounts two `express-rate-limit` middlewares (default in-memory store):
+`backend/src/index.ts` mounts three `express-rate-limit` middlewares (default in-memory store):
 
-- `authLimiter` on `POST /api/auth/register` and `POST /api/auth/login` — 10 requests per 15 minutes per IP.
-- `contactLimiter` on `POST /api/contact` — 5 requests per hour per IP.
+- `authLimiter` on `POST /api/auth/register` and `POST /api/auth/login`: 10 requests per 15 minutes per IP.
+- `contactLimiter` on `POST /api/contact`: 5 requests per hour per IP.
+- `adminWriteLimiter` on admin write endpoints: 30 requests per minute per IP.
+
+Rate limiting is bypassed under `NODE_ENV=test` unless `DISABLE_RATE_LIMIT_BYPASS=true` is set for tests that intentionally verify 429 behavior.
 
 For production with multiple API instances, swap the in-memory store for a shared backend such as Redis (`rate-limit-redis`) so all instances see the same counters.

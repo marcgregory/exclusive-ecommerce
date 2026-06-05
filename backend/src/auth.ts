@@ -1,7 +1,8 @@
 import bcrypt from "bcryptjs";
 import type { User } from "./types.js";
+import { DEV_SESSION_SECRET } from "./config.js";
 
-export const DEV_SESSION_SECRET = "exclusive-dev-secret";
+export { DEV_SESSION_SECRET };
 export const MIN_PASSWORD_LENGTH = 8;
 
 type Body = Record<string, unknown>;

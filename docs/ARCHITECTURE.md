@@ -9,7 +9,7 @@ Exclusive is a full-stack ecommerce app with a React/Vite frontend and a Node/Ex
 - Database schema: `backend/src/schema.sql`
 - Local Docker stack: root `docker-compose.yml`
 
-The app currently uses a JSON-backed store for fast local development. The schema is PostgreSQL-ready so the backend can be moved to a real database without changing the frontend API contract.
+The app uses PostgreSQL-backed repository functions in `backend/src/store.ts`. Static catalog seed data lives in `backend/src/data/store.json` and is loaded into PostgreSQL by the seed script.
 
 ## Runtime Flow
 

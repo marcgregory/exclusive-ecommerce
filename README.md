@@ -38,6 +38,8 @@ Frontend: `http://127.0.0.1:5173/`
 
 API: `http://127.0.0.1:4000/api/health`
 
+Readiness: `http://127.0.0.1:4000/api/ready`
+
 ## Run With Docker
 
 ```powershell
@@ -60,14 +62,17 @@ Set-Item Env:TEST_DATABASE_URL 'postgres://postgres:postgres@127.0.0.1:5432/excl
 - Vercel build command: `npm run build`
 - Vercel output directory: `dist`
 - Render root directory: `backend`
-- Render build command: `npm install && npm run build`
+- Render build command: `npm ci && npm run build`
 - Render start command: `npm start`
+
+See [Deployment Guide](docs/DEPLOYMENT.md) for required Render, Vercel, and PostgreSQL environment variables.
 
 ## Guides
 
 - [Architecture Guide](docs/ARCHITECTURE.md)
 - [Frontend Guide](docs/FRONTEND_GUIDE.md)
 - [Backend Guide](docs/BACKEND_GUIDE.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
 - [TypeScript Guide](docs/TYPESCRIPT_GUIDE.md)
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
 

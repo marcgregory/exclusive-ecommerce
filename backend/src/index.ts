@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
 import {
   asyncRoute,
   requireAdmin,
@@ -52,24 +53,48 @@ import {
   validateCoupon,
   toCartResponse,
 } from "./store.js";
-import { closePool } from "./db.js";
+import { closePool, query } from "./db.js";
 import {
-  getSessionSecret,
   validateLoginInput,
   validateProfileInput,
   validateRegisterInput,
 } from "./auth.js";
+import { loadRuntimeConfig } from "./config.js";
 import { createPayment } from "./payments.js";
 import { verifyStripeWebhookEvent } from "./payments.js";
 
+const config = loadRuntimeConfig();
 const app = express();
-const port = Number(process.env.PORT || 4000);
-const webOrigin = process.env.WEB_ORIGIN || "http://127.0.0.1:5173";
-const isProduction = process.env.NODE_ENV === "production";
-const isTest = process.env.NODE_ENV === "test";
-const sessionSecret = getSessionSecret();
+const shouldSkipRateLimit = () =>
+  process.env.NODE_ENV === "test" &&
+  process.env.DISABLE_RATE_LIMIT_BYPASS !== "true";
 
-app.use(cors({ origin: webOrigin, credentials: true }));
+if (config.isProduction) app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+  req.requestId =
+    typeof req.headers["x-request-id"] === "string" &&
+    req.headers["x-request-id"].trim()
+      ? req.headers["x-request-id"].trim()
+      : crypto.randomUUID();
+  res.setHeader("x-request-id", req.requestId);
+  const startedAt = performance.now();
+  res.on("finish", () => {
+    const durationMs = Math.round(performance.now() - startedAt);
+    console.log(
+      JSON.stringify({
+        requestId: req.requestId,
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs,
+      }),
+    );
+  });
+  next();
+});
+
+app.use(cors({ origin: config.webOrigin, credentials: true }));
 app.post(
   "/api/webhooks/stripe",
   express.raw({ type: "application/json" }),
@@ -100,13 +125,13 @@ app.use(cookieParser());
 app.use(
   session({
     name: "exclusive.sid",
-    secret: sessionSecret,
+    secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: isProduction,
+      secure: config.isProduction,
       maxAge: 1000 * 60 * 60 * 24 * 14,
     },
   }),
@@ -117,7 +142,7 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => isTest,
+  skip: shouldSkipRateLimit,
   message: { message: "Too many attempts. Try again later." },
 });
 
@@ -126,7 +151,7 @@ const adminWriteLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => isTest,
+  skip: shouldSkipRateLimit,
   message: { message: "Too many admin actions. Try again in a minute." },
 });
 
@@ -135,12 +160,30 @@ const contactLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => isTest,
+  skip: shouldSkipRateLimit,
   message: { message: "Too many messages. Please try again later." },
 });
 
 app.get("/api/health", (_req, res) =>
   res.json({ ok: true, service: "exclusive-api" }),
+);
+
+app.get(
+  "/api/ready",
+  asyncRoute(async (_req, res) => {
+    try {
+      await query("SELECT 1");
+      res.json({ ok: true, service: "exclusive-api", database: "ok" });
+    } catch {
+      res
+        .status(503)
+        .json({
+          ok: false,
+          service: "exclusive-api",
+          database: "unavailable",
+        });
+    }
+  }),
 );
 
 app.post(
@@ -635,11 +678,14 @@ app.patch(
   }),
 );
 
-app.use((err, _req, res, _next) => {
-  console.error(err);
+app.use((err, req, res, _next) => {
+  console.error({ requestId: req.requestId, err });
   res
     .status(err.status || 500)
-    .json({ message: err.status ? err.message : "Something went wrong" });
+    .json({
+      message: err.status ? err.message : "Something went wrong",
+      requestId: req.requestId,
+    });
 });
 
 export default app;
@@ -647,8 +693,8 @@ export default app;
 // Only start server if running directly (not imported for testing)
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   await loadStore();
-  app.listen(port, () => {
-    console.log(`Exclusive API listening on http://127.0.0.1:${port}`);
+  app.listen(config.port, () => {
+    console.log(`Exclusive API listening on http://127.0.0.1:${config.port}`);
   });
 
   const shutdown = async () => {

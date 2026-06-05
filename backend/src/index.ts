@@ -16,11 +16,13 @@ import {
 import {
   addCartItem,
   addWishlistProduct,
+  completeStripeWebhookEventRecord,
   createContactMessage,
   createCoupon,
   createCategory,
   createOrder,
   createProduct,
+  createStripeWebhookEventRecord,
   createUser,
   deleteCartItem,
   deleteCategory,
@@ -42,6 +44,7 @@ import {
   listOrders,
   listProducts,
   publicUser,
+  reconcileStripePaymentIntentOrder,
   updateCartItem,
   updateCategory,
   updateContactMessageStatus,
@@ -104,17 +107,40 @@ app.post(
       req.headers["stripe-signature"] as string | undefined,
     );
     const intent = event.data?.object;
+    const eventId = event.id || `stripe-event-${crypto.randomUUID()}`;
+    const eventType = event.type || "unknown";
+    const paymentIntentId = intent?.id;
     const orderId = intent?.metadata?.orderId;
+    const webhookRecord = await createStripeWebhookEventRecord({
+      id: eventId,
+      eventType,
+      paymentIntentId,
+      orderId,
+    });
 
-    if (orderId && event.type === "payment_intent.succeeded") {
-      await updateOrderStatus(orderId, "shipped");
+    if (webhookRecord.duplicate) {
+      return res.json({ received: true, duplicate: true });
     }
-    if (
-      orderId &&
-      (event.type === "payment_intent.payment_failed" ||
-        event.type === "payment_intent.canceled")
-    ) {
-      await updateOrderStatus(orderId, "cancelled");
+
+    try {
+      if (!orderId) {
+        await completeStripeWebhookEventRecord(eventId, "skipped");
+        return res.json({ received: true });
+      }
+
+      const order = await reconcileStripePaymentIntentOrder(orderId, eventType);
+      await completeStripeWebhookEventRecord(
+        eventId,
+        order ? "processed" : "skipped",
+        order ? "" : "Order not found",
+      );
+    } catch (error) {
+      await completeStripeWebhookEventRecord(
+        eventId,
+        "failed",
+        error instanceof Error ? error.message : "Stripe webhook failed",
+      );
+      throw error;
     }
 
     res.json({ received: true });

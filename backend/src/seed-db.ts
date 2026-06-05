@@ -7,7 +7,7 @@ export async function seedDatabase(): Promise<void> {
 
   await withTransaction(async (client) => {
     await client.query(
-      "TRUNCATE contact_messages, order_items, orders, wishlist_items, wishlists, cart_items, carts, coupons, product_variants, product_images, products, categories, users RESTART IDENTITY CASCADE"
+      "TRUNCATE stripe_webhook_events, contact_messages, order_items, orders, wishlist_items, wishlists, cart_items, carts, coupons, product_variants, product_images, products, categories, users RESTART IDENTITY CASCADE"
     );
 
     for (const user of state.users) {

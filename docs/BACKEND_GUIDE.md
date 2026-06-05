@@ -57,7 +57,17 @@ Product listing supports `category`, `q`, `flag`, `sort`, `page`, and `limit`.
 - `GET /api/orders`
 - `GET /api/orders/:id`
 
-`POST /api/payments` uses `PAYMENT_PROVIDER=local` by default, which simulates a successful payment and marks the order shipped. Set `PAYMENT_PROVIDER=stripe` with `STRIPE_SECRET_KEY` to create a Stripe PaymentIntent. Stripe mode returns the PaymentIntent `clientSecret` and only marks the order shipped if the provider reports `succeeded`; otherwise the order remains `processing` until client confirmation/webhook reconciliation is added.
+`POST /api/payments` uses `PAYMENT_PROVIDER=local` by default, which simulates a successful payment and marks the order shipped. Set `PAYMENT_PROVIDER=stripe` with `STRIPE_SECRET_KEY` to create a Stripe PaymentIntent. Stripe mode returns the PaymentIntent `clientSecret`; the browser confirms it with Stripe.js/Elements, and `/api/webhooks/stripe` reconciles final success, failure, and cancellation events back to the order.
+
+### Stripe Webhook
+
+- `POST /api/webhooks/stripe`
+
+The webhook endpoint must receive the raw Stripe JSON payload and a valid `stripe-signature` header. It verifies the payload with `STRIPE_WEBHOOK_SECRET`, records the Stripe event ID in `stripe_webhook_events`, skips duplicate events, and applies guarded order transitions:
+
+- `payment_intent.succeeded`: marks `processing` or `cancelled` orders as `shipped`.
+- `payment_intent.payment_failed` and `payment_intent.canceled`: mark only `processing` orders as `cancelled`.
+- Later failure/cancel events do not downgrade `shipped` or `delivered` orders.
 
 ### Contact
 
@@ -75,6 +85,7 @@ Payment configuration:
 
 - `PAYMENT_PROVIDER`: `local` or `stripe`; defaults to `local`.
 - `STRIPE_SECRET_KEY`: required when `PAYMENT_PROVIDER=stripe`.
+- `STRIPE_WEBHOOK_SECRET`: required for `/api/webhooks/stripe` signature verification.
 - `STRIPE_CURRENCY`: Stripe currency code; defaults to `usd`.
 - `STRIPE_AMOUNT_MULTIPLIER`: multiplier from app totals to Stripe smallest currency units; defaults to `100`.
 

@@ -654,6 +654,83 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
   return getAdminOrder(orderId);
 }
 
+export type StripeWebhookEventInput = {
+  id: string;
+  eventType: string;
+  paymentIntentId?: string | null;
+  orderId?: string | null;
+};
+
+export async function createStripeWebhookEventRecord(
+  input: StripeWebhookEventInput,
+): Promise<{ duplicate: boolean }> {
+  const result = await query(
+    `INSERT INTO stripe_webhook_events
+       (id, event_type, payment_intent_id, order_id, processing_status)
+     VALUES ($1, $2, $3, $4, 'processing')
+     ON CONFLICT (id) DO NOTHING
+     RETURNING id`,
+    [
+      input.id,
+      input.eventType,
+      input.paymentIntentId || null,
+      input.orderId || null,
+    ],
+  );
+  return { duplicate: (result.rowCount ?? 0) === 0 };
+}
+
+export async function completeStripeWebhookEventRecord(
+  eventId: string,
+  processingStatus: "processed" | "skipped" | "failed",
+  errorMessage = "",
+): Promise<void> {
+  await query(
+    `UPDATE stripe_webhook_events
+     SET processing_status = $2,
+         error_message = $3,
+         processed_at = NOW()
+     WHERE id = $1`,
+    [eventId, processingStatus, errorMessage],
+  );
+}
+
+export async function reconcileStripePaymentIntentOrder(
+  orderId: string,
+  eventType: string,
+): Promise<AdminOrder | undefined> {
+  if (eventType === "payment_intent.succeeded") {
+    const result = await query(
+      `UPDATE orders
+       SET status = 'shipped'
+       WHERE id = $1
+         AND status IN ('processing', 'cancelled')
+       RETURNING *`,
+      [orderId],
+    );
+    if (result.rows[0]) return getAdminOrder(orderId);
+    return getAdminOrder(orderId);
+  }
+
+  if (
+    eventType === "payment_intent.payment_failed" ||
+    eventType === "payment_intent.canceled"
+  ) {
+    const result = await query(
+      `UPDATE orders
+       SET status = 'cancelled'
+       WHERE id = $1
+         AND status = 'processing'
+       RETURNING *`,
+      [orderId],
+    );
+    if (result.rows[0]) return getAdminOrder(orderId);
+    return getAdminOrder(orderId);
+  }
+
+  return getAdminOrder(orderId);
+}
+
 export type AdminOrderUpdate = {
   status?: string;
   internalNote?: string;

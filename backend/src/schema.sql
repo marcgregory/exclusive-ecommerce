@@ -130,7 +130,20 @@ CREATE TABLE IF NOT EXISTS app_sessions (
   expire TIMESTAMPTZ NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+  id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  payment_intent_id TEXT,
+  order_id TEXT,
+  processing_status TEXT NOT NULL DEFAULT 'processing',
+  error_message TEXT NOT NULL DEFAULT '',
+  received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  processed_at TIMESTAMPTZ
+);
+
 CREATE INDEX IF NOT EXISTS app_sessions_expire_idx ON app_sessions (expire);
+CREATE INDEX IF NOT EXISTS stripe_webhook_events_order_id_idx ON stripe_webhook_events (order_id);
+CREATE INDEX IF NOT EXISTS stripe_webhook_events_payment_intent_id_idx ON stripe_webhook_events (payment_intent_id);
 
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS children JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;

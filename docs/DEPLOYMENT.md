@@ -19,9 +19,9 @@ Required environment variables:
 
 Optional payment environment:
 
-- `PAYMENT_PROVIDER=local` or `stripe`; defaults to `local`.
+- `PAYMENT_PROVIDER=local` or `stripe`; defaults to `local`. Use `stripe` in production checkout.
 - `STRIPE_SECRET_KEY`: required when `PAYMENT_PROVIDER=stripe`.
-- `STRIPE_WEBHOOK_SECRET`: required for Stripe webhook verification.
+- `STRIPE_WEBHOOK_SECRET`: required for Stripe webhook verification. Copy this from the Stripe webhook endpoint signing secret.
 - `STRIPE_CURRENCY`: defaults to `usd`.
 - `STRIPE_AMOUNT_MULTIPLIER`: defaults to `100`.
 
@@ -54,6 +54,17 @@ npm run db:migrate
 ```
 
 Use `/api/health` for process liveness. Use `/api/ready` when the caller needs proof that the API can reach PostgreSQL. Use `/api/diagnostics/database` for a production-safe database diagnostic that includes only availability, response time, and timestamp.
+
+## Stripe Webhook Setup
+
+- In Stripe Dashboard, create a webhook endpoint pointed at the deployed backend URL: `https://<render-api-origin>/api/webhooks/stripe`.
+- Subscribe to these PaymentIntent events:
+  - `payment_intent.succeeded`
+  - `payment_intent.payment_failed`
+  - `payment_intent.canceled`
+- Set `STRIPE_WEBHOOK_SECRET` on Render to the endpoint signing secret that starts with `whsec_`.
+- Keep `VITE_STRIPE_PUBLISHABLE_KEY` on Vercel paired with the same Stripe mode as `STRIPE_SECRET_KEY` on Render. Do not mix test publishable keys with live secret keys.
+- Run `npm run db:migrate` after deploying the backend change so the `stripe_webhook_events` ledger exists before Stripe sends events.
 
 ## Monitoring Setup
 

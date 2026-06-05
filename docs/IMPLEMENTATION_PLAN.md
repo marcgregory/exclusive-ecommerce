@@ -76,10 +76,8 @@ The next work should focus on turning this from a prototype into a production-re
   - Wishlist page remove and move-to-cart behavior.
   - End-to-end checkout coverage across cart, checkout, payment, confirmation, and order history.
   - Stripe server-side PaymentIntent creation behind `PAYMENT_PROVIDER=stripe`, with local simulation kept for development and tests.
-- Remaining:
-  - Finish the last Stripe production pieces:
-    - Client-side Stripe confirmation with Stripe.js/Elements.
-    - Webhook-based order status reconciliation.
+  - Client-side Stripe confirmation with Stripe.js/Elements.
+  - Webhook-based order status reconciliation.
 
 ## Phase 6: Admin Readiness - Active
 
@@ -142,6 +140,7 @@ The next work should focus on turning this from a prototype into a production-re
   - Add PostgreSQL-backed production session storage with development/test retaining local session behavior.
   - Add production Docker start path using compiled output and `npm start`.
   - Add Render/Vercel deployment documentation in `docs/DEPLOYMENT.md`.
+  - Add monitoring/logging for frontend, API, and database.
   - Add backend tests for runtime config, production session config, health/readiness, error metadata, and rate limits.
 - Production deployment acceptance:
   - Render `/api/health` responds without DB dependency.
@@ -150,11 +149,9 @@ The next work should focus on turning this from a prototype into a production-re
   - Vercel has `VITE_API_BASE` pointed at the Render API origin.
 - Later production follow-up:
   - Add image hosting strategy.
-  - Finish payment provider integration with client-side Stripe confirmation and webhook reconciliation.
   - Add external monitoring checks for frontend, API, and database.
 
 ## Recommended Next Sprint
 
-1. Add monitoring/logging for frontend, API, and database.
-2. Finish Stripe client confirmation and webhook reconciliation.
-3. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.
+1. Finish Stripe client confirmation and webhook reconciliation.
+2. Extract another round of Figma MCP screenshots for cart, checkout, account, and contact, then run visual QA.

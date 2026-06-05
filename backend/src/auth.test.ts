@@ -710,6 +710,222 @@ describe("auth endpoints", () => {
       }
     });
 
+    it("accepts duplicate Stripe webhook event IDs without reprocessing", async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = "whsec_test_123";
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+      const payload = JSON.stringify({
+        id: "evt_duplicate_1",
+        type: "payment_intent.succeeded",
+        data: {
+          object: {
+            id: "pi_duplicate_123",
+            status: "succeeded",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
+
+      try {
+        const first = await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .send(payload);
+        const second = await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .send(payload);
+        const eventRows = await query(
+          "SELECT id, processing_status FROM stripe_webhook_events WHERE id = $1",
+          ["evt_duplicate_1"],
+        );
+        const orderRes = await agent.get(`/api/orders/${order.id}`);
+
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(200);
+        expect(second.body).toMatchObject({ received: true, duplicate: true });
+        expect(eventRows.rows).toHaveLength(1);
+        expect(eventRows.rows[0]).toMatchObject({
+          id: "evt_duplicate_1",
+          processing_status: "processed",
+        });
+        expect(orderRes.body.order.status).toBe("shipped");
+      } finally {
+        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+      }
+    });
+
+    it("does not downgrade shipped or delivered orders from later Stripe failure events", async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = "whsec_test_123";
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+      process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
+
+      const successPayload = JSON.stringify({
+        id: "evt_success_before_failure",
+        type: "payment_intent.succeeded",
+        data: {
+          object: {
+            id: "pi_guarded_123",
+            status: "succeeded",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+      const failedPayload = JSON.stringify({
+        id: "evt_failure_after_success",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_guarded_123",
+            status: "requires_payment_method",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+      const deliveredFailurePayload = JSON.stringify({
+        id: "evt_failure_after_delivered",
+        type: "payment_intent.canceled",
+        data: {
+          object: {
+            id: "pi_guarded_123",
+            status: "canceled",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+
+      try {
+        await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(successPayload, webhookSecret))
+          .send(successPayload);
+        await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(failedPayload, webhookSecret))
+          .send(failedPayload);
+        let orderRes = await agent.get(`/api/orders/${order.id}`);
+        expect(orderRes.body.order.status).toBe("shipped");
+
+        await query("UPDATE orders SET status = 'delivered' WHERE id = $1", [
+          order.id,
+        ]);
+        await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set(
+            "stripe-signature",
+            stripeSignature(deliveredFailurePayload, webhookSecret),
+          )
+          .send(deliveredFailurePayload);
+        orderRes = await agent.get(`/api/orders/${order.id}`);
+        expect(orderRes.body.order.status).toBe("delivered");
+      } finally {
+        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+      }
+    });
+
+    it("promotes a cancelled Stripe order when a later succeeded event arrives", async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = "whsec_test_123";
+      const agent = request.agent(testApp);
+      const order = await createOrderForAgent(agent);
+      const failedPayload = JSON.stringify({
+        id: "evt_failure_before_success",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_late_success_123",
+            status: "requires_payment_method",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+      const successPayload = JSON.stringify({
+        id: "evt_late_success",
+        type: "payment_intent.succeeded",
+        data: {
+          object: {
+            id: "pi_late_success_123",
+            status: "succeeded",
+            metadata: { orderId: order.id },
+          },
+        },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
+
+      try {
+        await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(failedPayload, webhookSecret))
+          .send(failedPayload);
+        let orderRes = await agent.get(`/api/orders/${order.id}`);
+        expect(orderRes.body.order.status).toBe("cancelled");
+
+        await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(successPayload, webhookSecret))
+          .send(successPayload);
+        orderRes = await agent.get(`/api/orders/${order.id}`);
+        expect(orderRes.body.order.status).toBe("shipped");
+      } finally {
+        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+      }
+    });
+
+    it("records Stripe events with missing order metadata and returns received", async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = "whsec_test_123";
+      const payload = JSON.stringify({
+        id: "evt_missing_order_metadata",
+        type: "payment_intent.succeeded",
+        data: {
+          object: {
+            id: "pi_missing_order_123",
+            status: "succeeded",
+            metadata: {},
+          },
+        },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
+
+      try {
+        const res = await request(testApp)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .send(payload);
+        const eventRows = await query(
+          `SELECT id, event_type, payment_intent_id, order_id, processing_status
+           FROM stripe_webhook_events
+           WHERE id = $1`,
+          ["evt_missing_order_metadata"],
+        );
+
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({ received: true });
+        expect(eventRows.rows).toHaveLength(1);
+        expect(eventRows.rows[0]).toMatchObject({
+          id: "evt_missing_order_metadata",
+          event_type: "payment_intent.succeeded",
+          payment_intent_id: "pi_missing_order_123",
+          order_id: null,
+          processing_status: "skipped",
+        });
+      } finally {
+        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+      }
+    });
+
     it("rejects Stripe webhooks with invalid signatures", async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
       const payload = JSON.stringify({

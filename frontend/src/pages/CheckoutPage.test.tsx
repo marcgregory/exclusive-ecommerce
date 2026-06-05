@@ -5,7 +5,28 @@ import userEvent from "@testing-library/user-event";
 import { CheckoutPage } from "./CheckoutPage";
 import type { Cart } from "../types";
 
+const stripeMocks = vi.hoisted(() => ({
+  stripe: null as any,
+  elements: { id: "elements" } as any,
+  loadStripe: vi.fn(() => Promise.resolve({ id: "stripe-promise" })),
+}));
+
 vi.mock("../api/client", () => ({ api: vi.fn() }));
+vi.mock("@stripe/stripe-js", () => ({ loadStripe: stripeMocks.loadStripe }));
+vi.mock("@stripe/react-stripe-js", async () => {
+  const React = await import("react");
+  return {
+    Elements: ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", { "data-testid": "stripe-elements" }, children),
+    PaymentElement: ({ className }: { className?: string }) =>
+      React.createElement("div", {
+        className,
+        "data-testid": "payment-element",
+      }),
+    useElements: () => stripeMocks.elements,
+    useStripe: () => stripeMocks.stripe,
+  };
+});
 import { api } from "../api/client";
 
 const mockedApi = vi.mocked(api);
@@ -47,13 +68,15 @@ const cart: Cart = {
 describe("CheckoutPage", () => {
   beforeEach(() => {
     mockedApi.mockReset();
+    stripeMocks.loadStripe.mockClear();
+    stripeMocks.stripe = null;
+    stripeMocks.elements = { id: "elements" };
     sessionStorage.clear();
   });
 
   afterEach(() => {
     cleanup();
     vi.unstubAllEnvs();
-    delete window.Stripe;
     sessionStorage.clear();
   });
 
@@ -201,18 +224,10 @@ describe("CheckoutPage", () => {
     const refreshCart = vi.fn();
     const navigate = vi.fn();
     const onCouponConsumed = vi.fn();
-    const mount = vi.fn();
-    const unmount = vi.fn();
     const confirmPayment = vi.fn().mockResolvedValue({
       paymentIntent: { status: "succeeded" },
     });
-    const elements = {
-      create: vi.fn(() => ({ mount, unmount })),
-    };
-    window.Stripe = vi.fn(() => ({
-      elements: vi.fn(() => elements),
-      confirmPayment,
-    }));
+    stripeMocks.stripe = { confirmPayment };
     mockedApi
       .mockResolvedValueOnce({ order: { id: "order-1" } })
       .mockResolvedValueOnce({
@@ -249,13 +264,14 @@ describe("CheckoutPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
 
     expect(navigate).not.toHaveBeenCalled();
-    await waitFor(() => expect(mount).toHaveBeenCalled());
+    expect(await screen.findByTestId("payment-element")).toBeDefined();
+    expect(stripeMocks.loadStripe).toHaveBeenCalledWith("pk_test_123");
     await userEvent.click(screen.getByRole("button", { name: /Pay Now/i }));
 
     await waitFor(() =>
       expect(confirmPayment).toHaveBeenCalledWith(
         expect.objectContaining({
-          elements,
+          elements: stripeMocks.elements,
           redirect: "if_required",
         }),
       ),
@@ -265,17 +281,63 @@ describe("CheckoutPage", () => {
     expect(navigate).toHaveBeenCalledWith("/orders/order-1");
   });
 
+  it("stays on checkout and shows an error when Stripe confirmation fails", async () => {
+    vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "pk_test_123");
+    const refreshCart = vi.fn();
+    const navigate = vi.fn();
+    const onCouponConsumed = vi.fn();
+    const confirmPayment = vi.fn().mockResolvedValue({
+      error: { message: "Your card was declined." },
+    });
+    stripeMocks.stripe = { confirmPayment };
+    mockedApi
+      .mockResolvedValueOnce({ order: { id: "order-1" } })
+      .mockResolvedValueOnce({
+        payment: {
+          id: "pi_1",
+          status: "requires_payment_method",
+          provider: "stripe",
+          clientSecret: "pi_1_secret_test",
+        },
+        order: { id: "order-1", status: "processing" },
+      });
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={refreshCart}
+        navigate={navigate}
+        appliedCoupon=""
+        onCouponConsumed={onCouponConsumed}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
+    await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
+    await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
+    await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
+    await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
+    await screen.findByTestId("payment-element");
+    await userEvent.click(screen.getByRole("button", { name: /Pay Now/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Your card was declined/i)).toBeDefined(),
+    );
+    expect(refreshCart).not.toHaveBeenCalled();
+    expect(onCouponConsumed).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it("resumes a pending Stripe order after refresh without creating another order", async () => {
     vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "pk_test_123");
-    const mount = vi.fn();
-    const unmount = vi.fn();
-    const elements = {
-      create: vi.fn(() => ({ mount, unmount })),
-    };
-    window.Stripe = vi.fn(() => ({
-      elements: vi.fn(() => elements),
-      confirmPayment: vi.fn(),
-    }));
+    stripeMocks.stripe = { confirmPayment: vi.fn() };
     sessionStorage.setItem(
       "exclusive.pendingStripeCheckout",
       JSON.stringify({
@@ -317,7 +379,52 @@ describe("CheckoutPage", () => {
         paymentMethod: "stripe",
       }),
     });
-    await waitFor(() => expect(mount).toHaveBeenCalled());
+    expect(await screen.findByTestId("payment-element")).toBeDefined();
+  });
+
+  it("shows an error when the Stripe publishable key is missing", async () => {
+    vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "");
+    mockedApi
+      .mockResolvedValueOnce({ order: { id: "order-1" } })
+      .mockResolvedValueOnce({
+        payment: {
+          id: "pi_1",
+          status: "requires_payment_method",
+          provider: "stripe",
+          clientSecret: "pi_1_secret_test",
+        },
+        order: { id: "order-1", status: "processing" },
+      });
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={vi.fn()}
+        navigate={vi.fn()}
+        appliedCoupon=""
+        onCouponConsumed={vi.fn()}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText(/first Name/i), "Jane");
+    await userEvent.type(
+      screen.getByLabelText(/street Address/i),
+      "123 Maple Drive",
+    );
+    await userEvent.type(screen.getByLabelText(/town City/i), "Townsville");
+    await userEvent.type(screen.getByLabelText(/phone/i), "555-0123");
+    await userEvent.type(screen.getByLabelText(/email/i), "jane@example.com");
+    await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/VITE_STRIPE_PUBLISHABLE_KEY is required/i),
+      ).toBeDefined(),
+    );
+    expect(screen.queryByTestId("payment-element")).toBeNull();
   });
 
   it("clears stale pending Stripe checkout state when the stored order no longer exists", async () => {

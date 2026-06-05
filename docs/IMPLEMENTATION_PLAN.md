@@ -125,15 +125,33 @@ The next work should focus on turning this from a prototype into a production-re
   - Mobile no-overlap checks
   - Header/footer consistency across routes
 
-## Phase 8: Production Readiness
+## Phase 8: Production Readiness - Complete
 
-- Add deployment configuration.
-- Add production environment documentation.
-- Add logging and request error handling.
-- Add API rate limiting for auth and contact endpoints.
-- Add image hosting strategy.
-- Finish payment provider integration with client-side confirmation and webhooks.
-- Add monitoring checks for frontend, API, and database.
+- Completed:
+  - Add runtime configuration validation for required production environment:
+    - `DATABASE_URL`
+    - `WEB_ORIGIN`
+    - `SESSION_SECRET` with at least 32 characters
+    - `STRIPE_SECRET_KEY` when `PAYMENT_PROVIDER=stripe`
+  - Add `/api/health` for process liveness without a database dependency.
+  - Add `/api/ready` for PostgreSQL readiness checks:
+    - Success: `{ ok: true, service: "exclusive-api", database: "ok" }`
+    - Database failure: `{ ok: false, service: "exclusive-api", database: "unavailable" }`
+  - Add request IDs to responses and structured request/error logs.
+  - Preserve API error `message` fields while adding `requestId` metadata.
+  - Add rate limiting for auth, admin writes, and contact submission endpoints.
+  - Add production Docker start path using compiled output and `npm start`.
+  - Add Render/Vercel deployment documentation in `docs/DEPLOYMENT.md`.
+  - Add backend tests for runtime config, health/readiness, error metadata, and rate limits.
+- Production deployment acceptance:
+  - Render `/api/health` responds without DB dependency.
+  - Render `/api/ready` proves Postgres connectivity.
+  - Production env without `WEB_ORIGIN`, `DATABASE_URL`, or a strong `SESSION_SECRET` fails fast.
+  - Vercel has `VITE_API_BASE` pointed at the Render API origin.
+- Later production follow-up:
+  - Add image hosting strategy.
+  - Finish payment provider integration with client-side Stripe confirmation and webhook reconciliation.
+  - Add external monitoring checks for frontend, API, and database.
 
 ## Recommended Next Sprint
 

@@ -1,7 +1,13 @@
 import crypto from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  v2 as cloudinary,
+  type UploadApiOptions,
+  type UploadApiResponse,
+} from "cloudinary";
 import { httpError } from "./auth.js";
+import type { RuntimeConfig } from "./config.js";
 
 export type ProductImageUpload = {
   url: string;
@@ -25,6 +31,7 @@ const MIN_IMAGE_EDGE = 64;
 const MAX_IMAGE_EDGE = 4096;
 const MAX_IMAGE_PIXELS = 16_000_000;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const CLOUDINARY_PRODUCT_IMAGE_FOLDER = "exclusive/product-images";
 
 const imageTypeByContentType = {
   "image/jpeg": "jpg",
@@ -195,5 +202,68 @@ export class LocalProductImageStorage implements ProductImageStorage {
   }
 }
 
-export const productImageStorage = new LocalProductImageStorage();
+export class CloudinaryProductImageStorage implements ProductImageStorage {
+  constructor(
+    config: RuntimeConfig["cloudinary"],
+    private readonly folder = CLOUDINARY_PRODUCT_IMAGE_FOLDER,
+  ) {
+    cloudinary.config({
+      ...(config.cloudinaryUrl ? { cloudinary_url: config.cloudinaryUrl } : {}),
+      ...(config.cloudName ? { cloud_name: config.cloudName } : {}),
+      ...(config.apiKey ? { api_key: config.apiKey } : {}),
+      ...(config.apiSecret ? { api_secret: config.apiSecret } : {}),
+      secure: true,
+    });
+  }
+
+  async saveProductImage(input: {
+    buffer: Buffer;
+    contentType: string;
+    originalName?: string;
+  }): Promise<ProductImageUpload> {
+    const validated = validateProductImage(input.buffer, input.contentType);
+    const now = new Date();
+    const partition = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const publicId = `${partition}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safeBaseName(input.originalName)}`;
+    const response = await uploadBufferToCloudinary(input.buffer, {
+      folder: this.folder,
+      public_id: publicId,
+      resource_type: "image",
+      overwrite: false,
+    });
+
+    return {
+      key: response.public_id,
+      url: response.secure_url,
+      width: response.width || validated.width,
+      height: response.height || validated.height,
+      contentType: validated.contentType,
+      size: response.bytes || input.buffer.length,
+    };
+  }
+}
+
+function uploadBufferToCloudinary(
+  buffer: Buffer,
+  options: UploadApiOptions,
+) {
+  return new Promise<UploadApiResponse>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) return reject(error);
+      if (!result?.secure_url || !result.public_id) {
+        return reject(new Error("Cloudinary upload did not return image URL"));
+      }
+      resolve(result);
+    });
+    stream.end(buffer);
+  });
+}
+
+export function createProductImageStorage(config: RuntimeConfig): ProductImageStorage {
+  if (config.imageStorageProvider === "cloudinary") {
+    return new CloudinaryProductImageStorage(config.cloudinary);
+  }
+  return new LocalProductImageStorage();
+}
+
 export const productImageUploadsRoot = path.resolve(process.cwd(), "uploads", "product-images");

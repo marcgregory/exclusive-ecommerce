@@ -81,6 +81,12 @@ The app validates runtime configuration on startup. `DATABASE_URL` is always req
 
 Production sessions use the PostgreSQL-backed `app_sessions` table through the existing `DATABASE_URL`; development and test keep the default in-process session store. Run `npm run db:migrate` before production traffic so the `app_sessions` table and expiration index exist.
 
+Product image storage:
+
+- `IMAGE_STORAGE_PROVIDER`: `local` or `cloudinary`; defaults to `local`.
+- Local storage writes validated uploads under `/uploads/product-images` and keeps existing local image URLs compatible.
+- Cloudinary storage requires either `CLOUDINARY_URL` or all of `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. Uploaded product image HTTPS URLs are stored in the existing product `image` field.
+
 Payment configuration:
 
 - `PAYMENT_PROVIDER`: `local` or `stripe`; defaults to `local`.

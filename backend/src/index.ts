@@ -74,7 +74,7 @@ import { createSessionOptions } from "./session-store.js";
 import { getErrorLogFields, logError, logInfo } from "./logger.js";
 import { migrate } from "./migrate.js";
 import {
-  productImageStorage,
+  createProductImageStorage,
   productImageUploadsRoot,
 } from "./image-storage.js";
 import {
@@ -99,6 +99,7 @@ import {
 } from "./validation.js";
 
 const config = loadRuntimeConfig();
+const productImageStorage = createProductImageStorage(config);
 const app = express();
 const shouldSkipRateLimit = () =>
   process.env.NODE_ENV === "test" &&

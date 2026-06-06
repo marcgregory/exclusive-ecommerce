@@ -1,8 +1,28 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { LocalProductImageStorage } from "./image-storage.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { cloudinaryConfig, cloudinaryUploadStream } = vi.hoisted(() => ({
+  cloudinaryConfig: vi.fn(),
+  cloudinaryUploadStream: vi.fn(),
+}));
+
+vi.mock("cloudinary", () => ({
+  v2: {
+    config: cloudinaryConfig,
+    uploader: {
+      upload_stream: cloudinaryUploadStream,
+    },
+  },
+}));
+
+import {
+  CloudinaryProductImageStorage,
+  createProductImageStorage,
+  LocalProductImageStorage,
+} from "./image-storage.js";
+import type { RuntimeConfig } from "./config.js";
 
 let tempDirs: string[] = [];
 
@@ -35,6 +55,11 @@ async function createStorage() {
 afterEach(async () => {
   await Promise.all(tempDirs.map((dir) => rm(dir, { force: true, recursive: true })));
   tempDirs = [];
+});
+
+beforeEach(() => {
+  cloudinaryConfig.mockReset();
+  cloudinaryUploadStream.mockReset();
 });
 
 describe("LocalProductImageStorage", () => {
@@ -80,5 +105,107 @@ describe("LocalProductImageStorage", () => {
         contentType: "image/png",
       }),
     ).rejects.toThrow("at least 64x64");
+  });
+});
+
+describe("createProductImageStorage", () => {
+  it("uses local image storage by default", () => {
+    expect(
+      createProductImageStorage({
+        cloudinary: {},
+        databaseUrl: "postgres://example/test",
+        imageStorageProvider: "local",
+        isProduction: false,
+        nodeEnv: "test",
+        paymentProvider: "local",
+        port: 4000,
+        sessionSecret: "test-session-secret-with-at-least-32-chars",
+        webOrigins: ["http://127.0.0.1:5173"],
+      } satisfies RuntimeConfig),
+    ).toBeInstanceOf(LocalProductImageStorage);
+  });
+});
+
+describe("CloudinaryProductImageStorage", () => {
+  it("returns the Cloudinary HTTPS URL and public id from a mocked upload response", async () => {
+    cloudinaryUploadStream.mockImplementation((options, callback) => ({
+      end: (buffer: Buffer) => {
+        callback(null, {
+          public_id: "exclusive/product-images/2026/06/uploaded-keyboard",
+          secure_url:
+            "https://res.cloudinary.com/demo/image/upload/v1/exclusive/product-images/2026/06/uploaded-keyboard.png",
+          width: 800,
+          height: 600,
+          bytes: buffer.length,
+        });
+      },
+    }));
+    const storage = new CloudinaryProductImageStorage({
+      cloudName: "demo",
+      apiKey: "key",
+      apiSecret: "secret",
+    });
+
+    const upload = await storage.saveProductImage({
+      buffer: pngBuffer(800, 600),
+      contentType: "image/png",
+      originalName: "Keyboard.png",
+    });
+
+    expect(cloudinaryConfig).toHaveBeenCalledWith({
+      cloud_name: "demo",
+      api_key: "key",
+      api_secret: "secret",
+      secure: true,
+    });
+    expect(cloudinaryUploadStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        folder: "exclusive/product-images",
+        overwrite: false,
+        public_id: expect.stringMatching(/^\d{4}\/\d{2}\/\d+-[a-f0-9-]+-keyboard$/),
+        resource_type: "image",
+      }),
+      expect.any(Function),
+    );
+    expect(upload).toEqual({
+      key: "exclusive/product-images/2026/06/uploaded-keyboard",
+      url: "https://res.cloudinary.com/demo/image/upload/v1/exclusive/product-images/2026/06/uploaded-keyboard.png",
+      width: 800,
+      height: 600,
+      contentType: "image/png",
+      size: 33,
+    });
+  });
+
+  it("validates images before uploading to Cloudinary", async () => {
+    const storage = new CloudinaryProductImageStorage({
+      cloudinaryUrl: "cloudinary://key:secret@demo",
+    });
+
+    await expect(
+      storage.saveProductImage({
+        buffer: pngBuffer(800, 600),
+        contentType: "image/jpeg",
+      }),
+    ).rejects.toThrow("does not match");
+    expect(cloudinaryUploadStream).not.toHaveBeenCalled();
+  });
+
+  it("surfaces Cloudinary upload failures", async () => {
+    cloudinaryUploadStream.mockImplementation((_options, callback) => ({
+      end: () => {
+        callback(new Error("Cloudinary is unavailable"));
+      },
+    }));
+    const storage = new CloudinaryProductImageStorage({
+      cloudinaryUrl: "cloudinary://key:secret@demo",
+    });
+
+    await expect(
+      storage.saveProductImage({
+        buffer: pngBuffer(800, 600),
+        contentType: "image/png",
+      }),
+    ).rejects.toThrow("Cloudinary is unavailable");
   });
 });

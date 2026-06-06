@@ -1,7 +1,17 @@
 export type PaymentProvider = "local" | "stripe";
+export type ImageStorageProvider = "local" | "cloudinary";
+
+export type CloudinaryConfig = {
+  cloudinaryUrl?: string;
+  cloudName?: string;
+  apiKey?: string;
+  apiSecret?: string;
+};
 
 export type RuntimeConfig = {
+  cloudinary: CloudinaryConfig;
   databaseUrl: string;
+  imageStorageProvider: ImageStorageProvider;
   isProduction: boolean;
   nodeEnv: string;
   paymentProvider: PaymentProvider;
@@ -49,6 +59,14 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
   const sessionSecret = env.SESSION_SECRET || DEV_SESSION_SECRET;
   const paymentProvider: PaymentProvider =
     env.PAYMENT_PROVIDER === "stripe" ? "stripe" : "local";
+  const imageStorageProvider: ImageStorageProvider =
+    env.IMAGE_STORAGE_PROVIDER === "cloudinary" ? "cloudinary" : "local";
+  const cloudinary: CloudinaryConfig = {
+    cloudinaryUrl: env.CLOUDINARY_URL,
+    cloudName: env.CLOUDINARY_CLOUD_NAME,
+    apiKey: env.CLOUDINARY_API_KEY,
+    apiSecret: env.CLOUDINARY_API_SECRET,
+  };
 
   if (
     isProduction &&
@@ -65,8 +83,20 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
     throw new Error("STRIPE_SECRET_KEY is required when PAYMENT_PROVIDER=stripe");
   }
 
+  if (
+    imageStorageProvider === "cloudinary" &&
+    !cloudinary.cloudinaryUrl &&
+    (!cloudinary.cloudName || !cloudinary.apiKey || !cloudinary.apiSecret)
+  ) {
+    throw new Error(
+      "CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required when IMAGE_STORAGE_PROVIDER=cloudinary",
+    );
+  }
+
   return {
+    cloudinary,
     databaseUrl,
+    imageStorageProvider,
     isProduction,
     nodeEnv,
     paymentProvider,

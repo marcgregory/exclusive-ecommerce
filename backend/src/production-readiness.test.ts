@@ -56,10 +56,62 @@ describe("runtime config", () => {
         DATABASE_URL: "postgres://example/dev",
       } as NodeJS.ProcessEnv),
     ).toMatchObject({
+      imageStorageProvider: "local",
       isProduction: false,
       paymentProvider: "local",
       port: 4000,
       webOrigins: ["http://127.0.0.1:5173"],
+    });
+  });
+
+  it("validates Cloudinary image storage configuration only when selected", () => {
+    expect(
+      loadRuntimeConfig({
+        NODE_ENV: "development",
+        DATABASE_URL: "postgres://example/dev",
+      } as NodeJS.ProcessEnv),
+    ).toMatchObject({
+      imageStorageProvider: "local",
+    });
+
+    expect(() =>
+      loadRuntimeConfig({
+        NODE_ENV: "development",
+        DATABASE_URL: "postgres://example/dev",
+        IMAGE_STORAGE_PROVIDER: "cloudinary",
+      } as NodeJS.ProcessEnv),
+    ).toThrow("CLOUDINARY_URL");
+
+    expect(
+      loadRuntimeConfig({
+        NODE_ENV: "development",
+        DATABASE_URL: "postgres://example/dev",
+        IMAGE_STORAGE_PROVIDER: "cloudinary",
+        CLOUDINARY_URL: "cloudinary://key:secret@demo",
+      } as NodeJS.ProcessEnv),
+    ).toMatchObject({
+      imageStorageProvider: "cloudinary",
+      cloudinary: {
+        cloudinaryUrl: "cloudinary://key:secret@demo",
+      },
+    });
+
+    expect(
+      loadRuntimeConfig({
+        NODE_ENV: "development",
+        DATABASE_URL: "postgres://example/dev",
+        IMAGE_STORAGE_PROVIDER: "cloudinary",
+        CLOUDINARY_CLOUD_NAME: "demo",
+        CLOUDINARY_API_KEY: "key",
+        CLOUDINARY_API_SECRET: "secret",
+      } as NodeJS.ProcessEnv),
+    ).toMatchObject({
+      imageStorageProvider: "cloudinary",
+      cloudinary: {
+        cloudName: "demo",
+        apiKey: "key",
+        apiSecret: "secret",
+      },
     });
   });
 

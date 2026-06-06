@@ -18,6 +18,12 @@ Required environment variables:
 
 `NODE_ENV=production` stores Express sessions in PostgreSQL using the same `DATABASE_URL`. Run migrations before serving traffic so the `app_sessions` table exists.
 
+Optional product image storage environment:
+
+- `IMAGE_STORAGE_PROVIDER=local` or `cloudinary`; defaults to `local`.
+- `CLOUDINARY_URL`: standard Cloudinary connection string, required when `IMAGE_STORAGE_PROVIDER=cloudinary` unless using individual credentials.
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: individual Cloudinary credentials. Set all three when not using `CLOUDINARY_URL`.
+
 Optional payment environment:
 
 - `PAYMENT_PROVIDER=local` or `stripe`; defaults to `local`. Use `stripe` in production checkout.

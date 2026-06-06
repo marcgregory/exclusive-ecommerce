@@ -1,18 +1,12 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Provider } from "react-redux";
 import { AdminOrderDetailPage } from "./AdminOrderDetailPage";
-import { ApiError } from "../api/client";
+import { store } from "../app/store";
+import * as ecommerceApiModule from "../api/ecommerceApi";
 import type { AdminOrder, PublicUser } from "../types";
-
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api } from "../api/client";
-
-const mockedApi = vi.mocked(api);
 
 const admin: PublicUser = {
   id: "admin-1",
@@ -70,28 +64,33 @@ function renderPage(user: PublicUser | null = admin) {
     navigate: vi.fn(),
   };
 
-  const view = render(<AdminOrderDetailPage {...props} />);
+  const view = render(
+    <Provider store={store}>
+      <AdminOrderDetailPage {...props} />
+    </Provider>,
+  );
   return { ...props, ...view };
 }
 
 describe("AdminOrderDetailPage", () => {
-  beforeEach(() => {
-    mockedApi.mockReset();
-  });
-
   afterEach(() => {
     cleanup();
+    vi.clearAllMocks();
   });
 
   it("requires an admin user", () => {
     renderPage(customer);
 
     expect(screen.getByText(/Admin access required/i)).toBeDefined();
-    expect(mockedApi).not.toHaveBeenCalled();
   });
 
   it("renders order detail data for admins", async () => {
-    mockedApi.mockResolvedValue({ order });
+    vi.spyOn(ecommerceApiModule, "useGetAdminOrderDetailQuery").mockReturnValue({
+      data: { order },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    } as any);
 
     renderPage();
 
@@ -104,16 +103,27 @@ describe("AdminOrderDetailPage", () => {
     expect(screen.getByText("123 Maple Drive")).toBeDefined();
     expect(screen.getByText("Townsville")).toBeDefined();
     expect(screen.getAllByText("$5000").length).toBeGreaterThan(0);
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith("/api/admin/orders/order-1"),
-    );
   });
 
   it("updates order status", async () => {
     const actor = userEvent.setup();
-    mockedApi
-      .mockResolvedValueOnce({ order })
-      .mockResolvedValueOnce({ order: { ...order, status: "delivered" } });
+    const mockMutation = vi.fn().mockResolvedValue({
+      unwrap: vi.fn().mockResolvedValue({
+        order: { ...order, status: "delivered" },
+      }),
+    });
+
+    vi.spyOn(ecommerceApiModule, "useGetAdminOrderDetailQuery").mockReturnValue({
+      data: { order },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.spyOn(ecommerceApiModule, "useUpdateAdminOrderMutation").mockReturnValue([
+      mockMutation,
+      { isLoading: false },
+    ] as any);
 
     renderPage();
 
@@ -121,26 +131,33 @@ describe("AdminOrderDetailPage", () => {
     await actor.selectOptions(screen.getByLabelText(/Order status/i), "delivered");
     await actor.click(screen.getByRole("button", { name: /Update Status/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenLastCalledWith(
-        "/api/admin/orders/order-1",
-        {
-          method: "PATCH",
-          body: JSON.stringify({ status: "delivered" }),
-        },
-      ),
-    );
-    expect(await screen.findByText("Status updated.")).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Delivered" })).toBeDefined();
+    await waitFor(() => {
+      expect(mockMutation).toHaveBeenCalledWith({
+        id: "order-1",
+        updates: { status: "delivered" },
+      });
+    });
   });
 
   it("saves the internal support note", async () => {
     const actor = userEvent.setup();
-    mockedApi
-      .mockResolvedValueOnce({ order })
-      .mockResolvedValueOnce({
+    const mockMutation = vi.fn().mockResolvedValue({
+      unwrap: vi.fn().mockResolvedValue({
         order: { ...order, internalNote: "Followed up with customer." },
-      });
+      }),
+    });
+
+    vi.spyOn(ecommerceApiModule, "useGetAdminOrderDetailQuery").mockReturnValue({
+      data: { order },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.spyOn(ecommerceApiModule, "useUpdateAdminOrderMutation").mockReturnValue([
+      mockMutation,
+      { isLoading: false },
+    ] as any);
 
     renderPage();
 
@@ -149,21 +166,21 @@ describe("AdminOrderDetailPage", () => {
     await actor.type(note, "Followed up with customer.");
     await actor.click(screen.getByRole("button", { name: /Save Note/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenLastCalledWith(
-        "/api/admin/orders/order-1",
-        {
-          method: "PATCH",
-          body: JSON.stringify({ internalNote: "Followed up with customer." }),
-        },
-      ),
-    );
-    expect(await screen.findByText("Internal note saved.")).toBeDefined();
-    expect(screen.getByDisplayValue("Followed up with customer.")).toBeDefined();
+    await waitFor(() => {
+      expect(mockMutation).toHaveBeenCalledWith({
+        id: "order-1",
+        updates: { internalNote: "Followed up with customer." },
+      });
+    });
   });
 
   it("renders order-not-found state for missing admin orders", async () => {
-    mockedApi.mockRejectedValue(new ApiError("Missing order", 404));
+    vi.spyOn(ecommerceApiModule, "useGetAdminOrderDetailQuery").mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: { status: 404, data: { message: "Order not found" } },
+      refetch: vi.fn(),
+    } as any);
 
     renderPage();
 

@@ -1,6 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { API_BASE } from "./client";
 import type {
+  AdminOrder,
+  AdminOrdersResponse,
   CartResponse,
   CategoriesResponse,
   MeResponse,
@@ -34,6 +36,17 @@ type CreateOrderInput = {
 type CreatePaymentInput = {
   orderId: string;
   paymentMethod: string;
+};
+
+type AdminOrdersFilter = {
+  status?: string;
+  email?: string;
+  limit?: number;
+};
+
+type AdminOrderUpdate = {
+  status?: string;
+  internalNote?: string;
 };
 
 type RegisterInput = {
@@ -81,7 +94,7 @@ export const ecommerceApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders"],
+  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders"],
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
       query: () => "/api/products",
@@ -163,6 +176,27 @@ export const ecommerceApi = createApi({
       query: (body) => ({ url: "/api/me", method: "PATCH", body }),
       invalidatesTags: ["Session"],
     }),
+    getAdminOrders: builder.query<AdminOrdersResponse, AdminOrdersFilter | undefined>({
+      query: (filters) => {
+        const params = new URLSearchParams({ limit: "50" });
+        if (filters?.status) params.set("status", filters.status);
+        if (filters?.email) params.set("email", filters.email);
+        return `/api/admin/orders?${params.toString()}`;
+      },
+      providesTags: ["AdminOrders"],
+    }),
+    getAdminOrderDetail: builder.query<{ order: AdminOrder }, string>({
+      query: (id) => `/api/admin/orders/${encodeURIComponent(id)}`,
+      providesTags: ["AdminOrders"],
+    }),
+    updateAdminOrder: builder.mutation<{ order: AdminOrder }, { id: string; updates: AdminOrderUpdate }>({
+      query: ({ id, updates }) => ({
+        url: `/api/admin/orders/${encodeURIComponent(id)}`,
+        method: "PATCH",
+        body: updates,
+      }),
+      invalidatesTags: ["AdminOrders"],
+    }),
   }),
 });
 
@@ -173,6 +207,8 @@ export const {
   useCreatePaymentMutation,
   useDeleteCartItemMutation,
   useDeleteWishlistProductMutation,
+  useGetAdminOrderDetailQuery,
+  useGetAdminOrdersQuery,
   useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,
@@ -185,6 +221,7 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useRegisterMutation,
+  useUpdateAdminOrderMutation,
   useUpdateCartItemMutation,
   useUpdateProfileMutation,
 } = ecommerceApi;

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { ArrowLeft, RefreshCw, Save } from "lucide-react";
-import { api, ApiError } from "../api/client";
+import {
+  useGetAdminOrderDetailQuery,
+  useUpdateAdminOrderMutation,
+} from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
 import type { AdminOrder, AsyncState, Navigate, PublicUser } from "../types";
 
@@ -14,20 +16,12 @@ type AdminOrderDetailPageProps = {
   navigate: Navigate;
 };
 
-type SaveState = {
-  loading: boolean;
-  error: string;
-  success: string;
-};
-
 const statusOptions = [
   { value: "processing", label: "Processing" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
 ];
-
-const emptySaveState: SaveState = { loading: false, error: "", success: "" };
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -59,61 +53,63 @@ export function AdminOrderDetailPage({
   userState,
   navigate,
 }: AdminOrderDetailPageProps) {
-  const [order, setOrder] = useState<AdminOrder | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [notFound, setNotFound] = useState(false);
-  const [status, setStatus] = useState("processing");
-  const [internalNote, setInternalNote] = useState("");
-  const [statusSave, setStatusSave] = useState<SaveState>(emptySaveState);
-  const [noteSave, setNoteSave] = useState<SaveState>(emptySaveState);
-
   const canLoadOrder = userState.data?.role === "admin";
 
+  const { data, isLoading, error, refetch } = useGetAdminOrderDetailQuery(
+    canLoadOrder && id ? id : "",
+    {
+      skip: !canLoadOrder || !id,
+      refetchOnMountOrArgChange: true,
+    },
+  );
+
+  const order = data?.order;
+  const errorMessage = error ? (error as any).data?.message || "Failed to load order" : "";
+  const notFound = error && (error as any).status === 404;
+
+  const [status, setStatus] = useState("");
+  const [internalNote, setInternalNote] = useState("");
+  const [updateAdminOrder, { isLoading: isUpdating }] = useUpdateAdminOrderMutation();
+  const [statusSaveState, setStatusSaveState] = useState<{ error: string; success: string }>({
+    error: "",
+    success: "",
+  });
+  const [noteSaveState, setNoteSaveState] = useState<{ error: string; success: string }>({
+    error: "",
+    success: "",
+  });
+
+  // Sync local state when order data arrives
+  if (order && status === "" && internalNote === "") {
+    setStatus(order.status);
+    setInternalNote(order.internalNote || "");
+  }
+
+  // Update local state when order loads
   const applyOrder = (nextOrder: AdminOrder) => {
-    setOrder(nextOrder);
     setStatus(nextOrder.status);
     setInternalNote(nextOrder.internalNote || "");
+    // Clear success messages after showing them briefly
+    setTimeout(() => {
+      setStatusSaveState({ error: "", success: "" });
+      setNoteSaveState({ error: "", success: "" });
+    }, 2000);
   };
-
-  const loadOrder = useCallback(async () => {
-    if (!canLoadOrder || !id) return;
-    setLoading(true);
-    setError("");
-    setNotFound(false);
-    setStatusSave(emptySaveState);
-    setNoteSave(emptySaveState);
-    try {
-      const data = await api<{ order: AdminOrder }>(`/api/admin/orders/${id}`);
-      applyOrder(data.order);
-    } catch (requestError) {
-      setOrder(null);
-      setNotFound(requestError instanceof ApiError && requestError.status === 404);
-      setError(getErrorMessage(requestError));
-    } finally {
-      setLoading(false);
-    }
-  }, [canLoadOrder, id]);
-
-  useEffect(() => {
-    loadOrder();
-  }, [loadOrder]);
 
   const saveStatus = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!id) return;
-    setStatusSave({ loading: true, error: "", success: "" });
+    if (!id || !order) return;
+    setStatusSaveState({ error: "", success: "" });
     try {
-      const data = await api<{ order: AdminOrder }>(`/api/admin/orders/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
-      applyOrder(data.order);
-      setStatusSave({ loading: false, error: "", success: "Status updated." });
-    } catch (requestError) {
-      setStatusSave({
-        loading: false,
-        error: getErrorMessage(requestError),
+      const result = await updateAdminOrder({
+        id,
+        updates: { status },
+      }).unwrap();
+      applyOrder(result.order);
+      setStatusSaveState({ error: "", success: "Status updated." });
+    } catch (err: any) {
+      setStatusSaveState({
+        error: err.data?.message || "Failed to update status",
         success: "",
       });
     }
@@ -121,25 +117,24 @@ export function AdminOrderDetailPage({
 
   const saveInternalNote = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!id) return;
-    setNoteSave({ loading: true, error: "", success: "" });
+    if (!id || !order) return;
+    setNoteSaveState({ error: "", success: "" });
     try {
-      const data = await api<{ order: AdminOrder }>(`/api/admin/orders/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ internalNote }),
-      });
-      applyOrder(data.order);
-      setNoteSave({ loading: false, error: "", success: "Internal note saved." });
-    } catch (requestError) {
-      setNoteSave({
-        loading: false,
-        error: getErrorMessage(requestError),
+      const result = await updateAdminOrder({
+        id,
+        updates: { internalNote },
+      }).unwrap();
+      applyOrder(result.order);
+      setNoteSaveState({ error: "", success: "Internal note saved." });
+    } catch (err: any) {
+      setNoteSaveState({
+        error: err.data?.message || "Failed to save note",
         success: "",
       });
     }
   };
 
-  if (userState.loading || loading) {
+  if (userState.loading || isLoading) {
     return (
       <main className="container page">
         <LoadingState
@@ -191,14 +186,14 @@ export function AdminOrderDetailPage({
     );
   }
 
-  if (error || !order) {
+  if (errorMessage || !order) {
     return (
       <main className="container page">
         <Breadcrumbs items={["Home", "Admin", "Orders"]} />
         <ErrorState
           title="We could not load this order"
-          message={error}
-          action={{ label: "Try Again", onClick: loadOrder }}
+          message={errorMessage}
+          action={{ label: "Try Again", onClick: () => refetch() }}
           secondaryAction={{ label: "Back To Orders", onClick: () => navigate("/admin/orders") }}
         />
       </main>
@@ -221,7 +216,7 @@ export function AdminOrderDetailPage({
             <ArrowLeft size={16} />
             Back To Orders
           </Button>
-          <Button variant="ghost" onClick={loadOrder} disabled={loading}>
+          <Button variant="ghost" onClick={() => refetch()} disabled={isLoading}>
             <RefreshCw size={16} />
             Refresh
           </Button>
@@ -252,14 +247,14 @@ export function AdminOrderDetailPage({
                   ))}
                 </select>
               </label>
-              <Button type="submit" disabled={statusSave.loading}>
+              <Button type="submit" disabled={isUpdating}>
                 <Save size={16} />
-                {statusSave.loading ? "Saving" : "Update Status"}
+                {isUpdating ? "Saving" : "Update Status"}
               </Button>
-              {statusSave.error && (
-                <p className="form-status form-status--error">{statusSave.error}</p>
+              {statusSaveState.error && (
+                <p className="form-status form-status--error">{statusSaveState.error}</p>
               )}
-              {statusSave.success && <p className="form-status">{statusSave.success}</p>}
+              {statusSaveState.success && <p className="form-status">{statusSaveState.success}</p>}
             </form>
           </section>
 
@@ -297,15 +292,15 @@ export function AdminOrderDetailPage({
               </label>
               <div className="admin-note-footer">
                 <span>{internalNote.length}/5000</span>
-                <Button type="submit" disabled={noteSave.loading}>
+                <Button type="submit" disabled={isUpdating}>
                   <Save size={16} />
-                  {noteSave.loading ? "Saving" : "Save Note"}
+                  {isUpdating ? "Saving" : "Save Note"}
                 </Button>
               </div>
-              {noteSave.error && (
-                <p className="form-status form-status--error">{noteSave.error}</p>
+              {noteSaveState.error && (
+                <p className="form-status form-status--error">{noteSaveState.error}</p>
               )}
-              {noteSave.success && <p className="form-status">{noteSave.success}</p>}
+              {noteSaveState.success && <p className="form-status">{noteSaveState.success}</p>}
             </form>
           </section>
         </div>

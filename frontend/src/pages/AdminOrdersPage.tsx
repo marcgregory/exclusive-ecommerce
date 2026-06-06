@@ -1,18 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { AlertTriangle, RefreshCw, Search } from "lucide-react";
-import { api } from "../api/client";
+import { useGetAdminOrdersQuery } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
-import type {
-  AdminOrder,
-  AdminOrdersResponse,
-  AsyncState,
-  Navigate,
-  PublicUser,
-} from "../types";
+import type { AdminOrder, AsyncState, Navigate, PublicUser } from "../types";
 
 type AdminOrdersPageProps = {
   userState: AsyncState<PublicUser | null>;
@@ -49,47 +42,32 @@ function isStripeAttentionOrder(order: AdminOrder) {
 }
 
 export function AdminOrdersPage({ userState, navigate }: AdminOrdersPageProps) {
-  const [ordersState, setOrdersState] = useState<AsyncState<AdminOrder[]>>({
-    data: [],
-    loading: false,
-    error: "",
-  });
   const [status, setStatus] = useState("");
   const [email, setEmail] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState("");
-  const [total, setTotal] = useState(0);
 
   const canLoadOrders = userState.data?.role === "admin";
 
-  const loadOrders = useCallback(async () => {
-    if (!canLoadOrders) return;
-    const params = new URLSearchParams({ limit: "50" });
-    if (status) params.set("status", status);
-    if (submittedEmail) params.set("email", submittedEmail);
+  const { data, isLoading, error, refetch } = useGetAdminOrdersQuery(
+    canLoadOrders
+      ? {
+          status: status || undefined,
+          email: submittedEmail || undefined,
+        }
+      : undefined,
+    {
+      skip: !canLoadOrders,
+      refetchOnMountOrArgChange: true,
+    },
+  );
 
-    setOrdersState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<AdminOrdersResponse>(
-        `/api/admin/orders?${params.toString()}`,
-      );
-      setOrdersState({ data: data.orders, loading: false, error: "" });
-      setTotal(data.total);
-    } catch (error) {
-      setOrdersState((current) => ({
-        ...current,
-        loading: false,
-        error: getErrorMessage(error),
-      }));
-    }
-  }, [canLoadOrders, status, submittedEmail]);
-
-  useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
+  const orders = data?.orders || [];
+  const total = data?.total || 0;
+  const errorMessage = error ? (error as any).data?.message || "Failed to load orders" : "";
 
   const attentionOrders = useMemo(
-    () => ordersState.data.filter(isStripeAttentionOrder),
-    [ordersState.data],
+    () => orders.filter(isStripeAttentionOrder),
+    [orders],
   );
 
   const submitEmailSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -186,22 +164,22 @@ export function AdminOrdersPage({ userState, navigate }: AdminOrdersPageProps) {
             Search
           </Button>
         </form>
-        <Button onClick={loadOrders} disabled={ordersState.loading}>
+        <Button onClick={() => refetch()} disabled={isLoading}>
           <RefreshCw size={16} />
-          {ordersState.loading ? "Refreshing" : "Refresh"}
+          {isLoading ? "Refreshing" : "Refresh"}
         </Button>
       </section>
 
-      {ordersState.error && (
-        <p className="form-status form-status--error">{ordersState.error}</p>
+      {errorMessage && (
+        <p className="form-status form-status--error">{errorMessage}</p>
       )}
 
-      {!ordersState.loading && !ordersState.error && !ordersState.data.length && (
+      {!isLoading && !errorMessage && !orders.length && (
         <p className="admin-orders-empty">No orders match these filters.</p>
       )}
 
       <section className="admin-orders-list" aria-label="Admin order list">
-        {ordersState.data.map((order) => {
+        {orders.map((order) => {
           const needsReview = isStripeAttentionOrder(order);
           return (
             <article

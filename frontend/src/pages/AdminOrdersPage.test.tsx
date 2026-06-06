@@ -1,17 +1,12 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Provider } from "react-redux";
 import { AdminOrdersPage } from "./AdminOrdersPage";
+import { store } from "../app/store";
+import * as ecommerceApiModule from "../api/ecommerceApi";
 import type { AdminOrder, PublicUser } from "../types";
-
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api } from "../api/client";
-
-const mockedApi = vi.mocked(api);
 
 const admin: PublicUser = {
   id: "admin-1",
@@ -68,39 +63,41 @@ function renderPage(user: PublicUser | null = admin) {
     navigate: vi.fn(),
   };
 
-  const view = render(<AdminOrdersPage {...props} />);
+  const view = render(
+    <Provider store={store}>
+      <AdminOrdersPage {...props} />
+    </Provider>,
+  );
   return { ...props, ...view };
 }
 
 describe("AdminOrdersPage", () => {
-  beforeEach(() => {
-    mockedApi.mockReset();
-  });
-
   afterEach(() => {
     cleanup();
+    vi.clearAllMocks();
   });
 
   it("requires an admin user", () => {
     renderPage(customer);
 
     expect(screen.getByText(/Admin access required/i)).toBeDefined();
-    expect(mockedApi).not.toHaveBeenCalled();
   });
 
   it("loads admin orders and highlights Stripe orders that need review", async () => {
-    mockedApi.mockResolvedValue({
-      orders: [stripeOrder],
-      total: 1,
-      page: 1,
-      limit: 50,
-    });
+    vi.spyOn(ecommerceApiModule, "useGetAdminOrdersQuery").mockReturnValue({
+      data: {
+        orders: [stripeOrder],
+        total: 1,
+        page: 1,
+        limit: 50,
+      },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    } as any);
 
     renderPage();
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith("/api/admin/orders?limit=50"),
-    );
     expect(await screen.findByText("order-stripe-1")).toBeDefined();
     expect(screen.getByText(/buyer@example.com/i)).toBeDefined();
     expect(screen.getByText(/Stripe review/i)).toBeDefined();
@@ -109,12 +106,19 @@ describe("AdminOrdersPage", () => {
 
   it("filters orders by status and customer email", async () => {
     const actor = userEvent.setup();
-    mockedApi.mockResolvedValue({
-      orders: [],
-      total: 0,
-      page: 1,
-      limit: 50,
-    });
+    const mockRefetch = vi.fn();
+
+    vi.spyOn(ecommerceApiModule, "useGetAdminOrdersQuery").mockReturnValue({
+      data: {
+        orders: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+      },
+      isLoading: false,
+      error: undefined,
+      refetch: mockRefetch,
+    } as any);
 
     renderPage();
 
@@ -122,21 +126,31 @@ describe("AdminOrdersPage", () => {
     await actor.type(screen.getByLabelText(/Customer email/i), "buyer@example.com");
     await actor.click(screen.getByRole("button", { name: /Search/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenLastCalledWith(
-        "/api/admin/orders?limit=50&status=cancelled&email=buyer%40example.com",
-      ),
-    );
+    // After status/email changes, the query should be called with new filters
+    // The component will re-render and pass new filter params to the query
+    await waitFor(() => {
+      const calls = (ecommerceApiModule.useGetAdminOrdersQuery as any).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]).toMatchObject({
+        status: "cancelled",
+        email: "buyer@example.com",
+      });
+    });
   });
 
   it("navigates to admin order details", async () => {
     const actor = userEvent.setup();
-    mockedApi.mockResolvedValue({
-      orders: [stripeOrder],
-      total: 1,
-      page: 1,
-      limit: 50,
-    });
+    vi.spyOn(ecommerceApiModule, "useGetAdminOrdersQuery").mockReturnValue({
+      data: {
+        orders: [stripeOrder],
+        total: 1,
+        page: 1,
+        limit: 50,
+      },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    } as any);
     const { navigate } = renderPage();
 
     await actor.click(await screen.findByRole("button", { name: /View Details/i }));

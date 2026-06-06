@@ -12,22 +12,26 @@ const apiMocks = vi.hoisted(() => ({
   updateProfile: vi.fn(),
 }));
 
-vi.mock("../api/ecommerceApi", () => ({
-  useGetOrdersQuery: (arg: undefined, options?: { skip?: boolean }) => {
-    if (options?.skip) {
-      return {
-        data: undefined,
-        isLoading: false,
-        error: undefined,
-        refetch: vi.fn(),
-      };
-    }
-    return apiMocks.getOrders();
-  },
-  useRegisterMutation: () => apiMocks.register(),
-  useLoginMutation: () => apiMocks.login(),
-  useUpdateProfileMutation: () => apiMocks.updateProfile(),
-}));
+vi.mock("../api/ecommerceApi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api/ecommerceApi")>();
+  return {
+    ...actual,
+    useGetOrdersQuery: (arg: undefined, options?: { skip?: boolean }) => {
+      if (options?.skip) {
+        return {
+          data: undefined,
+          isLoading: false,
+          error: undefined,
+          refetch: vi.fn(),
+        };
+      }
+      return apiMocks.getOrders();
+    },
+    useRegisterMutation: () => apiMocks.register(),
+    useLoginMutation: () => apiMocks.login(),
+    useUpdateProfileMutation: () => apiMocks.updateProfile(),
+  };
+});
 
 const user: PublicUser = {
   id: "user-1",

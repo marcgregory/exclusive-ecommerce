@@ -3,6 +3,10 @@ import { API_BASE } from "./client";
 import type {
   AdminOrder,
   AdminOrdersResponse,
+  AdminProductInput,
+  AdminProductListResponse,
+  AdminProductResponse,
+  AdminProductVariantsResponse,
   CartResponse,
   CategoriesResponse,
   MeResponse,
@@ -47,6 +51,11 @@ type AdminOrdersFilter = {
 type AdminOrderUpdate = {
   status?: string;
   internalNote?: string;
+};
+
+type AdminProductsFilter = {
+  q?: string;
+  limit?: number;
 };
 
 type RegisterInput = {
@@ -94,7 +103,7 @@ export const ecommerceApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders"],
+  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders", "AdminProducts", "AdminProductVariants"],
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
       query: () => "/api/products",
@@ -197,6 +206,53 @@ export const ecommerceApi = createApi({
       }),
       invalidatesTags: ["AdminOrders"],
     }),
+    getAdminProducts: builder.query<AdminProductListResponse, AdminProductsFilter | undefined>({
+      query: (filters) => {
+        const params = new URLSearchParams({ limit: "50" });
+        if (filters?.q) params.set("q", filters.q);
+        return `/api/admin/products?${params.toString()}`;
+      },
+      providesTags: ["AdminProducts"],
+    }),
+    getAdminProductDetail: builder.query<AdminProductResponse, string>({
+      query: (id) => `/api/admin/products/${encodeURIComponent(id)}`,
+      providesTags: ["AdminProducts"],
+    }),
+    createAdminProduct: builder.mutation<AdminProductResponse, AdminProductInput>({
+      query: (body) => ({
+        url: "/api/admin/products",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["AdminProducts"],
+    }),
+    updateAdminProduct: builder.mutation<AdminProductResponse, { id: string; updates: Partial<AdminProductInput> }>({
+      query: ({ id, updates }) => ({
+        url: `/api/admin/products/${encodeURIComponent(id)}`,
+        method: "PATCH",
+        body: updates,
+      }),
+      invalidatesTags: ["AdminProducts"],
+    }),
+    deleteAdminProduct: builder.mutation<{ ok: true }, string>({
+      query: (id) => ({
+        url: `/api/admin/products/${encodeURIComponent(id)}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["AdminProducts"],
+    }),
+    getAdminProductVariants: builder.query<AdminProductVariantsResponse, string>({
+      query: (productId) => `/api/admin/products/${encodeURIComponent(productId)}/variants`,
+      providesTags: ["AdminProductVariants"],
+    }),
+    updateAdminProductVariants: builder.mutation<AdminProductVariantsResponse, { productId: string; variants: any[] }>({
+      query: ({ productId, variants }) => ({
+        url: `/api/admin/products/${encodeURIComponent(productId)}/variants`,
+        method: "PUT",
+        body: { variants },
+      }),
+      invalidatesTags: ["AdminProductVariants"],
+    }),
   }),
 });
 
@@ -209,6 +265,9 @@ export const {
   useDeleteWishlistProductMutation,
   useGetAdminOrderDetailQuery,
   useGetAdminOrdersQuery,
+  useGetAdminProductDetailQuery,
+  useGetAdminProductsQuery,
+  useGetAdminProductVariantsQuery,
   useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,
@@ -221,6 +280,10 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useRegisterMutation,
+  useCreateAdminProductMutation,
+  useUpdateAdminProductMutation,
+  useDeleteAdminProductMutation,
+  useUpdateAdminProductVariantsMutation,
   useUpdateAdminOrderMutation,
   useUpdateCartItemMutation,
   useUpdateProfileMutation,

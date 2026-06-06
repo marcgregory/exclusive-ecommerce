@@ -7,13 +7,18 @@ import { ProductVisual } from "../components/ProductVisual";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
+import {
+  useGetAdminProductsQuery,
+  useGetCategoriesQuery,
+  useGetAdminProductVariantsQuery,
+  useCreateAdminProductMutation,
+  useUpdateAdminProductMutation,
+  useDeleteAdminProductMutation,
+  useUpdateAdminProductVariantsMutation,
+} from "../api/ecommerceApi";
 import type {
   AdminProductInput,
-  AdminProductListResponse,
-  AdminProductResponse,
-  AdminProductVariantsResponse,
   AsyncState,
-  CategoriesResponse,
   Category,
   Navigate,
   Product,
@@ -134,110 +139,84 @@ function variantToDraft(variant: ProductVariant): VariantDraft {
 }
 
 export function AdminProductsPage({ userState, navigate }: AdminProductsPageProps) {
-  const [productsState, setProductsState] = useState<AsyncState<Product[]>>({
-    data: [],
-    loading: false,
-    error: "",
-  });
-  const [categoriesState, setCategoriesState] = useState<AsyncState<Category[]>>({
-    data: [],
-    loading: false,
-    error: "",
-  });
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
-  const [total, setTotal] = useState(0);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
-  const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [deletingId, setDeletingId] = useState("");
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
   const [variants, setVariants] = useState<VariantDraft[]>([]);
-  const [variantsLoading, setVariantsLoading] = useState(false);
-  const [variantsSaving, setVariantsSaving] = useState(false);
   const [variantsError, setVariantsError] = useState("");
   const [variantsSuccess, setVariantsSuccess] = useState("");
 
   const canLoadProducts = userState.data?.role === "admin";
 
-  const loadProducts = useCallback(async () => {
-    if (!canLoadProducts) return;
-    const params = new URLSearchParams({ limit: "50" });
-    if (submittedQuery) params.set("q", submittedQuery);
-
-    setProductsState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<AdminProductListResponse>(
-        `/api/admin/products?${params.toString()}`,
-      );
-      setProductsState({ data: data.products, loading: false, error: "" });
-      setTotal(data.total);
-    } catch (error) {
-      setProductsState((current) => ({
-        ...current,
-        loading: false,
-        error: getErrorMessage(error),
-      }));
-    }
-  }, [canLoadProducts, submittedQuery]);
-
-  const loadCategories = useCallback(async () => {
-    if (!canLoadProducts) return;
-    setCategoriesState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<CategoriesResponse>("/api/categories");
-      setCategoriesState({ data: data.categories, loading: false, error: "" });
-      setDraft((current) =>
-        current.category || !data.categories[0]
-          ? current
-          : { ...current, category: data.categories[0].id },
-      );
-    } catch (error) {
-      setCategoriesState((current) => ({
-        ...current,
-        loading: false,
-        error: getErrorMessage(error),
-      }));
-    }
-  }, [canLoadProducts]);
-
-  const loadVariants = useCallback(async (productId: string) => {
-    setVariantsLoading(true);
-    setVariantsError("");
-    setVariantsSuccess("");
-    try {
-      const data = await api<AdminProductVariantsResponse>(
-        `/api/admin/products/${productId}/variants`,
-      );
-      setVariants(data.variants.map(variantToDraft));
-    } catch (error) {
-      setVariantsError(getErrorMessage(error));
-      setVariants([]);
-    } finally {
-      setVariantsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
-
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
-
-  const categoryNames = useMemo(
-    () =>
-      new Map(
-        categoriesState.data.map((category) => [
-          category.id,
-          `${category.label} (${category.id})`,
-        ]),
-      ),
-    [categoriesState.data],
+  // RTK Query hooks
+  const {
+    data: productsData,
+    isLoading: productsLoading,
+    error: productsError,
+    refetch: refetchProducts,
+  } = useGetAdminProductsQuery(
+    canLoadProducts ? { q: submittedQuery, limit: 50 } : undefined,
+    { skip: !canLoadProducts, refetchOnMountOrArgChange: true }
   );
+
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useGetCategoriesQuery(undefined, { skip: !canLoadProducts });
+
+  const {
+    data: variantsData,
+    isLoading: variantsLoading,
+    refetch: refetchVariants,
+  } = useGetAdminProductVariantsQuery(editingProductId || "", { skip: !editingProductId });
+
+  // Mutations
+  const [createAdminProduct, { isLoading: createLoading }] = useCreateAdminProductMutation();
+  const [updateAdminProduct, { isLoading: updateLoading }] = useUpdateAdminProductMutation();
+  const [deleteAdminProduct, { isLoading: deleteLoading }] = useDeleteAdminProductMutation();
+  const [updateAdminProductVariants, { isLoading: updateVariantsLoading }] =
+    useUpdateAdminProductVariantsMutation();
+
+  const saving = createLoading || updateLoading;
+  const deletingId = deleteLoading ? editingProductId : "";
+  const variantsSaving = updateVariantsLoading;
+
+  // Transform RTK Query response to component state format
+  const products = productsData?.products || [];
+  const total = productsData?.total || 0;
+  const categories = categoriesData?.categories || [];
+
+  // Initialize category in draft when categories load
+  useEffect(() => {
+    if (!categoriesLoading && categories.length && !draft.category) {
+      setDraft((current) =>
+        current.category ? current : { ...current, category: categories[0].id }
+      );
+    }
+  }, [categories, categoriesLoading, draft.category]);
+
+  // Load variants when editing product changes
+  useEffect(() => {
+    if (editingProductId && variantsData) {
+      setVariants(variantsData.variants.map(variantToDraft));
+    }
+  }, [variantsData, editingProductId]);
+
+  // Format error messages from RTK Query errors
+  const getApiErrorMessage = useCallback((error: any): string => {
+    if (!error) return "";
+    if (error.status === "FETCH_ERROR") {
+      return error.error?.message || "Network error";
+    }
+    if (error.data?.message) {
+      return error.data.message;
+    }
+    return error.message || "An error occurred";
+  }, []);
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -248,7 +227,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
     setEditingProductId(null);
     setDraft({
       ...emptyDraft,
-      category: categoriesState.data[0]?.id || "",
+      category: categories[0]?.id || "",
     });
     setVariants([]);
     setVariantsError("");
@@ -260,49 +239,35 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
   const startEdit = (product: Product) => {
     setEditingProductId(product.id);
     setDraft(productToDraft(product));
-    void loadVariants(product.id);
     setFormError("");
     setFormSuccess("");
+    setVariantsError("");
+    setVariantsSuccess("");
   };
 
   const submitProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSaving(true);
     setFormError("");
     setFormSuccess("");
     try {
       const payload = draftToPayload(draft);
-      const path = editingProductId
-        ? `/api/admin/products/${editingProductId}`
-        : "/api/admin/products";
-      const data = await api<AdminProductResponse>(path, {
-        method: editingProductId ? "PATCH" : "POST",
-        body: JSON.stringify(payload),
-      });
-      setProductsState((current) => {
-        const exists = current.data.some((product) => product.id === data.product.id);
-        return {
-          ...current,
-          data: exists
-            ? current.data.map((product) =>
-                product.id === data.product.id ? data.product : product,
-              )
-            : [data.product, ...current.data],
-        };
-      });
-      if (!editingProductId) setTotal((current) => current + 1);
-      setEditingProductId(data.product.id);
-      setDraft(productToDraft(data.product));
-      if (!editingProductId) {
+      if (editingProductId) {
+        await updateAdminProduct({
+          id: editingProductId,
+          updates: payload,
+        }).unwrap();
+        setFormSuccess("Product updated.");
+      } else {
+        const result = await createAdminProduct(payload).unwrap();
+        setEditingProductId(result.product.id);
+        setDraft(productToDraft(result.product));
         setVariants([]);
         setVariantsError("");
         setVariantsSuccess("Product created. Add variants when ready.");
+        setFormSuccess("Product created.");
       }
-      setFormSuccess(editingProductId ? "Product updated." : "Product created.");
     } catch (error) {
-      setFormError(getErrorMessage(error));
-    } finally {
-      setSaving(false);
+      setFormError(getApiErrorMessage(error));
     }
   };
 
@@ -311,7 +276,6 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
     event.target.value = "";
     if (!file) return;
 
-    setUploadingImage(true);
     setFormError("");
     setFormSuccess("");
     try {
@@ -332,29 +296,19 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
       );
     } catch (error) {
       setFormError(getErrorMessage(error));
-    } finally {
-      setUploadingImage(false);
     }
   };
 
   const deleteProduct = async (product: Product) => {
     if (!window.confirm(`Delete ${product.name}?`)) return;
-    setDeletingId(product.id);
     setFormError("");
     setFormSuccess("");
     try {
-      await api(`/api/admin/products/${product.id}`, { method: "DELETE" });
-      setProductsState((current) => ({
-        ...current,
-        data: current.data.filter((item) => item.id !== product.id),
-      }));
-      setTotal((current) => Math.max(0, current - 1));
+      await deleteAdminProduct(product.id).unwrap();
       if (editingProductId === product.id) startCreate();
       setFormSuccess("Product deleted.");
     } catch (error) {
-      setFormError(getErrorMessage(error));
-    } finally {
-      setDeletingId("");
+      setFormError(getApiErrorMessage(error));
     }
   };
 
@@ -389,33 +343,38 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
 
   const saveVariants = async () => {
     if (!editingProductId) return;
-    setVariantsSaving(true);
     setVariantsError("");
     setVariantsSuccess("");
     try {
-      const data = await api<AdminProductVariantsResponse>(
-        `/api/admin/products/${editingProductId}/variants`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            variants: variants.map((variant) => ({
-              ...(variant.id ? { id: variant.id } : {}),
-              color: variant.color.trim(),
-              size: variant.size.trim(),
-              sku: variant.sku.trim(),
-              stock: Number(variant.stock || 0),
-            })),
-          }),
-        },
-      );
-      setVariants(data.variants.map(variantToDraft));
+      await updateAdminProductVariants({
+        productId: editingProductId,
+        variants: variants.map((variant) => ({
+          ...(variant.id ? { id: variant.id } : {}),
+          color: variant.color.trim(),
+          size: variant.size.trim(),
+          sku: variant.sku.trim(),
+          stock: Number(variant.stock || 0),
+        })),
+      }).unwrap();
+      if (variantsData) {
+        setVariants(variantsData.variants.map(variantToDraft));
+      }
       setVariantsSuccess("Variants saved.");
     } catch (error) {
-      setVariantsError(getErrorMessage(error));
-    } finally {
-      setVariantsSaving(false);
+      setVariantsError(getApiErrorMessage(error));
     }
   };
+
+  const categoryNames = useMemo(
+    () =>
+      new Map(
+        categories.map((category) => [
+          category.id,
+          `${category.label} (${category.id})`,
+        ]),
+      ),
+    [categories],
+  );
 
   if (userState.loading) {
     return (
@@ -486,9 +445,9 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
             Search
           </Button>
         </form>
-        <Button onClick={loadProducts} disabled={productsState.loading}>
+        <Button onClick={() => refetchProducts()} disabled={productsLoading}>
           <RefreshCw size={16} />
-          {productsState.loading ? "Refreshing" : "Refresh"}
+          {productsLoading ? "Refreshing" : "Refresh"}
         </Button>
         <Button onClick={startCreate}>
           <Plus size={16} />
@@ -497,9 +456,9 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
         <span className="admin-catalog-count">{total} total</span>
       </section>
 
-      {(productsState.error || categoriesState.error) && (
+      {(productsError || categoriesError) && (
         <p className="form-status form-status--error">
-          {productsState.error || categoriesState.error}
+          {getApiErrorMessage(productsError) || getApiErrorMessage(categoriesError)}
         </p>
       )}
       {formError && <p className="form-status form-status--error">{formError}</p>}
@@ -507,10 +466,10 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
 
       <section className="admin-catalog-layout">
         <div className="admin-catalog-list" aria-label="Admin product list">
-          {!productsState.loading && !productsState.error && !productsState.data.length && (
+          {!productsLoading && !productsError && !products.length && (
             <p className="admin-orders-empty">No products match this search.</p>
           )}
-          {productsState.data.map((product) => (
+          {products.map((product) => (
             <article className="admin-catalog-row" key={product.id}>
               <div className="admin-catalog-row__main">
                 <strong>{product.name}</strong>
@@ -563,7 +522,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
               Category
               <select value={draft.category} onChange={(event) => updateDraft("category", event.target.value)} required>
                 <option value="" disabled>Select category</option>
-                {categoriesState.data.map((category) => (
+                {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.label} ({category.id})
                   </option>
@@ -704,7 +663,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
               <div className="admin-variants-editor__actions">
                 <Button
                   variant="ghost"
-                  onClick={() => editingProductId && loadVariants(editingProductId)}
+                  onClick={() => editingProductId && refetchVariants()}
                   disabled={!editingProductId || variantsLoading || variantsSaving}
                 >
                   <RefreshCw size={16} />
@@ -736,11 +695,11 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   onChange={uploadProductImage}
-                  disabled={uploadingImage}
+                  disabled={createLoading || updateLoading}
                 />
                 <span>
                   <ImageUp size={16} />
-                  {uploadingImage ? "Uploading image" : "Upload image"}
+                  {createLoading || updateLoading ? "Uploading image" : "Upload image"}
                 </span>
               </label>
               <p>JPG, PNG, or WebP. 64px minimum, 4096px maximum, 5MB limit.</p>

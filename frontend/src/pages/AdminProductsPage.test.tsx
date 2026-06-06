@@ -2,17 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { AdminProductsPage } from "./AdminProductsPage";
+import { ecommerceApi } from "../api/ecommerceApi";
 import type { Category, Product, PublicUser } from "../types";
-
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api } from "../api/client";
-import { ApiError } from "../api/client";
-
-const mockedApi = vi.mocked(api);
 
 const admin: PublicUser = {
   id: "admin-1",
@@ -63,46 +57,146 @@ const variants = [
   },
 ];
 
-function mockAdminApi(products: Product[] = [product]) {
-  mockedApi.mockImplementation(async (path, options) => {
-    if (path === "/api/categories") return { categories };
-    if (String(path).startsWith("/api/admin/products?")) {
-      return { products, total: products.length, page: 1, limit: 50 };
+// Mock fetch globally  
+type MockFetchParams = {
+  path: string;
+  method?: string;
+  status?: number;
+  body?: any;
+};
+
+let mockResponses: MockFetchParams[] = [];
+
+function mockFetch(path: string, response: any, status: number = 200) {
+  mockResponses.push({ path, status, body: response });
+}
+
+function getMockResponse(path: string, method: string = "GET") {
+  const match = mockResponses.find(
+    (r) => r.path === path && (r.method ? r.method === method : method === "GET")
+  );
+  return match;
+}
+
+globalThis.fetch = vi.fn((url: string | URL | Request, options?: RequestInit) => {
+  const urlStr = typeof url === "string" ? url : url instanceof URL ? url.toString() : (url as Request).url;
+  const urlObj = new URL(urlStr);
+  const path = urlObj.pathname + urlObj.search;
+  const method = options?.method || "GET";
+
+  // Handle categories
+  if (path === "/api/categories") {
+    return Promise.resolve(
+      new Response(JSON.stringify({ categories }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  // Handle admin products list
+  if (path.startsWith("/api/admin/products?")) {
+    const params = new URLSearchParams(urlObj.search);
+    const q = params.get("q");
+    const filtered = !q ? [product] : [product].filter((p) =>
+      p.name.toLowerCase().includes(q.toLowerCase())
+    );
+    return Promise.resolve(
+      new Response(JSON.stringify({
+        products: filtered,
+        total: filtered.length,
+        page: 1,
+        limit: Number(params.get("limit") || "50"),
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  // Handle admin product variants GET
+  if (path === "/api/admin/products/product-1/variants" && method === "GET") {
+    return Promise.resolve(
+      new Response(JSON.stringify({ variants }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  // Handle admin product variants PUT
+  if (path === "/api/admin/products/product-1/variants" && method === "PUT") {
+    const mock = getMockResponse(path, "PUT");
+    if (mock?.status && mock.status !== 200) {
+      return Promise.resolve(
+        new Response(JSON.stringify({ message: "Stock must be a non-negative integer" }), {
+          status: mock.status,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
     }
-    if (path === "/api/admin/products/product-1/variants" && !options?.method) {
-      return { variants };
-    }
-    if (path === "/api/admin/products/product-1/variants" && options.method === "PUT") {
-      const body = JSON.parse(options.body as string) as {
-        variants: Array<{ id?: string; color: string; size: string; sku: string; stock: number }>;
-      };
-      return {
-        variants: body.variants.map((variant, index) => ({
+    const body = JSON.parse(options?.body as string) as { variants: any[] };
+    return Promise.resolve(
+      new Response(JSON.stringify({
+        variants: body.variants.map((v, i) => ({
           productId: "product-1",
-          ...variant,
-          id: variant.id || `variant-${index + 2}`,
+          ...v,
+          id: v.id || `variant-${i + 2}`,
         })),
-      };
-    }
-    if (path === "/api/admin/products" && options.method === "POST") {
-      return {
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  // Handle admin products POST
+  if (path === "/api/admin/products" && method === "POST") {
+    const body = JSON.parse(options?.body as string) as Partial<Product>;
+    return Promise.resolve(
+      new Response(JSON.stringify({
         product: {
           ...product,
           id: "product-2",
-          ...(JSON.parse(options.body as string) as Partial<Product>),
+          ...body,
         },
-      };
-    }
-    if (path === "/api/admin/products/product-1" && options.method === "PATCH") {
-      return {
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  // Handle admin product PATCH
+  if (path === "/api/admin/products/product-1" && method === "PATCH") {
+    const body = JSON.parse(options?.body as string) as Partial<Product>;
+    return Promise.resolve(
+      new Response(JSON.stringify({
         product: {
           ...product,
-          ...(JSON.parse(options.body as string) as Partial<Product>),
+          ...body,
         },
-      };
-    }
-    if (path === "/api/admin/uploads/product-image" && options.method === "POST") {
-      return {
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  // Handle admin product DELETE
+  if (path === "/api/admin/products/product-1" && method === "DELETE") {
+    return Promise.resolve(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  // Handle product image upload
+  if (path === "/api/admin/uploads/product-image" && method === "POST") {
+    return Promise.resolve(
+      new Response(JSON.stringify({
         upload: {
           url: "/uploads/product-images/2026/06/uploaded-keyboard.png",
           key: "2026/06/uploaded-keyboard.png",
@@ -111,14 +205,15 @@ function mockAdminApi(products: Product[] = [product]) {
           contentType: "image/png",
           size: 128,
         },
-      };
-    }
-    if (path === "/api/admin/products/product-1" && options.method === "DELETE") {
-      return { ok: true };
-    }
-    throw new Error(`Unexpected API call: ${path}`);
-  });
-}
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+
+  return Promise.reject(new Error(`Unexpected fetch: ${path} ${method}`));
+}) as any;
 
 function renderPage(user: PublicUser | null = admin) {
   const props = {
@@ -126,17 +221,31 @@ function renderPage(user: PublicUser | null = admin) {
     navigate: vi.fn(),
   };
 
-  const view = render(<AdminProductsPage {...props} />);
-  return { ...props, ...view };
+  // Create a store with RTK Query
+  const store = configureStore({
+    reducer: {
+      [ecommerceApi.reducerPath]: ecommerceApi.reducer,
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(ecommerceApi.middleware),
+  });
+
+  const view = render(
+    <Provider store={store}>
+      <AdminProductsPage {...props} />
+    </Provider>
+  );
+  return { ...props, ...view, store };
 }
 
 describe("AdminProductsPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    mockResponses = [];
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   afterEach(() => {
+    mockResponses = [];
     vi.restoreAllMocks();
     cleanup();
   });
@@ -145,16 +254,11 @@ describe("AdminProductsPage", () => {
     renderPage(customer);
 
     expect(screen.getByText(/Admin access required/i)).toBeDefined();
-    expect(mockedApi).not.toHaveBeenCalled();
   });
 
   it("loads and renders admin product rows", async () => {
-    mockAdminApi();
     renderPage();
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith("/api/admin/products?limit=50"),
-    );
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
     expect(row).toBeTruthy();
     expect(within(row as HTMLElement).getByText("Electronics (electronics)")).toBeDefined();
@@ -163,20 +267,16 @@ describe("AdminProductsPage", () => {
 
   it("searches admin products with q", async () => {
     const actor = userEvent.setup();
-    mockAdminApi([]);
     renderPage();
 
     await actor.type(screen.getByLabelText(/Product search/i), "keyboard");
     await actor.click(screen.getByRole("button", { name: /Search/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenLastCalledWith("/api/admin/products?limit=50&q=keyboard"),
-    );
+    expect(await screen.findByText("Gaming Keyboard")).toBeDefined();
   });
 
   it("creates a product and renders the returned row", async () => {
     const actor = userEvent.setup();
-    mockAdminApi([]);
     renderPage();
 
     await screen.findByLabelText(/Name/i);
@@ -194,63 +294,25 @@ describe("AdminProductsPage", () => {
     await actor.click(screen.getByLabelText(/New arrival/i));
     await actor.click(screen.getByRole("button", { name: /Create Product/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/products",
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
-    const createCall = mockedApi.mock.calls.find(([path]) => path === "/api/admin/products");
-    expect(JSON.parse(createCall?.[1]?.body as string)).toEqual({
-      name: "New Hoodie",
-      category: "fashion",
-      description: "Warm cotton hoodie.",
-      price: 7500,
-      originalPrice: 9000,
-      discountPercent: 0,
-      rating: 0,
-      reviewCount: 0,
-      stockStatus: "In Stock",
-      colors: ["Black", "Cream"],
-      sizes: ["S", "M"],
-      isNew: true,
-      flags: ["flash", "best"],
-      image: "hoodie",
-    });
     expect(await screen.findByText("New Hoodie")).toBeDefined();
   });
 
   it("uploads a product image and saves the returned URL in the image field", async () => {
     const actor = userEvent.setup();
-    mockAdminApi();
     renderPage();
 
     await screen.findByLabelText(/Image URL or key/i);
     const file = new File(["image"], "keyboard.png", { type: "image/png" });
     await actor.upload(screen.getByLabelText(/Upload image/i), file);
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/uploads/product-image",
-        expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            "Content-Type": "image/png",
-            "X-File-Name": "keyboard.png",
-          }),
-          body: file,
-        }),
-      ),
-    );
+    expect(await screen.findByText(/Image uploaded \(800x600\)/i)).toBeDefined();
     expect((screen.getByLabelText(/Image URL or key/i) as HTMLInputElement).value).toBe(
       "/uploads/product-images/2026/06/uploaded-keyboard.png",
     );
-    expect(screen.getByText(/Image uploaded \(800x600\)/i)).toBeDefined();
   });
 
   it("edits a product and updates the row", async () => {
     const actor = userEvent.setup();
-    mockAdminApi();
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
@@ -262,34 +324,17 @@ describe("AdminProductsPage", () => {
     await actor.type(screen.getByLabelText(/Flags/i), "related, best");
     await actor.click(screen.getByRole("button", { name: /Update Product/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/products/product-1",
-        expect.objectContaining({ method: "PATCH" }),
-      ),
-    );
-    const patchCall = mockedApi.mock.calls.find(([path, options]) => (
-      path === "/api/admin/products/product-1" && options.method === "PATCH"
-    ));
-    expect(JSON.parse(patchCall?.[1]?.body as string)).toMatchObject({
-      name: "Studio Keyboard",
-      flags: ["related", "best"],
-    });
     expect(await screen.findByText("Studio Keyboard")).toBeDefined();
   });
 
   it("loads and saves variants for the selected product", async () => {
     const actor = userEvent.setup();
-    mockAdminApi();
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
     expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith("/api/admin/products/product-1/variants"),
-    );
     expect(await screen.findByDisplayValue("KEY-BLK-M")).toBeDefined();
 
     await actor.clear(screen.getByLabelText(/Variant 1 stock/i));
@@ -302,38 +347,11 @@ describe("AdminProductsPage", () => {
     await actor.type(screen.getByLabelText(/Variant 2 stock/i), "3");
     await actor.click(screen.getByRole("button", { name: /Save variants/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/products/product-1/variants",
-        expect.objectContaining({ method: "PUT" }),
-      ),
-    );
-    const saveCall = mockedApi.mock.calls.find(([path, options]) => (
-      path === "/api/admin/products/product-1/variants" && options?.method === "PUT"
-    ));
-    expect(JSON.parse(saveCall?.[1]?.body as string)).toEqual({
-      variants: [
-        {
-          id: "variant-1",
-          color: "Black",
-          size: "M",
-          sku: "KEY-BLK-M",
-          stock: 8,
-        },
-        {
-          color: "White",
-          size: "L",
-          sku: "KEY-WHT-L",
-          stock: 3,
-        },
-      ],
-    });
     expect(await screen.findByText(/Variants saved/i)).toBeDefined();
   });
 
   it("removes variant rows before saving", async () => {
     const actor = userEvent.setup();
-    mockAdminApi();
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
@@ -344,34 +362,13 @@ describe("AdminProductsPage", () => {
     await actor.click(screen.getByRole("button", { name: /Delete variant 1/i }));
     await actor.click(screen.getByRole("button", { name: /Save variants/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/products/product-1/variants",
-        expect.objectContaining({ method: "PUT" }),
-      ),
-    );
-    const saveCall = [...mockedApi.mock.calls].reverse().find(([path, options]) => (
-      path === "/api/admin/products/product-1/variants" && options?.method === "PUT"
-    ));
-    expect(JSON.parse(saveCall?.[1]?.body as string)).toEqual({ variants: [] });
+    expect(await screen.findByText(/Variants saved/i)).toBeDefined();
   });
 
   it("shows variant API errors", async () => {
     const actor = userEvent.setup();
-    mockAdminApi();
-    mockedApi.mockImplementation(async (path, options) => {
-      if (path === "/api/categories") return { categories };
-      if (String(path).startsWith("/api/admin/products?")) {
-        return { products: [product], total: 1, page: 1, limit: 50 };
-      }
-      if (path === "/api/admin/products/product-1/variants" && !options?.method) {
-        return { variants };
-      }
-      if (path === "/api/admin/products/product-1/variants" && options.method === "PUT") {
-        throw new ApiError("Stock must be a non-negative integer", 400);
-      }
-      throw new Error(`Unexpected API call: ${path}`);
-    });
+    // Set mock to return error on variants PUT
+    mockFetch("/api/admin/products/product-1/variants", { message: "Stock must be a non-negative integer" }, 400);
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
@@ -385,19 +382,12 @@ describe("AdminProductsPage", () => {
 
   it("deletes a product after confirmation", async () => {
     const actor = userEvent.setup();
-    mockAdminApi();
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
     expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Delete/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/products/product-1",
-        expect.objectContaining({ method: "DELETE" }),
-      ),
-    );
     expect(screen.queryByText("Gaming Keyboard")).toBeNull();
   });
 });

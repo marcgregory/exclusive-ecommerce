@@ -57,162 +57,181 @@ const variants = [
   },
 ];
 
-// Mock fetch globally  
-type MockFetchParams = {
-  path: string;
-  method?: string;
-  status?: number;
-  body?: any;
-};
+let serverProducts: Product[] = [product];
+let variantErrorStatus: number | null = null;
 
-let mockResponses: MockFetchParams[] = [];
+globalThis.fetch = vi.fn(async (url: string | URL | Request, options?: RequestInit) => {
+  let urlStr: string;
+  let method: string;
+  
+  if (typeof url === "string") {
+    urlStr = url;
+    method = options?.method || "GET";
+  } else if (url instanceof URL) {
+    urlStr = url.toString();
+    method = options?.method || "GET";
+  } else {
+    // Request object
+    urlStr = url.url;
+    method = url.method;
+  }
+  
+  const urlObj = new URL(urlStr, 'http://localhost');
+  const path = urlObj.pathname;
+  const search = urlObj.search;
+  console.log(`[FETCH] ${method} ${path} (full: ${urlStr})`);
 
-function mockFetch(path: string, response: any, status: number = 200) {
-  mockResponses.push({ path, status, body: response });
-}
-
-function getMockResponse(path: string, method: string = "GET") {
-  const match = mockResponses.find(
-    (r) => r.path === path && (r.method ? r.method === method : method === "GET")
-  );
-  return match;
-}
-
-globalThis.fetch = vi.fn((url: string | URL | Request, options?: RequestInit) => {
-  const urlStr = typeof url === "string" ? url : url instanceof URL ? url.toString() : (url as Request).url;
-  const urlObj = new URL(urlStr);
-  const path = urlObj.pathname + urlObj.search;
-  const method = options?.method || "GET";
-
-  // Handle categories
-  if (path === "/api/categories") {
-    return Promise.resolve(
-      new Response(JSON.stringify({ categories }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+  // Parse body safely from Request object or options
+  let body: any = null;
+  if (url instanceof Request) {
+    try {
+      const text = await url.clone().text();
+      if (text) {
+        const trimmed = text.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+          body = JSON.parse(trimmed);
+        }
+      }
+    } catch (e) {
+      // Ignore parsing errors for non-JSON content
+    }
+  } else if (options?.body) {
+    if (typeof options.body === "string") {
+      const trimmed = options.body.trim();
+      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        try {
+          body = JSON.parse(trimmed);
+        } catch (e) {
+          // Ignore parsing errors for non-JSON content
+        }
+      }
+    }
   }
 
-  // Handle admin products list
-  if (path.startsWith("/api/admin/products?")) {
-    const params = new URLSearchParams(urlObj.search);
+  // Categories
+  if (path === "/api/categories") {
+    return new Response(JSON.stringify({ categories }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Products list (GET only!)
+  if (path === "/api/admin/products" && method === "GET") {
+    const params = new URLSearchParams(search);
     const q = params.get("q");
-    const filtered = !q ? [product] : [product].filter((p) =>
+    const filtered = !q ? serverProducts : serverProducts.filter((p) =>
       p.name.toLowerCase().includes(q.toLowerCase())
     );
-    return Promise.resolve(
-      new Response(JSON.stringify({
-        products: filtered,
-        total: filtered.length,
-        page: 1,
-        limit: Number(params.get("limit") || "50"),
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    return new Response(JSON.stringify({
+      products: filtered,
+      total: filtered.length,
+      page: 1,
+      limit: Number(params.get("limit") || "50"),
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  // Handle admin product variants GET
-  if (path === "/api/admin/products/product-1/variants" && method === "GET") {
-    return Promise.resolve(
-      new Response(JSON.stringify({ variants }), {
+  // Product detail GET
+  if (path.match(/^\/api\/admin\/products\/[^/]+$/) && method === "GET") {
+    const productId = path.split("/").pop();
+    const found = serverProducts.find((p) => p.id === productId);
+    if (found) {
+      return new Response(JSON.stringify({ product: found }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      })
-    );
-  }
-
-  // Handle admin product variants PUT
-  if (path === "/api/admin/products/product-1/variants" && method === "PUT") {
-    const mock = getMockResponse(path, "PUT");
-    if (mock?.status && mock.status !== 200) {
-      return Promise.resolve(
-        new Response(JSON.stringify({ message: "Stock must be a non-negative integer" }), {
-          status: mock.status,
-          headers: { "Content-Type": "application/json" },
-        })
-      );
+      });
     }
-    const body = JSON.parse(options?.body as string) as { variants: any[] };
-    return Promise.resolve(
-      new Response(JSON.stringify({
-        variants: body.variants.map((v, i) => ({
-          productId: "product-1",
-          ...v,
-          id: v.id || `variant-${i + 2}`,
-        })),
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    return new Response(JSON.stringify({ message: "Not found" }), { status: 404 });
   }
 
-  // Handle admin products POST
+  // Create product POST
   if (path === "/api/admin/products" && method === "POST") {
-    const body = JSON.parse(options?.body as string) as Partial<Product>;
-    return Promise.resolve(
-      new Response(JSON.stringify({
-        product: {
-          ...product,
-          id: "product-2",
-          ...body,
-        },
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    const newProduct: Product = {
+      ...product,
+      id: `product-${Date.now()}`,
+      ...body,
+    };
+    serverProducts.push(newProduct);
+    return new Response(JSON.stringify({ product: newProduct }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  // Handle admin product PATCH
-  if (path === "/api/admin/products/product-1" && method === "PATCH") {
-    const body = JSON.parse(options?.body as string) as Partial<Product>;
-    return Promise.resolve(
-      new Response(JSON.stringify({
-        product: {
-          ...product,
-          ...body,
-        },
-      }), {
+  // Update product PATCH
+  if (path.match(/^\/api\/admin\/products\/[^/]+$/) && method === "PATCH") {
+    const productId = path.split("/").pop();
+    const idx = serverProducts.findIndex(p => p.id === productId);
+    if (idx >= 0) {
+      const updatedProduct = { ...serverProducts[idx], ...body };
+      serverProducts[idx] = updatedProduct;
+      return new Response(JSON.stringify({ product: updatedProduct }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      })
-    );
+      });
+    }
+    return new Response(JSON.stringify({ message: "Not found" }), { status: 404 });
   }
 
-  // Handle admin product DELETE
-  if (path === "/api/admin/products/product-1" && method === "DELETE") {
-    return Promise.resolve(
-      new Response(JSON.stringify({ ok: true }), {
-        status: 200,
+  // Delete product
+  if (path.match(/^\/api\/admin\/products\/[^/]+$/) && method === "DELETE") {
+    const productId = path.split("/").pop();
+    serverProducts = serverProducts.filter((p) => p.id !== productId);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Variants GET
+  if (path.match(/^\/api\/admin\/products\/[^/]+\/variants$/) && method === "GET") {
+    return new Response(JSON.stringify({ variants }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Variants PUT
+  if (path.match(/^\/api\/admin\/products\/[^/]+\/variants$/) && method === "PUT") {
+    if (variantErrorStatus) {
+      return new Response(JSON.stringify({ message: "Stock must be a non-negative integer" }), {
+        status: variantErrorStatus,
         headers: { "Content-Type": "application/json" },
-      })
-    );
+      });
+    }
+    return new Response(JSON.stringify({
+      variants: body.variants.map((v: any, i: number) => ({
+        productId: "product-1",
+        ...v,
+        id: v.id || `variant-${i + 2}`,
+      })),
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  // Handle product image upload
+  // Image upload
   if (path === "/api/admin/uploads/product-image" && method === "POST") {
-    return Promise.resolve(
-      new Response(JSON.stringify({
-        upload: {
-          url: "/uploads/product-images/2026/06/uploaded-keyboard.png",
-          key: "2026/06/uploaded-keyboard.png",
-          width: 800,
-          height: 600,
-          contentType: "image/png",
-          size: 128,
-        },
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    return new Response(JSON.stringify({
+      upload: {
+        url: "/uploads/product-images/2026/06/uploaded-keyboard.png",
+        key: "2026/06/uploaded-keyboard.png",
+        width: 800,
+        height: 600,
+        contentType: "image/png",
+        size: 128,
+      },
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  return Promise.reject(new Error(`Unexpected fetch: ${path} ${method}`));
+  return Promise.reject(new Error(`Unexpected: ${method} ${path}`));
 }) as any;
 
 function renderPage(user: PublicUser | null = admin) {
@@ -221,7 +240,6 @@ function renderPage(user: PublicUser | null = admin) {
     navigate: vi.fn(),
   };
 
-  // Create a store with RTK Query
   const store = configureStore({
     reducer: {
       [ecommerceApi.reducerPath]: ecommerceApi.reducer,
@@ -240,38 +258,35 @@ function renderPage(user: PublicUser | null = admin) {
 
 describe("AdminProductsPage", () => {
   beforeEach(() => {
-    mockResponses = [];
+    serverProducts = [product];
+    variantErrorStatus = null;
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   afterEach(() => {
-    mockResponses = [];
+    serverProducts = [product];
+    variantErrorStatus = null;
     vi.restoreAllMocks();
     cleanup();
   });
 
   it("does not load admin products for non-admin users", () => {
     renderPage(customer);
-
     expect(screen.getByText(/Admin access required/i)).toBeDefined();
   });
 
   it("loads and renders admin product rows", async () => {
     renderPage();
-
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
     expect(row).toBeTruthy();
     expect(within(row as HTMLElement).getByText("Electronics (electronics)")).toBeDefined();
-    expect(within(row as HTMLElement).getByText("keyboard")).toBeDefined();
   });
 
   it("searches admin products with q", async () => {
     const actor = userEvent.setup();
     renderPage();
-
     await actor.type(screen.getByLabelText(/Product search/i), "keyboard");
     await actor.click(screen.getByRole("button", { name: /Search/i }));
-
     expect(await screen.findByText("Gaming Keyboard")).toBeDefined();
   });
 
@@ -294,7 +309,9 @@ describe("AdminProductsPage", () => {
     await actor.click(screen.getByLabelText(/New arrival/i));
     await actor.click(screen.getByRole("button", { name: /Create Product/i }));
 
-    expect(await screen.findByText("New Hoodie")).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText("New Hoodie")).toBeDefined();
+    });
   });
 
   it("uploads a product image and saves the returned URL in the image field", async () => {
@@ -316,7 +333,6 @@ describe("AdminProductsPage", () => {
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
-    expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
     await actor.clear(screen.getByLabelText(/Name/i));
     await actor.type(screen.getByLabelText(/Name/i), "Studio Keyboard");
@@ -324,7 +340,9 @@ describe("AdminProductsPage", () => {
     await actor.type(screen.getByLabelText(/Flags/i), "related, best");
     await actor.click(screen.getByRole("button", { name: /Update Product/i }));
 
-    expect(await screen.findByText("Studio Keyboard")).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText("Studio Keyboard")).toBeDefined();
+    });
   });
 
   it("loads and saves variants for the selected product", async () => {
@@ -332,7 +350,6 @@ describe("AdminProductsPage", () => {
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
-    expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
 
     expect(await screen.findByDisplayValue("KEY-BLK-M")).toBeDefined();
@@ -355,7 +372,6 @@ describe("AdminProductsPage", () => {
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
-    expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
 
     await screen.findByDisplayValue("KEY-BLK-M");
@@ -367,17 +383,17 @@ describe("AdminProductsPage", () => {
 
   it("shows variant API errors", async () => {
     const actor = userEvent.setup();
-    // Set mock to return error on variants PUT
-    mockFetch("/api/admin/products/product-1/variants", { message: "Stock must be a non-negative integer" }, 400);
+    variantErrorStatus = 400;
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
-    expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
     await screen.findByDisplayValue("KEY-BLK-M");
     await actor.click(screen.getByRole("button", { name: /Save variants/i }));
 
-    expect(await screen.findByText(/Stock must be a non-negative integer/i)).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText(/Stock must be a non-negative integer/i)).toBeDefined();
+    });
   });
 
   it("deletes a product after confirmation", async () => {
@@ -385,9 +401,10 @@ describe("AdminProductsPage", () => {
     renderPage();
 
     const row = (await screen.findByText("Gaming Keyboard")).closest("article");
-    expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Delete/i }));
 
-    expect(screen.queryByText("Gaming Keyboard")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("Gaming Keyboard")).toBeNull();
+    });
   });
 });

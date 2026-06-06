@@ -266,6 +266,9 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
         setVariantsSuccess("Product created. Add variants when ready.");
         setFormSuccess("Product created.");
       }
+      // Manually refetch products after any mutation
+      await new Promise((resolve) => setTimeout(resolve, 0)); // Yield to event loop
+      refetchProducts();
     } catch (error) {
       setFormError(getApiErrorMessage(error));
     }
@@ -307,6 +310,9 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
       await deleteAdminProduct(product.id).unwrap();
       if (editingProductId === product.id) startCreate();
       setFormSuccess("Product deleted.");
+      // Manually refetch products after deletion
+      await new Promise((resolve) => setTimeout(resolve, 0)); // Yield to event loop
+      refetchProducts();
     } catch (error) {
       setFormError(getApiErrorMessage(error));
     }

@@ -93,16 +93,29 @@ type AuthResponse = {
   };
 };
 
+const customBaseQuery = fetchBaseQuery({
+  baseUrl: API_BASE,
+  credentials: "include",
+  prepareHeaders: (headers) => {
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    return headers;
+  },
+});
+
+const loggingBaseQuery: typeof customBaseQuery = async (args, api, extraOptions) => {
+  const argsStr = typeof args === 'string' ? args : args.url;
+  const method = typeof args === 'string' ? 'GET' : args.method || 'GET';
+  console.log('[RTK QUERY]', method, argsStr, args);
+  const result = await customBaseQuery(args, api, extraOptions);
+  console.log('[RTK RESULT]', result);
+  return result;
+};
+
 export const ecommerceApi = createApi({
   reducerPath: "ecommerceApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE,
-    credentials: "include",
-    prepareHeaders: (headers) => {
-      headers.set("Content-Type", "application/json");
-      return headers;
-    },
-  }),
+  baseQuery: loggingBaseQuery,
   tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders", "AdminProducts", "AdminProductVariants"],
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({

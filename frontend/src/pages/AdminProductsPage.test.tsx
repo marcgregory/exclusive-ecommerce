@@ -10,6 +10,7 @@ vi.mock("../api/client", async (importOriginal) => {
   return { ...actual, api: vi.fn() };
 });
 import { api } from "../api/client";
+import { ApiError } from "../api/client";
 
 const mockedApi = vi.mocked(api);
 
@@ -51,11 +52,37 @@ const product: Product = {
   image: "keyboard",
 };
 
+const variants = [
+  {
+    id: "variant-1",
+    productId: "product-1",
+    color: "Black",
+    size: "M",
+    sku: "KEY-BLK-M",
+    stock: 4,
+  },
+];
+
 function mockAdminApi(products: Product[] = [product]) {
   mockedApi.mockImplementation(async (path, options) => {
     if (path === "/api/categories") return { categories };
     if (String(path).startsWith("/api/admin/products?")) {
       return { products, total: products.length, page: 1, limit: 50 };
+    }
+    if (path === "/api/admin/products/product-1/variants" && !options?.method) {
+      return { variants };
+    }
+    if (path === "/api/admin/products/product-1/variants" && options.method === "PUT") {
+      const body = JSON.parse(options.body as string) as {
+        variants: Array<{ id?: string; color: string; size: string; sku: string; stock: number }>;
+      };
+      return {
+        variants: body.variants.map((variant, index) => ({
+          productId: "product-1",
+          ...variant,
+          id: variant.id || `variant-${index + 2}`,
+        })),
+      };
     }
     if (path === "/api/admin/products" && options.method === "POST") {
       return {
@@ -249,6 +276,111 @@ describe("AdminProductsPage", () => {
       flags: ["related", "best"],
     });
     expect(await screen.findByText("Studio Keyboard")).toBeDefined();
+  });
+
+  it("loads and saves variants for the selected product", async () => {
+    const actor = userEvent.setup();
+    mockAdminApi();
+    renderPage();
+
+    const row = (await screen.findByText("Gaming Keyboard")).closest("article");
+    expect(row).toBeTruthy();
+    await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
+
+    await waitFor(() =>
+      expect(mockedApi).toHaveBeenCalledWith("/api/admin/products/product-1/variants"),
+    );
+    expect(await screen.findByDisplayValue("KEY-BLK-M")).toBeDefined();
+
+    await actor.clear(screen.getByLabelText(/Variant 1 stock/i));
+    await actor.type(screen.getByLabelText(/Variant 1 stock/i), "8");
+    await actor.click(screen.getByRole("button", { name: /Add row/i }));
+    await actor.type(screen.getByLabelText(/Variant 2 color/i), "White");
+    await actor.type(screen.getByLabelText(/Variant 2 size/i), "L");
+    await actor.type(screen.getByLabelText(/Variant 2 sku/i), "KEY-WHT-L");
+    await actor.clear(screen.getByLabelText(/Variant 2 stock/i));
+    await actor.type(screen.getByLabelText(/Variant 2 stock/i), "3");
+    await actor.click(screen.getByRole("button", { name: /Save variants/i }));
+
+    await waitFor(() =>
+      expect(mockedApi).toHaveBeenCalledWith(
+        "/api/admin/products/product-1/variants",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    const saveCall = mockedApi.mock.calls.find(([path, options]) => (
+      path === "/api/admin/products/product-1/variants" && options?.method === "PUT"
+    ));
+    expect(JSON.parse(saveCall?.[1]?.body as string)).toEqual({
+      variants: [
+        {
+          id: "variant-1",
+          color: "Black",
+          size: "M",
+          sku: "KEY-BLK-M",
+          stock: 8,
+        },
+        {
+          color: "White",
+          size: "L",
+          sku: "KEY-WHT-L",
+          stock: 3,
+        },
+      ],
+    });
+    expect(await screen.findByText(/Variants saved/i)).toBeDefined();
+  });
+
+  it("removes variant rows before saving", async () => {
+    const actor = userEvent.setup();
+    mockAdminApi();
+    renderPage();
+
+    const row = (await screen.findByText("Gaming Keyboard")).closest("article");
+    expect(row).toBeTruthy();
+    await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
+
+    await screen.findByDisplayValue("KEY-BLK-M");
+    await actor.click(screen.getByRole("button", { name: /Delete variant 1/i }));
+    await actor.click(screen.getByRole("button", { name: /Save variants/i }));
+
+    await waitFor(() =>
+      expect(mockedApi).toHaveBeenCalledWith(
+        "/api/admin/products/product-1/variants",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    const saveCall = [...mockedApi.mock.calls].reverse().find(([path, options]) => (
+      path === "/api/admin/products/product-1/variants" && options?.method === "PUT"
+    ));
+    expect(JSON.parse(saveCall?.[1]?.body as string)).toEqual({ variants: [] });
+  });
+
+  it("shows variant API errors", async () => {
+    const actor = userEvent.setup();
+    mockAdminApi();
+    mockedApi.mockImplementation(async (path, options) => {
+      if (path === "/api/categories") return { categories };
+      if (String(path).startsWith("/api/admin/products?")) {
+        return { products: [product], total: 1, page: 1, limit: 50 };
+      }
+      if (path === "/api/admin/products/product-1/variants" && !options?.method) {
+        return { variants };
+      }
+      if (path === "/api/admin/products/product-1/variants" && options.method === "PUT") {
+        throw new ApiError("Stock must be a non-negative integer", 400);
+      }
+      throw new Error(`Unexpected API call: ${path}`);
+    });
+    renderPage();
+
+    const row = (await screen.findByText("Gaming Keyboard")).closest("article");
+    expect(row).toBeTruthy();
+    await actor.click(within(row as HTMLElement).getByRole("button", { name: /Edit/i }));
+    await screen.findByDisplayValue("KEY-BLK-M");
+    await actor.click(screen.getByRole("button", { name: /Save variants/i }));
+
+    expect(await screen.findByText(/Stock must be a non-negative integer/i)).toBeDefined();
   });
 
   it("deletes a product after confirmation", async () => {

@@ -16,6 +16,15 @@ export type Product = {
   image: string;
 };
 
+export type ProductVariant = {
+  id: string;
+  productId: string;
+  sku: string;
+  color: string;
+  size: string;
+  stock: number;
+};
+
 export type Category = {
   id: string;
   label: string;
@@ -141,6 +150,18 @@ export type AdminProductListResponse = ProductsResponse;
 
 export type AdminProductResponse = {
   product: Product;
+};
+
+export type AdminProductVariantInput = {
+  id?: string;
+  sku?: string;
+  color?: string;
+  size?: string;
+  stock: number;
+};
+
+export type AdminProductVariantsResponse = {
+  variants: ProductVariant[];
 };
 
 export type ProductImageUploadResponse = {

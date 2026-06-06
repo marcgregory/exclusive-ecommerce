@@ -26,6 +26,15 @@ export type Product = {
   image: string;
 };
 
+export type ProductVariant = {
+  id: string;
+  productId: string;
+  sku: string;
+  color: string;
+  size: string;
+  stock: number;
+};
+
 export type Coupon = {
   code: string;
   type: "percent" | "fixed";

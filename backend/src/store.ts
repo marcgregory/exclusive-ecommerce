@@ -1,6 +1,6 @@
 import type { PoolClient, QueryResultRow } from "pg";
 import { query, withTransaction } from "./db.js";
-import type { AdminOrder, Cart, CartItem, CartResponse, Category, ContactMessage, Coupon, Order, Product, User } from "./types.js";
+import type { AdminOrder, Cart, CartItem, CartResponse, Category, ContactMessage, Coupon, Order, Product, ProductVariant, User } from "./types.js";
 
 type Queryable = {
   query<T extends QueryResultRow = QueryResultRow>(sql: string, values?: unknown[]): Promise<{ rows: T[]; rowCount: number }>;
@@ -64,6 +64,17 @@ function mapProduct(row: QueryResultRow): Product {
     isNew: Boolean(row.is_new),
     flags: Array.isArray(row.flags) ? row.flags.map(String) : [],
     image: String(row.image_key || "")
+  };
+}
+
+function mapProductVariant(row: QueryResultRow): ProductVariant {
+  return {
+    id: String(row.id),
+    productId: String(row.product_id),
+    sku: String(row.sku || ""),
+    color: String(row.color || ""),
+    size: String(row.size || ""),
+    stock: Number(row.stock || 0)
   };
 }
 
@@ -788,6 +799,14 @@ export type ProductInput = {
   image: string;
 };
 
+export type ProductVariantInput = {
+  id?: string;
+  sku?: string;
+  color?: string;
+  size?: string;
+  stock: number;
+};
+
 const STOCK_STATUSES = ["In Stock", "Out of Stock", "Preorder"] as const;
 
 function validateProductInput(input: Partial<ProductInput>): ProductInput {
@@ -878,6 +897,88 @@ export async function updateProduct(productId: string, input: Partial<ProductInp
 
 export async function deleteProduct(productId: string): Promise<boolean> {
   const result = await query("DELETE FROM products WHERE id = $1", [productId]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+function validateProductVariantInput(input: ProductVariantInput): ProductVariantInput & { sku: string; color: string; size: string; stock: number } {
+  const id = input.id ? String(input.id).trim() : undefined;
+  const sku = String(input.sku || "").trim();
+  const color = String(input.color || "").trim();
+  const size = String(input.size || "").trim();
+  const stock = Number(input.stock);
+  if (!Number.isInteger(stock) || stock < 0) {
+    throw Object.assign(new Error("Stock must be a non-negative integer"), { status: 400 });
+  }
+  return { id, sku, color, size, stock };
+}
+
+function validateProductVariantsInput(variants: ProductVariantInput[]) {
+  const normalized = variants.map(validateProductVariantInput);
+  const seen = new Set<string>();
+  for (const variant of normalized) {
+    const key = `${variant.color}\u0000${variant.size}`;
+    if (seen.has(key)) {
+      throw Object.assign(new Error("Variant color and size combinations must be unique"), { status: 400 });
+    }
+    seen.add(key);
+  }
+  return normalized;
+}
+
+export async function listProductVariants(productId: string, client?: Queryable): Promise<ProductVariant[] | undefined> {
+  if (!(await findProduct(productId, client))) return undefined;
+  const result = await run(client).query(
+    "SELECT id, product_id, sku, color, size, stock FROM product_variants WHERE product_id = $1 ORDER BY COALESCE(color, '') ASC, COALESCE(size, '') ASC, id ASC",
+    [productId]
+  );
+  return result.rows.map(mapProductVariant);
+}
+
+export async function saveProductVariants(productId: string, input: ProductVariantInput[]): Promise<ProductVariant[] | undefined> {
+  const variants = validateProductVariantsInput(input);
+
+  return withTransaction(async (client) => {
+    if (!(await findProduct(productId, client))) return undefined;
+
+    const existing = await client.query<{ id: string }>(
+      "SELECT id FROM product_variants WHERE product_id = $1",
+      [productId]
+    );
+    const existingIds = new Set(existing.rows.map((row) => String(row.id)));
+    const submittedIds = new Set(variants.map((variant) => variant.id).filter(Boolean) as string[]);
+    for (const id of submittedIds) {
+      if (!existingIds.has(id)) {
+        throw Object.assign(new Error("Variant not found"), { status: 404 });
+      }
+    }
+
+    for (const id of existingIds) {
+      if (!submittedIds.has(id)) {
+        await client.query("DELETE FROM product_variants WHERE product_id = $1 AND id = $2", [productId, id]);
+      }
+    }
+
+    for (const variant of variants) {
+      if (variant.id) {
+        await client.query(
+          "UPDATE product_variants SET sku = $3, color = $4, size = $5, stock = $6 WHERE product_id = $1 AND id = $2",
+          [productId, variant.id, variant.sku, variant.color, variant.size, variant.stock]
+        );
+      } else {
+        await client.query(
+          "INSERT INTO product_variants (id, product_id, sku, color, size, stock) VALUES ($1, $2, $3, $4, $5, $6)",
+          [nowId("pv"), productId, variant.sku, variant.color, variant.size, variant.stock]
+        );
+      }
+    }
+
+    return listProductVariants(productId, client) as Promise<ProductVariant[]>;
+  });
+}
+
+export async function deleteProductVariant(productId: string, variantId: string): Promise<boolean | undefined> {
+  if (!(await findProduct(productId))) return undefined;
+  const result = await query("DELETE FROM product_variants WHERE product_id = $1 AND id = $2", [productId, variantId]);
   return (result.rowCount ?? 0) > 0;
 }
 

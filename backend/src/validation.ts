@@ -123,6 +123,22 @@ export const adminProductSchema = z
 
 export const adminProductUpdateSchema = adminProductSchema.partial().passthrough();
 
+export const adminProductVariantSchema = z
+  .object({
+    id: optionalText,
+    sku: optionalText,
+    color: optionalText,
+    size: optionalText,
+    stock: z.coerce.number().int("Stock must be a whole number").nonnegative("Stock must be a non-negative integer"),
+  })
+  .passthrough();
+
+export const adminProductVariantsSchema = z
+  .object({
+    variants: z.array(adminProductVariantSchema),
+  })
+  .passthrough();
+
 export const adminCategorySchema = z
   .object({
     label: requiredText("Category label is required"),

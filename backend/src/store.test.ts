@@ -15,6 +15,7 @@ import {
   deleteCategory,
   deleteCoupon,
   deleteProduct,
+  deleteProductVariant,
   deleteWishlistProduct,
   findUserByEmail,
   getAdminOrder,
@@ -24,7 +25,9 @@ import {
   listAdminOrders,
   listContactMessages,
   listCoupons,
+  listProductVariants,
   listProducts,
+  saveProductVariants,
   setCouponActive,
   toCartResponse,
   updateCartItem,
@@ -241,6 +244,55 @@ describe("PostgreSQL persistence", () => {
 
     expect(await deleteProduct(product.id)).toBe(true);
     expect(await deleteProduct(product.id)).toBe(false);
+  });
+
+  it("lists, saves, validates, and deletes product variants via the admin repo", async () => {
+    const beforeProduct = (await query("SELECT colors, sizes FROM products WHERE id = $1", ["havic-gamepad"])).rows[0];
+    const original = await listProductVariants("havic-gamepad");
+    expect(original?.length).toBeGreaterThan(0);
+
+    const saved = await saveProductVariants("havic-gamepad", [
+      {
+        id: original![0].id,
+        color: "#db4444",
+        size: "M",
+        sku: "GAMEPAD-RED-M",
+        stock: 7,
+      },
+      {
+        color: "#222222",
+        size: "XL",
+        sku: "GAMEPAD-BLK-L",
+        stock: 3,
+      },
+    ]);
+
+    expect(saved).toHaveLength(2);
+    expect(saved).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sku: "GAMEPAD-RED-M", stock: 7 }),
+        expect.objectContaining({ color: "#222222", size: "XL", sku: "GAMEPAD-BLK-L", stock: 3 }),
+      ]),
+    );
+    expect(saved?.some((variant) => variant.id === original![1]?.id)).toBe(false);
+
+    const afterProduct = (await query("SELECT colors, sizes FROM products WHERE id = $1", ["havic-gamepad"])).rows[0];
+    expect(afterProduct.colors).toEqual(beforeProduct.colors);
+    expect(afterProduct.sizes).toEqual(beforeProduct.sizes);
+
+    await expect(
+      saveProductVariants("havic-gamepad", [{ color: "Black", size: "M", stock: -1 }]),
+    ).rejects.toThrow("Stock must be a non-negative integer");
+    await expect(
+      saveProductVariants("havic-gamepad", [
+        { color: "Black", size: "M", stock: 1 },
+        { color: "Black", size: "M", stock: 2 },
+      ]),
+    ).rejects.toThrow("Variant color and size combinations must be unique");
+
+    expect(await deleteProductVariant("havic-gamepad", saved![0].id)).toBe(true);
+    expect(await deleteProductVariant("havic-gamepad", saved![0].id)).toBe(false);
+    expect(await listProductVariants("missing-product")).toBeUndefined();
   });
 
   it("creates, partially updates, and deletes categories via the admin repo", async () => {

@@ -11,11 +11,13 @@ import type {
   AdminProductInput,
   AdminProductListResponse,
   AdminProductResponse,
+  AdminProductVariantsResponse,
   AsyncState,
   CategoriesResponse,
   Category,
   Navigate,
   Product,
+  ProductVariant,
   ProductImageUploadResponse,
   PublicUser,
 } from "../types";
@@ -42,6 +44,15 @@ type ProductDraft = {
   image: string;
 };
 
+type VariantDraft = {
+  localId: string;
+  id?: string;
+  color: string;
+  size: string;
+  sku: string;
+  stock: string;
+};
+
 const emptyDraft: ProductDraft = {
   name: "",
   category: "",
@@ -60,6 +71,7 @@ const emptyDraft: ProductDraft = {
 };
 
 const stockStatuses = ["In Stock", "Out of Stock", "Preorder"];
+const variantDraftId = () => `variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 function listToText(values: string[] = []) {
   return values.join(", ");
@@ -110,6 +122,17 @@ function draftToPayload(draft: ProductDraft): AdminProductInput {
   };
 }
 
+function variantToDraft(variant: ProductVariant): VariantDraft {
+  return {
+    localId: variant.id,
+    id: variant.id,
+    color: variant.color,
+    size: variant.size,
+    sku: variant.sku,
+    stock: String(variant.stock),
+  };
+}
+
 export function AdminProductsPage({ userState, navigate }: AdminProductsPageProps) {
   const [productsState, setProductsState] = useState<AsyncState<Product[]>>({
     data: [],
@@ -131,6 +154,11 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
   const [deletingId, setDeletingId] = useState("");
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
+  const [variants, setVariants] = useState<VariantDraft[]>([]);
+  const [variantsLoading, setVariantsLoading] = useState(false);
+  const [variantsSaving, setVariantsSaving] = useState(false);
+  const [variantsError, setVariantsError] = useState("");
+  const [variantsSuccess, setVariantsSuccess] = useState("");
 
   const canLoadProducts = userState.data?.role === "admin";
 
@@ -175,6 +203,23 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
     }
   }, [canLoadProducts]);
 
+  const loadVariants = useCallback(async (productId: string) => {
+    setVariantsLoading(true);
+    setVariantsError("");
+    setVariantsSuccess("");
+    try {
+      const data = await api<AdminProductVariantsResponse>(
+        `/api/admin/products/${productId}/variants`,
+      );
+      setVariants(data.variants.map(variantToDraft));
+    } catch (error) {
+      setVariantsError(getErrorMessage(error));
+      setVariants([]);
+    } finally {
+      setVariantsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
@@ -205,6 +250,9 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
       ...emptyDraft,
       category: categoriesState.data[0]?.id || "",
     });
+    setVariants([]);
+    setVariantsError("");
+    setVariantsSuccess("");
     setFormError("");
     setFormSuccess("");
   };
@@ -212,6 +260,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
   const startEdit = (product: Product) => {
     setEditingProductId(product.id);
     setDraft(productToDraft(product));
+    void loadVariants(product.id);
     setFormError("");
     setFormSuccess("");
   };
@@ -244,6 +293,11 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
       if (!editingProductId) setTotal((current) => current + 1);
       setEditingProductId(data.product.id);
       setDraft(productToDraft(data.product));
+      if (!editingProductId) {
+        setVariants([]);
+        setVariantsError("");
+        setVariantsSuccess("Product created. Add variants when ready.");
+      }
       setFormSuccess(editingProductId ? "Product updated." : "Product created.");
     } catch (error) {
       setFormError(getErrorMessage(error));
@@ -306,6 +360,61 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
 
   const updateDraft = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
+  };
+
+  const addVariantRow = () => {
+    setVariants((current) => [
+      ...current,
+      { localId: variantDraftId(), color: "", size: "", sku: "", stock: "0" },
+    ]);
+    setVariantsError("");
+    setVariantsSuccess("");
+  };
+
+  const updateVariant = <K extends keyof VariantDraft>(localId: string, key: K, value: VariantDraft[K]) => {
+    setVariants((current) =>
+      current.map((variant) =>
+        variant.localId === localId ? { ...variant, [key]: value } : variant,
+      ),
+    );
+    setVariantsError("");
+    setVariantsSuccess("");
+  };
+
+  const removeVariantRow = (localId: string) => {
+    setVariants((current) => current.filter((variant) => variant.localId !== localId));
+    setVariantsError("");
+    setVariantsSuccess("");
+  };
+
+  const saveVariants = async () => {
+    if (!editingProductId) return;
+    setVariantsSaving(true);
+    setVariantsError("");
+    setVariantsSuccess("");
+    try {
+      const data = await api<AdminProductVariantsResponse>(
+        `/api/admin/products/${editingProductId}/variants`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            variants: variants.map((variant) => ({
+              ...(variant.id ? { id: variant.id } : {}),
+              color: variant.color.trim(),
+              size: variant.size.trim(),
+              sku: variant.sku.trim(),
+              stock: Number(variant.stock || 0),
+            })),
+          }),
+        },
+      );
+      setVariants(data.variants.map(variantToDraft));
+      setVariantsSuccess("Variants saved.");
+    } catch (error) {
+      setVariantsError(getErrorMessage(error));
+    } finally {
+      setVariantsSaving(false);
+    }
   };
 
   if (userState.loading) {
@@ -499,6 +608,117 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
               Sizes
               <input value={draft.sizes} onChange={(event) => updateDraft("sizes", event.target.value)} placeholder="S, M, L" />
             </label>
+            <section className="admin-variants-editor" aria-label="Product variants">
+              <div className="admin-variants-editor__header">
+                <div>
+                  <p className="eyebrow">Variants</p>
+                  <h3>Stock by option</h3>
+                </div>
+                <Button variant="ghost" onClick={addVariantRow} disabled={!editingProductId || variantsLoading}>
+                  <Plus size={16} />
+                  Add row
+                </Button>
+              </div>
+              {!editingProductId && (
+                <p className="admin-variants-editor__note">Create the product before adding stock variants.</p>
+              )}
+              {variantsLoading && (
+                <p className="admin-variants-editor__note">Loading variants...</p>
+              )}
+              {variantsError && <p className="form-status form-status--error">{variantsError}</p>}
+              {variantsSuccess && <p className="form-status form-status--success">{variantsSuccess}</p>}
+              <datalist id="admin-product-color-options">
+                {textToList(draft.colors).map((color) => <option key={color} value={color} />)}
+              </datalist>
+              <datalist id="admin-product-size-options">
+                {textToList(draft.sizes).map((size) => <option key={size} value={size} />)}
+              </datalist>
+              <div className="admin-variants-table">
+                <div className="admin-variants-table__head" aria-hidden="true">
+                  <span>Color</span>
+                  <span>Size</span>
+                  <span>SKU</span>
+                  <span>Stock</span>
+                  <span />
+                </div>
+                {variants.map((variant, index) => (
+                  <div className="admin-variants-row" key={variant.localId}>
+                    <label>
+                      Color
+                      <input
+                        value={variant.color}
+                        list="admin-product-color-options"
+                        onChange={(event) => updateVariant(variant.localId, "color", event.target.value)}
+                        placeholder="Default"
+                        aria-label={`Variant ${index + 1} color`}
+                        disabled={!editingProductId || variantsSaving}
+                      />
+                    </label>
+                    <label>
+                      Size
+                      <input
+                        value={variant.size}
+                        list="admin-product-size-options"
+                        onChange={(event) => updateVariant(variant.localId, "size", event.target.value)}
+                        placeholder="Default"
+                        aria-label={`Variant ${index + 1} size`}
+                        disabled={!editingProductId || variantsSaving}
+                      />
+                    </label>
+                    <label>
+                      SKU
+                      <input
+                        value={variant.sku}
+                        onChange={(event) => updateVariant(variant.localId, "sku", event.target.value)}
+                        placeholder="Optional"
+                        aria-label={`Variant ${index + 1} sku`}
+                        disabled={!editingProductId || variantsSaving}
+                      />
+                    </label>
+                    <label>
+                      Stock
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={variant.stock}
+                        onChange={(event) => updateVariant(variant.localId, "stock", event.target.value)}
+                        aria-label={`Variant ${index + 1} stock`}
+                        disabled={!editingProductId || variantsSaving}
+                      />
+                    </label>
+                    <Button
+                      variant="ghost"
+                      onClick={() => removeVariantRow(variant.localId)}
+                      disabled={!editingProductId || variantsSaving}
+                      aria-label={`Delete variant ${index + 1}`}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                ))}
+                {editingProductId && !variantsLoading && !variants.length && (
+                  <p className="admin-variants-editor__note">No variants yet. Add one row to begin tracking option stock.</p>
+                )}
+              </div>
+              <div className="admin-variants-editor__actions">
+                <Button
+                  variant="ghost"
+                  onClick={() => editingProductId && loadVariants(editingProductId)}
+                  disabled={!editingProductId || variantsLoading || variantsSaving}
+                >
+                  <RefreshCw size={16} />
+                  Reload
+                </Button>
+                <Button
+                  onClick={saveVariants}
+                  disabled={!editingProductId || variantsLoading || variantsSaving}
+                >
+                  <Save size={16} />
+                  {variantsSaving ? "Saving variants" : "Save variants"}
+                </Button>
+              </div>
+            </section>
             <label>
               Flags
               <input value={draft.flags} onChange={(event) => updateDraft("flags", event.target.value)} placeholder="flash, best" />

@@ -29,6 +29,7 @@ import {
   deleteCategory,
   deleteCoupon,
   deleteProduct,
+  deleteProductVariant,
   deleteWishlistProduct,
   findProduct,
   findUserByEmail,
@@ -41,6 +42,7 @@ import {
   listAdminOrders,
   listContactMessages,
   listCoupons,
+  listProductVariants,
   loadStore,
   listCategories,
   listOrders,
@@ -56,6 +58,7 @@ import {
   updateProduct,
   updateUser,
   validateCoupon,
+  saveProductVariants,
   toCartResponse,
 } from "./store.js";
 import { closePool, query } from "./db.js";
@@ -83,6 +86,7 @@ import {
   adminOrderUpdateSchema,
   adminProductSchema,
   adminProductUpdateSchema,
+  adminProductVariantsSchema,
   clientErrorSchema,
   contactMessageStatusSchema,
   contactSchema,
@@ -692,6 +696,40 @@ app.get(
       limit,
     });
     res.json(result);
+  }),
+);
+
+app.get(
+  "/api/admin/products/:id/variants",
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const variants = await listProductVariants(req.params.id);
+    if (!variants) return res.status(404).json({ message: "Product not found" });
+    res.json({ variants });
+  }),
+);
+
+app.put(
+  "/api/admin/products/:id/variants",
+  requireAdmin,
+  adminWriteLimiter,
+  asyncRoute(async (req, res) => {
+    const body = parseInput(adminProductVariantsSchema, req.body || {});
+    const variants = await saveProductVariants(req.params.id, body.variants);
+    if (!variants) return res.status(404).json({ message: "Product not found" });
+    res.json({ variants });
+  }),
+);
+
+app.delete(
+  "/api/admin/products/:id/variants/:variantId",
+  requireAdmin,
+  adminWriteLimiter,
+  asyncRoute(async (req, res) => {
+    const removed = await deleteProductVariant(req.params.id, req.params.variantId);
+    if (removed === undefined) return res.status(404).json({ message: "Product not found" });
+    if (!removed) return res.status(404).json({ message: "Variant not found" });
+    res.json({ ok: true });
   }),
 );
 

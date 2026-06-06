@@ -1055,6 +1055,105 @@ describe("auth endpoints", () => {
     });
   });
 
+  describe("admin product variant endpoints", () => {
+    async function createAdminAgent(email = `variant-admin-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`) {
+      const agent = request.agent(testApp);
+      const registerRes = await agent.post("/api/auth/register").send({
+        email,
+        password: "password123",
+        confirmPassword: "password123",
+      });
+      expect(registerRes.status).toBe(201);
+      await query("UPDATE users SET role = 'admin' WHERE id = $1", [
+        registerRes.body.user.id,
+      ]);
+      return agent;
+    }
+
+    async function createCustomerAgent(email = `variant-customer-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`) {
+      const agent = request.agent(testApp);
+      const registerRes = await agent.post("/api/auth/register").send({
+        email,
+        password: "password123",
+        confirmPassword: "password123",
+      });
+      expect(registerRes.status).toBe(201);
+      return agent;
+    }
+
+    it("lets admins list and save product variants", async () => {
+      const admin = await createAdminAgent();
+      const listRes = await admin.get("/api/admin/products/havic-gamepad/variants");
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.variants.length).toBeGreaterThan(0);
+
+      const existing = listRes.body.variants[0];
+      const saveRes = await admin.put("/api/admin/products/havic-gamepad/variants").send({
+        variants: [
+          {
+            id: existing.id,
+            color: existing.color,
+            size: existing.size,
+            sku: "API-GAMEPAD-1",
+            stock: 5,
+          },
+          {
+            color: "#222222",
+            size: "XL",
+            sku: "API-GAMEPAD-2",
+            stock: 9,
+          },
+        ],
+      });
+
+      expect(saveRes.status).toBe(200);
+      expect(saveRes.body.variants).toHaveLength(2);
+      expect(saveRes.body.variants).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ sku: "API-GAMEPAD-1", stock: 5 }),
+          expect.objectContaining({ color: "#222222", size: "XL", sku: "API-GAMEPAD-2", stock: 9 }),
+        ]),
+      );
+    });
+
+    it("protects product variants from non-admin users", async () => {
+      const customer = await createCustomerAgent();
+
+      const getRes = await customer.get("/api/admin/products/havic-gamepad/variants");
+      const putRes = await customer.put("/api/admin/products/havic-gamepad/variants").send({
+        variants: [],
+      });
+
+      expect(getRes.status).toBe(403);
+      expect(putRes.status).toBe(403);
+    });
+
+    it("validates product variant payloads and deletes variants", async () => {
+      const admin = await createAdminAgent();
+
+      const invalidRes = await admin.put("/api/admin/products/havic-gamepad/variants").send({
+        variants: [{ color: "#db4444", size: "M", stock: -2 }],
+      });
+      expect(invalidRes.status).toBe(400);
+      expect(invalidRes.body).toMatchObject({
+        message: "Stock must be a non-negative integer",
+      });
+
+      const missingProductRes = await admin.get("/api/admin/products/missing-product/variants");
+      expect(missingProductRes.status).toBe(404);
+
+      const listRes = await admin.get("/api/admin/products/havic-gamepad/variants");
+      expect(listRes.body.variants.length).toBeGreaterThan(0);
+      const variantPath = encodeURIComponent(listRes.body.variants[0].id);
+      const deleteRes = await admin.delete(`/api/admin/products/havic-gamepad/variants/${variantPath}`);
+      const deleteAgainRes = await admin.delete(`/api/admin/products/havic-gamepad/variants/${variantPath}`);
+
+      expect(deleteRes.status).toBe(200);
+      expect(deleteAgainRes.status).toBe(404);
+      expect(deleteAgainRes.body).toMatchObject({ message: "Variant not found" });
+    });
+  });
+
   describe("GET /api/me", () => {
     it("returns current user when authenticated", async () => {
       const agent = request.agent(testApp);

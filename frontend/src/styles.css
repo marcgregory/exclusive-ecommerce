@@ -1855,9 +1855,77 @@ button {
 
 .admin-catalog-form__wide,
 .admin-catalog-image-field,
+.admin-variants-editor,
 .admin-catalog-check,
 .admin-catalog-form__actions {
   grid-column: 1 / -1;
+}
+
+.admin-variants-editor {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--soft);
+}
+
+.admin-variants-editor__header,
+.admin-variants-editor__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-variants-editor__header h3 {
+  margin: 4px 0 0;
+  font-size: 16px;
+}
+
+.admin-variants-editor__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.admin-variants-table {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-variants-table__head,
+.admin-variants-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(70px, 0.75fr) minmax(0, 1fr) minmax(72px, 0.65fr) 42px;
+  gap: 8px;
+  align-items: end;
+}
+
+.admin-variants-table__head {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-variants-row label {
+  gap: 4px;
+  font-size: 12px;
+}
+
+.admin-variants-row input {
+  min-height: 38px;
+}
+
+.admin-variants-row .button {
+  min-height: 38px;
+  padding: 0;
+}
+
+.admin-variants-editor__actions {
+  justify-content: flex-end;
 }
 
 .admin-catalog-image-field {
@@ -2692,6 +2760,8 @@ button {
     .admin-orders-search,
     .admin-order-row__main,
     .admin-catalog-nav,
+    .admin-variants-editor__header,
+    .admin-variants-editor__actions,
     .admin-catalog-form-card__header,
     .admin-catalog-row__actions {
     align-items: flex-start;
@@ -2719,6 +2789,8 @@ button {
     .admin-note-form .button,
     .admin-catalog-nav .button,
     .admin-catalog-row__actions .button,
+    .admin-variants-editor__header .button,
+    .admin-variants-editor__actions .button,
     .admin-catalog-form__actions .button,
     .admin-catalog-form-card__header .button {
     width: 100%;
@@ -2730,6 +2802,8 @@ button {
   .admin-catalog-layout,
   .admin-catalog-row,
   .admin-catalog-form,
+  .admin-variants-table__head,
+  .admin-variants-row,
   .admin-catalog-image-field {
     grid-template-columns: 1fr;
   }

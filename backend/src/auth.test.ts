@@ -385,6 +385,23 @@ describe("auth endpoints", () => {
     });
   });
 
+  describe("catalog endpoints", () => {
+    it("returns product variants on product detail for customer stock selection", async () => {
+      const res = await request(testApp).get("/api/products/havic-gamepad");
+
+      expect(res.status).toBe(200);
+      expect(res.body.product).toMatchObject({ id: "havic-gamepad" });
+      expect(res.body.related).toEqual(expect.any(Array));
+      expect(res.body.variants.length).toBeGreaterThan(0);
+      expect(res.body.variants[0]).toMatchObject({
+        productId: "havic-gamepad",
+        color: expect.any(String),
+        size: expect.any(String),
+        stock: expect.any(Number),
+      });
+    });
+  });
+
   describe("POST /api/payments", () => {
     const billing = {
       firstName: "Payment",

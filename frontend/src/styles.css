@@ -1089,6 +1089,16 @@ button {
   outline-offset: 0;
 }
 
+.swatch:disabled,
+.size:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.swatch:disabled {
+  box-shadow: 0 0 0 1px var(--line);
+}
+
 .stock-in {
   color: var(--accent-green, #00a86b);
 }
@@ -1109,6 +1119,16 @@ button {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
+}
+
+.variant-feedback {
+  margin: -8px 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.variant-feedback--available {
+  color: var(--accent-green, #00a86b);
 }
 
 .buy-row {

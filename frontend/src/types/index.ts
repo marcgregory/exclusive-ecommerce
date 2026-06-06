@@ -251,6 +251,7 @@ export type WishlistResponse = {
 
 export type ProductDetailResponse = {
   product: Product;
+  variants: ProductVariant[];
   related: Product[];
 };
 

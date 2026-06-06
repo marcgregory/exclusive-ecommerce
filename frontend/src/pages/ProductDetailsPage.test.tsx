@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProductDetailsPage } from "./ProductDetailsPage";
-import type { Product, ProductDetailResponse } from "../types";
+import type { Product, ProductDetailResponse, ProductVariant } from "../types";
 
 vi.mock("../api/client", () => ({ api: vi.fn() }));
 import { api } from "../api/client";
@@ -37,8 +37,16 @@ const relatedProduct: Product = {
   image: "gamepad-red"
 };
 
+const variants: ProductVariant[] = [
+  { id: "v-red-s", productId: "p1", sku: "DETAIL-RED-S", color: "red", size: "S", stock: 0 },
+  { id: "v-red-m", productId: "p1", sku: "DETAIL-RED-M", color: "red", size: "M", stock: 3 },
+  { id: "v-blue-s", productId: "p1", sku: "DETAIL-BLUE-S", color: "blue", size: "S", stock: 7 },
+  { id: "v-blue-m", productId: "p1", sku: "DETAIL-BLUE-M", color: "blue", size: "M", stock: 0 }
+];
+
 const response: ProductDetailResponse = {
   product,
+  variants,
   related: [relatedProduct]
 };
 
@@ -92,10 +100,11 @@ describe("ProductDetailsPage", () => {
     expect(screen.getByText("A detailed product description.")).toBeDefined();
     expect(screen.getByText("(12 Reviews)")).toBeDefined();
     expect(screen.getByText("In Stock")).toBeDefined();
+    expect(screen.getByText(/Choose a colour and size to check stock/i)).toBeDefined();
     expect(screen.getByText("Related Product")).toBeDefined();
   });
 
-  it("requires color and size selections before adding to cart", async () => {
+  it("adds an available in-stock variant to cart with stock and SKU feedback", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     mockedApi.mockResolvedValue(response);
     renderPage({ onAdd });
@@ -108,9 +117,47 @@ describe("ProductDetailsPage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "M" }));
     expect(buyButton.disabled).toBe(false);
+    expect(screen.getByText(/SKU: DETAIL-RED-M \| 3 in stock/i)).toBeDefined();
 
     await userEvent.click(buyButton);
     expect(onAdd).toHaveBeenCalledWith("p1", 1, "red", "M");
+  });
+
+  it("disables unavailable color and size combinations", async () => {
+    mockedApi.mockResolvedValue(response);
+    renderPage();
+
+    await screen.findByRole("heading", { name: "Detail Product" });
+    await userEvent.click(screen.getByRole("button", { name: /Color red/i }));
+
+    const unavailableSize = screen.getByRole("button", { name: "S" }) as HTMLButtonElement;
+    const availableSize = screen.getByRole("button", { name: "M" }) as HTMLButtonElement;
+    expect(unavailableSize.disabled).toBe(true);
+    expect(availableSize.disabled).toBe(false);
+
+    await userEvent.click(availableSize);
+    const unavailableColor = screen.getByRole("button", { name: /Color blue/i }) as HTMLButtonElement;
+    expect(unavailableColor.disabled).toBe(true);
+  });
+
+  it("prevents add to cart until an in-stock variant is selected", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    mockedApi.mockResolvedValue({
+      product,
+      variants: [{ id: "v-red-s", productId: "p1", sku: "DETAIL-RED-S", color: "red", size: "S", stock: 0 }],
+      related: []
+    });
+    renderPage({ onAdd });
+
+    await screen.findByRole("heading", { name: "Detail Product" });
+    await userEvent.click(screen.getByRole("button", { name: /Color red/i }));
+
+    const buyButton = screen.getByRole("button", { name: /Buy Now/i }) as HTMLButtonElement;
+    expect((screen.getByRole("button", { name: "S" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(buyButton.disabled).toBe(true);
+    await userEvent.click(buyButton);
+
+    expect(onAdd).not.toHaveBeenCalled();
   });
 
   it("passes the selected quantity to add to cart", async () => {
@@ -133,6 +180,7 @@ describe("ProductDetailsPage", () => {
   it("disables the buy action when the product is out of stock", async () => {
     mockedApi.mockResolvedValue({
       product: { ...product, stockStatus: "Out of Stock" },
+      variants,
       related: []
     });
     renderPage();

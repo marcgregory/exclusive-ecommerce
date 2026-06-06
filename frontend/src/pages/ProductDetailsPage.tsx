@@ -64,11 +64,69 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
     );
   }
 
-  const { product, related } = productState.data;
+  const { product, related, variants = [] } = productState.data;
   const isOutOfStock = product.stockStatus === "Out of Stock";
   const requiresColor = product.colors.length > 0;
   const requiresSize = product.sizes.length > 0;
-  const canAddToCart = !isOutOfStock && (!requiresColor || selectedColor) && (!requiresSize || selectedSize);
+  const hasVariantStock = variants.length > 0;
+  const selectedVariant = variants.find(
+    (variant) =>
+      variant.color === (selectedColor || "") &&
+      variant.size === (selectedSize || ""),
+  );
+  const hasRequiredSelections = (!requiresColor || selectedColor) && (!requiresSize || selectedSize);
+  const hasInStockVariant = !hasVariantStock || Boolean(selectedVariant && selectedVariant.stock > 0);
+  const canAddToCart = !isOutOfStock && hasRequiredSelections && hasInStockVariant;
+
+  const hasInStockCombo = (color: string, size: string) =>
+    !hasVariantStock ||
+    variants.some(
+      (variant) =>
+        variant.color === color &&
+        variant.size === size &&
+        variant.stock > 0,
+    );
+
+  const colorDisabled = (color: string) => {
+    if (!hasVariantStock) return false;
+    if (selectedSize || !requiresSize) return !hasInStockCombo(color, selectedSize || "");
+    return !variants.some((variant) => variant.color === color && variant.stock > 0);
+  };
+
+  const sizeDisabled = (size: string) => {
+    if (!hasVariantStock) return false;
+    if (selectedColor || !requiresColor) return !hasInStockCombo(selectedColor || "", size);
+    return !variants.some((variant) => variant.size === size && variant.stock > 0);
+  };
+
+  const selectColor = (color: string) => {
+    setActionError("");
+    setSelectedColor(color);
+    if (selectedSize && !hasInStockCombo(color, selectedSize)) {
+      setSelectedSize("");
+    }
+  };
+
+  const selectSize = (size: string) => {
+    setActionError("");
+    setSelectedSize(size);
+    if (selectedColor && !hasInStockCombo(selectedColor, size)) {
+      setSelectedColor("");
+    }
+  };
+
+  const variantFeedback = (() => {
+    if (isOutOfStock) return "This product is currently out of stock.";
+    if (!hasVariantStock) return product.stockStatus;
+    if (!hasRequiredSelections) {
+      if (requiresColor && requiresSize) return "Choose a colour and size to check stock.";
+      if (requiresColor) return "Choose a colour to check stock.";
+      if (requiresSize) return "Choose a size to check stock.";
+    }
+    if (!selectedVariant || selectedVariant.stock <= 0) return "Selected combination is unavailable.";
+    const sku = selectedVariant.sku ? `SKU: ${selectedVariant.sku}` : "SKU not assigned";
+    return `${sku} | ${selectedVariant.stock} in stock`;
+  })();
 
   const addToCart = async () => {
     if (!canAddToCart) {
@@ -78,6 +136,10 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
       }
       if (requiresSize && !selectedSize) {
         setActionError("Please choose a size before adding to cart.");
+        return;
+      }
+      if (hasVariantStock) {
+        setActionError("Please choose an available in-stock variant before adding to cart.");
         return;
       }
     }
@@ -119,9 +181,11 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
                   key={color}
                   className={color === selectedColor ? "swatch selected" : "swatch"}
                   style={{ background: color }}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => selectColor(color)}
                   aria-label={`Color ${color}`}
                   aria-pressed={color === selectedColor}
+                  disabled={colorDisabled(color)}
+                  title={colorDisabled(color) ? "Unavailable with the selected size" : `Color ${color}`}
                 />
               ))}
             </div>
@@ -130,10 +194,21 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
             <div className="choice-row">
               <span>Size:</span>
               {product.sizes.map((entry) => (
-                <button key={entry} className={entry === selectedSize ? "selected size" : "size"} onClick={() => setSelectedSize(entry)}>{entry}</button>
+                <button
+                  key={entry}
+                  className={entry === selectedSize ? "selected size" : "size"}
+                  onClick={() => selectSize(entry)}
+                  disabled={sizeDisabled(entry)}
+                  title={sizeDisabled(entry) ? "Unavailable with the selected colour" : `Size ${entry}`}
+                >
+                  {entry}
+                </button>
               ))}
             </div>
           )}
+          <p className={canAddToCart ? "variant-feedback variant-feedback--available" : "variant-feedback"}>
+            {variantFeedback}
+          </p>
           <div className="buy-row">
             <QuantityStepper value={quantity} onChange={setQuantity} />
             <Button onClick={addToCart} disabled={!canAddToCart}>{isOutOfStock ? "Out of stock" : "Buy Now"}</Button>

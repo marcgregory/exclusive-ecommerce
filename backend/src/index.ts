@@ -410,8 +410,9 @@ app.get(
   asyncRoute(async (req, res) => {
     const product = await findProduct(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
+    const variants = await listProductVariants(product.id);
     const related = await getRelatedProducts(product);
-    res.json({ product, related });
+    res.json({ product, variants: variants || [], related });
   }),
 );
 

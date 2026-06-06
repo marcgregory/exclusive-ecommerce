@@ -4,6 +4,7 @@ import type {
   CartResponse,
   CategoriesResponse,
   MeResponse,
+  ProductDetailResponse,
   ProductsResponse,
   WishlistResponse,
 } from "../types";
@@ -34,6 +35,10 @@ export const ecommerceApi = createApi({
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
       query: () => "/api/products",
+      providesTags: ["Catalog"],
+    }),
+    getProductDetail: builder.query<ProductDetailResponse, string>({
+      query: (id) => `/api/products/${encodeURIComponent(id)}`,
       providesTags: ["Catalog"],
     }),
     getCategories: builder.query<CategoriesResponse, void>({
@@ -91,6 +96,7 @@ export const {
   useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,
+  useGetProductDetailQuery,
   useGetProductsQuery,
   useGetWishlistQuery,
   useLogoutMutation,

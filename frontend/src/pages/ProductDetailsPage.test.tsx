@@ -1,14 +1,27 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProductDetailsPage } from "./ProductDetailsPage";
 import type { Product, ProductDetailResponse, ProductVariant } from "../types";
 
-vi.mock("../api/client", () => ({ api: vi.fn() }));
-import { api } from "../api/client";
+vi.mock("../api/ecommerceApi", () => ({
+  useAddCartItemMutation: vi.fn(),
+  useAddWishlistProductMutation: vi.fn(),
+  useGetProductDetailQuery: vi.fn(),
+}));
+import {
+  useAddCartItemMutation,
+  useAddWishlistProductMutation,
+  useGetProductDetailQuery,
+} from "../api/ecommerceApi";
 
-const mockedApi = vi.mocked(api);
+const mockedUseGetProductDetailQuery = useGetProductDetailQuery as unknown as Mock;
+const mockedUseAddCartItemMutation = useAddCartItemMutation as unknown as Mock;
+const mockedUseAddWishlistProductMutation = useAddWishlistProductMutation as unknown as Mock;
+let addCartItem: Mock;
+let addWishlistProduct: Mock;
+let refetchProduct: Mock;
 
 const product: Product = {
   id: "p1",
@@ -65,7 +78,17 @@ function renderPage(overrides: Partial<Parameters<typeof ProductDetailsPage>[0]>
 
 describe("ProductDetailsPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    refetchProduct = vi.fn();
+    addCartItem = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
+    addWishlistProduct = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
+    mockedUseGetProductDetailQuery.mockReturnValue({
+      data: response,
+      error: undefined,
+      isLoading: false,
+      refetch: refetchProduct,
+    });
+    mockedUseAddCartItemMutation.mockReturnValue([addCartItem, {}]);
+    mockedUseAddWishlistProductMutation.mockReturnValue([addWishlistProduct, {}]);
   });
 
   afterEach(() => {
@@ -73,29 +96,41 @@ describe("ProductDetailsPage", () => {
   });
 
   it("shows loading state while product details are loading", () => {
-    mockedApi.mockReturnValue(new Promise(() => {}));
+    mockedUseGetProductDetailQuery.mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: true,
+      refetch: refetchProduct,
+    });
     renderPage();
 
     expect(screen.getByText(/Loading product/i)).toBeDefined();
   });
 
-  it("shows an error state and lets shoppers return to the shop", async () => {
+  it("shows product detail errors and lets shoppers retry or return to the shop", async () => {
     const navigate = vi.fn();
-    mockedApi.mockRejectedValue(new Error("Product unavailable"));
+    mockedUseGetProductDetailQuery.mockReturnValue({
+      data: undefined,
+      error: { status: 404, data: { message: "Product unavailable" } },
+      isLoading: false,
+      refetch: refetchProduct,
+    });
     renderPage({ navigate });
 
-    expect(await screen.findByText(/We could not load this product/i)).toBeDefined();
+    expect(screen.getByText(/We could not load this product/i)).toBeDefined();
     expect(screen.getByText(/Product unavailable/i)).toBeDefined();
+
+    await userEvent.click(screen.getByRole("button", { name: /Try Again/i }));
+    expect(refetchProduct).toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole("button", { name: /Return To Shop/i }));
     expect(navigate).toHaveBeenCalledWith("/");
   });
 
   it("shows product details and related products", async () => {
-    mockedApi.mockResolvedValue(response);
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Detail Product" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Detail Product" })).toBeDefined();
     expect(screen.getAllByText("$1999").length).toBeGreaterThan(0);
     expect(screen.getByText("A detailed product description.")).toBeDefined();
     expect(screen.getByText("(12 Reviews)")).toBeDefined();
@@ -105,11 +140,9 @@ describe("ProductDetailsPage", () => {
   });
 
   it("adds an available in-stock variant to cart with stock and SKU feedback", async () => {
-    const onAdd = vi.fn().mockResolvedValue(undefined);
-    mockedApi.mockResolvedValue(response);
-    renderPage({ onAdd });
+    renderPage();
 
-    const buyButton = await screen.findByRole("button", { name: /Buy Now/i }) as HTMLButtonElement;
+    const buyButton = screen.getByRole("button", { name: /Buy Now/i }) as HTMLButtonElement;
     expect(buyButton.disabled).toBe(true);
 
     await userEvent.click(screen.getByRole("button", { name: /Color red/i }));
@@ -120,14 +153,13 @@ describe("ProductDetailsPage", () => {
     expect(screen.getByText(/SKU: DETAIL-RED-M \| 3 in stock/i)).toBeDefined();
 
     await userEvent.click(buyButton);
-    expect(onAdd).toHaveBeenCalledWith("p1", 1, "red", "M");
+    expect(addCartItem).toHaveBeenCalledWith({ productId: "p1", quantity: 1, selectedColor: "red", selectedSize: "M" });
   });
 
   it("disables unavailable color and size combinations", async () => {
-    mockedApi.mockResolvedValue(response);
     renderPage();
 
-    await screen.findByRole("heading", { name: "Detail Product" });
+    screen.getByRole("heading", { name: "Detail Product" });
     await userEvent.click(screen.getByRole("button", { name: /Color red/i }));
 
     const unavailableSize = screen.getByRole("button", { name: "S" }) as HTMLButtonElement;
@@ -140,16 +172,20 @@ describe("ProductDetailsPage", () => {
     expect(unavailableColor.disabled).toBe(true);
   });
 
-  it("prevents add to cart until an in-stock variant is selected", async () => {
-    const onAdd = vi.fn().mockResolvedValue(undefined);
-    mockedApi.mockResolvedValue({
-      product,
-      variants: [{ id: "v-red-s", productId: "p1", sku: "DETAIL-RED-S", color: "red", size: "S", stock: 0 }],
-      related: []
+  it("requires shoppers to select an in-stock variant before adding to cart", async () => {
+    mockedUseGetProductDetailQuery.mockReturnValue({
+      data: {
+        product,
+        variants: [{ id: "v-red-s", productId: "p1", sku: "DETAIL-RED-S", color: "red", size: "S", stock: 0 }],
+        related: [],
+      },
+      error: undefined,
+      isLoading: false,
+      refetch: refetchProduct,
     });
-    renderPage({ onAdd });
+    renderPage();
 
-    await screen.findByRole("heading", { name: "Detail Product" });
+    screen.getByRole("heading", { name: "Detail Product" });
     await userEvent.click(screen.getByRole("button", { name: /Color red/i }));
 
     const buyButton = screen.getByRole("button", { name: /Buy Now/i }) as HTMLButtonElement;
@@ -157,15 +193,13 @@ describe("ProductDetailsPage", () => {
     expect(buyButton.disabled).toBe(true);
     await userEvent.click(buyButton);
 
-    expect(onAdd).not.toHaveBeenCalled();
+    expect(addCartItem).not.toHaveBeenCalled();
   });
 
   it("passes the selected quantity to add to cart", async () => {
-    const onAdd = vi.fn().mockResolvedValue(undefined);
-    mockedApi.mockResolvedValue(response);
-    const { container } = renderPage({ onAdd });
+    const { container } = renderPage();
 
-    await screen.findByRole("heading", { name: "Detail Product" });
+    screen.getByRole("heading", { name: "Detail Product" });
     await userEvent.click(screen.getByRole("button", { name: /Color blue/i }));
     await userEvent.click(screen.getByRole("button", { name: "S" }));
 
@@ -174,30 +208,59 @@ describe("ProductDetailsPage", () => {
     await userEvent.click(quantityButtons[1]);
     await userEvent.click(screen.getByRole("button", { name: /Buy Now/i }));
 
-    await waitFor(() => expect(onAdd).toHaveBeenCalledWith("p1", 3, "blue", "S"));
+    await waitFor(() => expect(addCartItem).toHaveBeenCalledWith({ productId: "p1", quantity: 3, selectedColor: "blue", selectedSize: "S" }));
   });
 
-  it("disables the buy action when the product is out of stock", async () => {
-    mockedApi.mockResolvedValue({
-      product: { ...product, stockStatus: "Out of Stock" },
-      variants,
-      related: []
+  it("shows a stock error when add to cart fails", async () => {
+    addCartItem.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({
+        status: 409,
+        data: { message: "Only 0 Detail Product items are available" },
+      }),
     });
     renderPage();
 
-    const outOfStockButton = await screen.findByRole("button", { name: /Out of stock/i }) as HTMLButtonElement;
+    await userEvent.click(screen.getByRole("button", { name: /Color blue/i }));
+    await userEvent.click(screen.getByRole("button", { name: "S" }));
+    await userEvent.click(screen.getByRole("button", { name: /Buy Now/i }));
+
+    expect(await screen.findByText(/Only 0 Detail Product items are available/i)).toBeDefined();
+  });
+
+  it("disables the buy action when the product is out of stock", async () => {
+    mockedUseGetProductDetailQuery.mockReturnValue({
+      data: {
+        product: { ...product, stockStatus: "Out of Stock" },
+        variants,
+        related: [],
+      },
+      error: undefined,
+      isLoading: false,
+      refetch: refetchProduct,
+    });
+    renderPage();
+
+    const outOfStockButton = screen.getByRole("button", { name: /Out of stock/i }) as HTMLButtonElement;
     expect(outOfStockButton.disabled).toBe(true);
     expect(screen.getAllByText("Out of stock").length).toBeGreaterThan(0);
   });
 
   it("adds the product to the wishlist", async () => {
-    const onWishlist = vi.fn().mockResolvedValue(undefined);
-    mockedApi.mockResolvedValue(response);
-    renderPage({ onWishlist });
+    renderPage();
 
-    await screen.findByRole("heading", { name: "Detail Product" });
     await userEvent.click(screen.getByRole("button", { name: /Add to wishlist/i }));
 
-    expect(onWishlist).toHaveBeenCalledWith("p1");
+    expect(addWishlistProduct).toHaveBeenCalledWith("p1");
+  });
+
+  it("shows an action error when add to wishlist fails", async () => {
+    addWishlistProduct.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({ message: "Wishlist failed" }),
+    });
+    renderPage();
+
+    await userEvent.click(screen.getByRole("button", { name: /Add to wishlist/i }));
+
+    expect(await screen.findByText(/Wishlist failed/i)).toBeDefined();
   });
 });

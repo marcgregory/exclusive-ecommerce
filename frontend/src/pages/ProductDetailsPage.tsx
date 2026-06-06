@@ -1,6 +1,10 @@
 import { Heart, ShieldCheck, Truck } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { api } from "../api/client";
+import { useState } from "react";
+import {
+  useAddCartItemMutation,
+  useAddWishlistProductMutation,
+  useGetProductDetailQuery,
+} from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { ErrorState, LoadingState } from "../components/StateViews";
@@ -11,7 +15,8 @@ import { SectionHeader } from "../components/SectionHeader";
 import { Stars } from "../components/Stars";
 import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
-import type { AddToCart, AddToWishlist, AsyncState, Navigate, ProductDetailResponse } from "../types";
+import { getRtkErrorMessage, getRtkStatus } from "../lib/rtkErrors";
+import type { AddToCart, AddToWishlist, Navigate } from "../types";
 
 type ProductDetailsPageProps = {
   id?: string;
@@ -20,51 +25,41 @@ type ProductDetailsPageProps = {
   onWishlist: AddToWishlist;
 };
 
+function getActionErrorMessage(error: unknown) {
+  const rtkMessage = getRtkErrorMessage(error);
+  return rtkMessage && rtkMessage !== "Request failed" ? rtkMessage : getErrorMessage(error);
+}
+
 export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductDetailsPageProps) {
-  const [productState, setProductState] = useState<AsyncState<ProductDetailResponse | null>>({ data: null, loading: true, error: "" });
+  const productQuery = useGetProductDetailQuery(id || "", { skip: !id });
+  const [addCartItem] = useAddCartItemMutation();
+  const [addWishlistProduct] = useAddWishlistProductMutation();
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const loadProduct = useCallback(async () => {
-    if (!id) {
-      setProductState({ data: null, loading: false, error: "Product not found" });
-      return;
-    }
+  const productError = !id ? "Product not found" : getRtkErrorMessage(productQuery.error);
 
-    setProductState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<ProductDetailResponse>(`/api/products/${id}`);
-      setProductState({ data, loading: false, error: "" });
-    } catch (error) {
-      setProductState({ data: null, loading: false, error: getErrorMessage(error) });
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadProduct();
-  }, [loadProduct]);
-
-  if (productState.loading) {
+  if (productQuery.isLoading) {
     return <main className="container page"><LoadingState title="Loading product" message="We are getting the product details." /></main>;
   }
 
-  if (productState.error || !productState.data) {
+  if (productError || !productQuery.data) {
     return (
       <main className="container page">
         <Breadcrumbs items={["Home", "Product"]} />
         <ErrorState
           title="We could not load this product"
-          message={productState.error || "Product not found"}
-          action={{ label: "Try Again", onClick: loadProduct }}
+          message={productError || "Product not found"}
+          action={{ label: "Try Again", onClick: productQuery.refetch }}
           secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
         />
       </main>
     );
   }
 
-  const { product, related, variants = [] } = productState.data;
+  const { product, related, variants = [] } = productQuery.data;
   const isOutOfStock = product.stockStatus === "Out of Stock";
   const requiresColor = product.colors.length > 0;
   const requiresSize = product.sizes.length > 0;
@@ -145,18 +140,26 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
     }
     try {
       setActionError("");
-      await onAdd(product.id, quantity, selectedColor, selectedSize);
+      await addCartItem({ productId: product.id, quantity, selectedColor, selectedSize }).unwrap();
     } catch (error) {
-      setActionError(getErrorMessage(error));
+      if (getRtkStatus(error) === 401) {
+        navigate("/account");
+        return;
+      }
+      setActionError(getActionErrorMessage(error));
     }
   };
 
   const addToWishlist = async () => {
     try {
       setActionError("");
-      await onWishlist(product.id);
+      await addWishlistProduct(product.id).unwrap();
     } catch (error) {
-      setActionError(getErrorMessage(error));
+      if (getRtkStatus(error) === 401) {
+        navigate("/account");
+        return;
+      }
+      setActionError(getActionErrorMessage(error));
     }
   };
 

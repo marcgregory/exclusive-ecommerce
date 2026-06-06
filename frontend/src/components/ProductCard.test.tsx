@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProductCard } from "./ProductCard";
-import type { Product } from "../types";
+import type { Product, ProductVariant } from "../types";
 
 const product: Product = {
   id: "p1",
@@ -23,7 +23,17 @@ const product: Product = {
   image: "default"
 };
 
+const productWithoutOptions: Product = {
+  ...product,
+  colors: [],
+  sizes: []
+};
+
 describe("ProductCard", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders the product details and actions", () => {
     render(
       <ProductCard
@@ -40,7 +50,7 @@ describe("ProductCard", () => {
     expect(screen.getByText(/-20%/)).toBeDefined();
     expect(screen.getByText("NEW")).toBeDefined();
     expect(screen.getByText("(12)")).toBeDefined();
-    expect(screen.getByRole("button", { name: /Add To Cart/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Choose Options/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /View Test Product/i })).toBeDefined();
   });
 
@@ -50,7 +60,7 @@ describe("ProductCard", () => {
     const navigate = vi.fn();
 
     const { container } = render(
-      <ProductCard product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />
+      <ProductCard product={productWithoutOptions} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />
     );
 
     const user = userEvent.setup();
@@ -65,13 +75,48 @@ describe("ProductCard", () => {
     await user.click(titleButton!);
 
     expect(onWishlist).toHaveBeenCalledWith("p1");
-    // The card's "Add To Cart" defaults to the first available color/size so
-    // it works without forcing the user to the product page; the user can
-    // change the variant on the product page or in the cart.
-    expect(onAdd).toHaveBeenCalledWith("p1", 1, "red", "S");
+    expect(onAdd).toHaveBeenCalledWith("p1", 1, "", "");
     expect(navigate).toHaveBeenCalledTimes(2);
     expect(navigate).toHaveBeenNthCalledWith(1, "/product/p1");
     expect(navigate).toHaveBeenNthCalledWith(2, "/product/p1");
+  });
+
+  it("routes variant products to detail when variant stock is not loaded", async () => {
+    const onAdd = vi.fn();
+    const navigate = vi.fn();
+
+    render(
+      <ProductCard product={product} onAdd={onAdd} onWishlist={vi.fn()} navigate={navigate} />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Choose Options/i }));
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/product/p1");
+  });
+
+  it("quick adds the first valid in-stock variant when variant data is available", async () => {
+    const onAdd = vi.fn();
+    const navigate = vi.fn();
+    const variants: ProductVariant[] = [
+      { id: "v-red-s", productId: "p1", sku: "RED-S", color: "red", size: "S", stock: 0 },
+      { id: "v-blue-m", productId: "p1", sku: "BLUE-M", color: "blue", size: "M", stock: 5 }
+    ];
+
+    render(
+      <ProductCard
+        product={{ ...product, colors: ["red", "blue"], sizes: ["S", "M"] }}
+        variants={variants}
+        onAdd={onAdd}
+        onWishlist={vi.fn()}
+        navigate={navigate}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Add To Cart/i }));
+
+    expect(onAdd).toHaveBeenCalledWith("p1", 1, "blue", "M");
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("disables the add to cart button when out of stock", () => {

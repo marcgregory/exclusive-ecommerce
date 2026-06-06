@@ -35,6 +35,12 @@ const secondProduct: Product = {
   image: "gamepad-red"
 };
 
+const productWithoutOptions: Product = {
+  ...product,
+  colors: [],
+  sizes: []
+};
+
 function mockWishlist(products: Product[]) {
   mockedApi.mockImplementation(async (path: string) => {
     if (path === "/api/wishlist") return { products };
@@ -139,19 +145,34 @@ describe("WishlistPage", () => {
     expect(screen.getByText(/Your wishlist is empty/i)).toBeDefined();
   });
 
-  it("moves an item to the cart using the first available color/size, then removes it from the wishlist", async () => {
+  it("moves an item to the cart using the first in-stock detail variant, then removes it from the wishlist", async () => {
     const refreshCart = vi.fn().mockResolvedValue(undefined);
     const refreshWishlist = vi.fn().mockResolvedValue(undefined);
-    mockWishlist([product]);
+    const productWithOptions = { ...product, colors: ["red", "blue"], sizes: ["S", "M"] };
+    mockedApi.mockImplementation(async (path: string) => {
+      if (path === "/api/wishlist") return { products: [productWithOptions] };
+      if (path === "/api/products/p1") {
+        return {
+          product: productWithOptions,
+          related: [],
+          variants: [
+            { id: "v-red-s", productId: "p1", sku: "RED-S", color: "red", size: "S", stock: 0 },
+            { id: "v-blue-m", productId: "p1", sku: "BLUE-M", color: "blue", size: "M", stock: 4 }
+          ]
+        };
+      }
+      return {};
+    });
     renderPage({ refreshCart, refreshWishlist });
 
     await screen.findByText("Wishlist Product");
     await userEvent.click(screen.getByRole("button", { name: /Move to cart/i }));
 
     await waitFor(() => {
+      expect(mockedApi).toHaveBeenCalledWith("/api/products/p1");
       expect(mockedApi).toHaveBeenCalledWith("/api/cart/items", {
         method: "POST",
-        body: JSON.stringify({ productId: "p1", quantity: 1, selectedColor: "red", selectedSize: "S" })
+        body: JSON.stringify({ productId: "p1", quantity: 1, selectedColor: "blue", selectedSize: "M" })
       });
       expect(mockedApi).toHaveBeenCalledWith("/api/wishlist/p1", { method: "DELETE" });
     });
@@ -163,6 +184,46 @@ describe("WishlistPage", () => {
     expect(refreshCart).toHaveBeenCalled();
     expect(refreshWishlist).toHaveBeenCalled();
     expect(screen.getByText(/Your wishlist is empty/i)).toBeDefined();
+  });
+
+  it("moves an item without variants directly to the cart", async () => {
+    mockWishlist([productWithoutOptions]);
+    renderPage();
+
+    await screen.findByText("Wishlist Product");
+    await userEvent.click(screen.getByRole("button", { name: /Move to cart/i }));
+
+    await waitFor(() => {
+      expect(mockedApi).toHaveBeenCalledWith("/api/cart/items", {
+        method: "POST",
+        body: JSON.stringify({ productId: "p1", quantity: 1, selectedColor: "", selectedSize: "" })
+      });
+    });
+    expect(mockedApi).not.toHaveBeenCalledWith("/api/products/p1");
+  });
+
+  it("routes to product detail with feedback when no in-stock variant can be found", async () => {
+    const navigate = vi.fn();
+    mockedApi.mockImplementation(async (path: string) => {
+      if (path === "/api/wishlist") return { products: [product] };
+      if (path === "/api/products/p1") {
+        return {
+          product,
+          related: [],
+          variants: [{ id: "v-red-s", productId: "p1", sku: "RED-S", color: "red", size: "S", stock: 0 }]
+        };
+      }
+      return {};
+    });
+    renderPage({ navigate });
+
+    await screen.findByText("Wishlist Product");
+    await userEvent.click(screen.getByRole("button", { name: /Move to cart/i }));
+
+    expect(await screen.findByText(/Choose available options for Wishlist Product before moving it to cart/i)).toBeDefined();
+    expect(navigate).toHaveBeenCalledWith("/product/p1");
+    expect(mockedApi).not.toHaveBeenCalledWith("/api/cart/items", expect.anything());
+    expect(mockedApi).not.toHaveBeenCalledWith("/api/wishlist/p1", { method: "DELETE" });
   });
 
   it("keeps out-of-stock items from moving to the cart", async () => {
@@ -178,7 +239,7 @@ describe("WishlistPage", () => {
 
   it("shows an action error when moving to cart fails", async () => {
     mockedApi.mockImplementation(async (path: string) => {
-      if (path === "/api/wishlist") return { products: [product] };
+      if (path === "/api/wishlist") return { products: [productWithoutOptions] };
       if (path === "/api/cart/items") throw new Error("Only 0 Wishlist Product items are available");
       return {};
     });

@@ -7,7 +7,8 @@ import { ProductCard } from "../components/ProductCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
-import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, RefreshCart, WishlistResponse } from "../types";
+import { getQuickAddSelection, requiresVariantSelection } from "../lib/productVariants";
+import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, ProductDetailResponse, RefreshCart, WishlistResponse } from "../types";
 
 type WishlistPageProps = {
   authStatus: AuthStatus;
@@ -58,16 +59,26 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
     try {
       setActionError("");
       setPendingProductId(product.id);
-      // Default to the first available color/size so the move-to-cart works
-      // without forcing the user back to the product page. They can adjust
-      // the variant from the cart or product page later.
+      let selection = getQuickAddSelection(product);
+
+      if (!selection && requiresVariantSelection(product)) {
+        const data = await api<ProductDetailResponse>(`/api/products/${product.id}`);
+        selection = getQuickAddSelection(data.product, data.variants);
+
+        if (!selection) {
+          setActionError(`Choose available options for ${product.name} before moving it to cart.`);
+          navigate(`/product/${product.id}`);
+          return;
+        }
+      }
+
       await api("/api/cart/items", {
         method: "POST",
         body: JSON.stringify({
           productId: product.id,
           quantity: 1,
-          selectedColor: product.colors[0] ?? "",
-          selectedSize: product.sizes[0] ?? ""
+          selectedColor: selection?.selectedColor ?? "",
+          selectedSize: selection?.selectedSize ?? ""
         })
       });
       await api(`/api/wishlist/${product.id}`, { method: "DELETE" });

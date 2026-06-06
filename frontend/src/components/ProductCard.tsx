@@ -1,11 +1,13 @@
 import { Eye, Heart } from "lucide-react";
 import { formatMoney } from "../lib/format";
-import type { AddToCart, AddToWishlist, Navigate, Product } from "../types";
+import { getQuickAddSelection, requiresVariantSelection } from "../lib/productVariants";
+import type { AddToCart, AddToWishlist, Navigate, Product, ProductVariant } from "../types";
 import { ProductVisual } from "./ProductVisual";
 import { Stars } from "./Stars";
 
 type ProductCardProps = {
   product: Product;
+  variants?: ProductVariant[];
   discount?: boolean;
   onAdd: AddToCart;
   onWishlist: AddToWishlist;
@@ -14,8 +16,24 @@ type ProductCardProps = {
   secondaryAction?: React.ReactNode;
 };
 
-export function ProductCard({ product, onAdd, onWishlist, navigate, showWishlistButton = true, secondaryAction }: ProductCardProps) {
+export function ProductCard({ product, variants, onAdd, onWishlist, navigate, showWishlistButton = true, secondaryAction }: ProductCardProps) {
   const isOutOfStock = product.stockStatus === "Out of Stock";
+  const quickAddSelection = getQuickAddSelection(product, variants);
+  const shouldChooseOptions = requiresVariantSelection(product) && !quickAddSelection;
+  const handleQuickAdd = () => {
+    if (shouldChooseOptions) {
+      navigate(`/product/${product.id}`);
+      return;
+    }
+
+    void onAdd(
+      product.id,
+      1,
+      quickAddSelection?.selectedColor ?? "",
+      quickAddSelection?.selectedSize ?? ""
+    );
+  };
+
   return (
     <article className="product-card">
       <div className="product-card__media">
@@ -31,17 +49,10 @@ export function ProductCard({ product, onAdd, onWishlist, navigate, showWishlist
         <ProductVisual type={product.image} />
         <button
           className="add-cart"
-          onClick={() =>
-            onAdd(
-              product.id,
-              1,
-              product.colors[0] ?? "",
-              product.sizes[0] ?? ""
-            )
-          }
+          onClick={handleQuickAdd}
           disabled={isOutOfStock}
         >
-          {isOutOfStock ? "Out of stock" : "Add To Cart"}
+          {isOutOfStock ? "Out of stock" : shouldChooseOptions ? "Choose Options" : "Add To Cart"}
         </button>
       </div>
       <button className="product-card__title" onClick={() => navigate(`/product/${product.id}`)}>{product.name}</button>

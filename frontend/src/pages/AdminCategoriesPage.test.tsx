@@ -2,17 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ApiError } from "../api/client";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { AdminCategoriesPage } from "./AdminCategoriesPage";
+import { ecommerceApi } from "../api/ecommerceApi";
 import type { Category, PublicUser } from "../types";
-
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api } from "../api/client";
-
-const mockedApi = vi.mocked(api);
 
 const admin: PublicUser = {
   id: "admin-1",
@@ -45,30 +39,123 @@ const phones: Category = {
   children: [],
 };
 
-function mockCategoryApi(categories: Category[] = [category, phones]) {
-  mockedApi.mockImplementation(async (path, options) => {
-    if (path === "/api/categories") return { categories };
-    if (path === "/api/admin/categories" && options.method === "POST") {
-      return {
-        category: {
-          id: "gaming",
-          ...(JSON.parse(options.body as string) as Partial<Category>),
-        },
-      };
+let serverCategories: Category[] = [category, phones];
+let simulateDeleteError = false;
+
+globalThis.fetch = vi.fn(async (url: string | URL | Request, options?: RequestInit) => {
+  let urlStr: string;
+  let method: string;
+
+  if (typeof url === "string") {
+    urlStr = url;
+    method = options?.method || "GET";
+  } else if (url instanceof URL) {
+    urlStr = url.toString();
+    method = options?.method || "GET";
+  } else {
+    urlStr = url.url;
+    method = url.method;
+  }
+
+  const urlObj = new URL(urlStr, "http://localhost");
+  const path = urlObj.pathname;
+  console.log(`[FETCH] ${method} ${path} (full: ${urlStr})`);
+
+  let body: any = null;
+  if (url instanceof Request) {
+    try {
+      const text = await url.clone().text();
+      if (text) {
+        body = JSON.parse(text);
+      }
+    } catch (e) {}
+  } else if (options?.body && typeof options.body === "string") {
+    try {
+      body = JSON.parse(options.body);
+    } catch (e) {}
+  }
+
+  if (path === "/api/categories" && method === "GET") {
+    return new Response(JSON.stringify({ categories: serverCategories }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (path === "/api/admin/categories" && method === "POST") {
+    const newCategory: Category = {
+      id: "gaming",
+      ...body,
+    };
+    serverCategories.push(newCategory);
+    return new Response(JSON.stringify({ category: newCategory }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (path.match(/^\/api\/admin\/categories\/[^/]+$/) && method === "PATCH") {
+    const categoryId = path.split("/").pop();
+    const idx = serverCategories.findIndex((c) => c.id === categoryId);
+    if (idx >= 0) {
+      const updatedCategory = { ...serverCategories[idx], ...body };
+      serverCategories[idx] = updatedCategory;
+      return new Response(JSON.stringify({ category: updatedCategory }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-    if (path === "/api/admin/categories/electronics" && options.method === "PATCH") {
-      return {
-        category: {
-          ...category,
-          ...(JSON.parse(options.body as string) as Partial<Category>),
-        },
-      };
+    return new Response(JSON.stringify({ message: "Not found" }), { status: 404 });
+  }
+
+  if (path.match(/^\/api\/admin\/categories\/[^/]+$/) && method === "DELETE") {
+    if (simulateDeleteError) {
+      return new Response(JSON.stringify({ message: "Category is still used by products" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-    if (path === "/api/admin/categories/electronics" && options.method === "DELETE") {
-      return { ok: true };
+    const categoryId = path.split("/").pop();
+    serverCategories = serverCategories.filter((c) => c.id !== categoryId);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return Promise.reject(new Error(`Unexpected API call: ${method} ${path}`));
+}) as any;
+
+async function getFetchCall(pathSubstring: string, method: string) {
+  for (const [req, opts] of vi.mocked(globalThis.fetch).mock.calls) {
+    let url = "";
+    let m = "GET";
+    if (typeof req === "string") {
+      url = req;
+      m = opts?.method || "GET";
+    } else if (req instanceof URL) {
+      url = req.toString();
+      m = opts?.method || "GET";
+    } else if (req && typeof req === "object" && "url" in req) {
+      url = req.url;
+      m = req.method;
     }
-    throw new Error(`Unexpected API call: ${path}`);
-  });
+    if (url.includes(pathSubstring) && m.toUpperCase() === method.toUpperCase()) {
+      let body: any = null;
+      if (req instanceof Request) {
+        try {
+          const text = await req.clone().text();
+          if (text) body = JSON.parse(text);
+        } catch (e) {}
+      } else if (opts?.body && typeof opts.body === "string") {
+        try {
+          body = JSON.parse(opts.body);
+        } catch (e) {}
+      }
+      return { url, method: m, body };
+    }
+  }
+  return null;
 }
 
 function renderPage(user: PublicUser | null = admin) {
@@ -77,17 +164,33 @@ function renderPage(user: PublicUser | null = admin) {
     navigate: vi.fn(),
   };
 
-  const view = render(<AdminCategoriesPage {...props} />);
-  return { ...props, ...view };
+  const store = configureStore({
+    reducer: {
+      [ecommerceApi.reducerPath]: ecommerceApi.reducer,
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(ecommerceApi.middleware),
+  });
+
+  const view = render(
+    <Provider store={store}>
+      <AdminCategoriesPage {...props} />
+    </Provider>
+  );
+  return { ...props, ...view, store };
 }
 
 describe("AdminCategoriesPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    serverCategories = [category, phones];
+    simulateDeleteError = false;
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
+    serverCategories = [category, phones];
+    simulateDeleteError = false;
     vi.restoreAllMocks();
     cleanup();
   });
@@ -96,14 +199,16 @@ describe("AdminCategoriesPage", () => {
     renderPage(customer);
 
     expect(screen.getByText(/Admin access required/i)).toBeDefined();
-    expect(mockedApi).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("loads and renders categories for admins", async () => {
-    mockCategoryApi();
     renderPage();
 
-    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith("/api/categories"));
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/categories", "GET");
+      expect(call).toBeTruthy();
+    });
     const row = (await screen.findByText("Electronics")).closest("article");
     expect(row).toBeTruthy();
     expect(within(row as HTMLElement).getByText("phones")).toBeDefined();
@@ -111,7 +216,7 @@ describe("AdminCategoriesPage", () => {
 
   it("creates a category with generated and manually edited slugs", async () => {
     const actor = userEvent.setup();
-    mockCategoryApi([]);
+    serverCategories = [];
     renderPage();
 
     await actor.type(await screen.findByLabelText(/Label/i), "Gaming Gear");
@@ -124,14 +229,13 @@ describe("AdminCategoriesPage", () => {
     await actor.type(screen.getByLabelText(/Sort order/i), "4");
     await actor.click(screen.getByRole("button", { name: /Create Category/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/categories",
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
-    const createCall = mockedApi.mock.calls.find(([path]) => path === "/api/admin/categories");
-    expect(JSON.parse(createCall?.[1]?.body as string)).toEqual({
+    let body: any = null;
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/admin/categories", "POST");
+      expect(call).toBeTruthy();
+      body = call?.body;
+    });
+    expect(body).toEqual({
       label: "Gaming Gear",
       slug: "gaming",
       icon: "gamepad",
@@ -144,7 +248,6 @@ describe("AdminCategoriesPage", () => {
 
   it("edits a category and updates the row", async () => {
     const actor = userEvent.setup();
-    mockCategoryApi();
     renderPage();
 
     const row = (await screen.findByText("Electronics")).closest("article");
@@ -156,16 +259,13 @@ describe("AdminCategoriesPage", () => {
     await actor.type(screen.getByLabelText(/Children/i), "phones, cameras");
     await actor.click(screen.getByRole("button", { name: /Update Category/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/categories/electronics",
-        expect.objectContaining({ method: "PATCH" }),
-      ),
-    );
-    const patchCall = mockedApi.mock.calls.find(([path, options]) => (
-      path === "/api/admin/categories/electronics" && options.method === "PATCH"
-    ));
-    expect(JSON.parse(patchCall?.[1]?.body as string)).toMatchObject({
+    let body: any = null;
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/admin/categories/electronics", "PATCH");
+      expect(call).toBeTruthy();
+      body = call?.body;
+    });
+    expect(body).toMatchObject({
       label: "Devices",
       slug: "electronics",
       children: ["phones", "cameras"],
@@ -175,31 +275,22 @@ describe("AdminCategoriesPage", () => {
 
   it("deletes a category on success", async () => {
     const actor = userEvent.setup();
-    mockCategoryApi();
     renderPage();
 
     const row = (await screen.findByText("Electronics")).closest("article");
     expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Delete/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/categories/electronics",
-        expect.objectContaining({ method: "DELETE" }),
-      ),
-    );
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/admin/categories/electronics", "DELETE");
+      expect(call).toBeTruthy();
+    });
     expect(screen.queryByText("Electronics")).toBeNull();
   });
 
   it("keeps a category visible when delete fails", async () => {
     const actor = userEvent.setup();
-    mockedApi.mockImplementation(async (path, options) => {
-      if (path === "/api/categories") return { categories: [category] };
-      if (path === "/api/admin/categories/electronics" && options.method === "DELETE") {
-        throw new ApiError("Category is still used by products", 400);
-      }
-      throw new Error(`Unexpected API call: ${path}`);
-    });
+    simulateDeleteError = true;
     renderPage();
 
     const row = (await screen.findByText("Electronics")).closest("article");
@@ -210,3 +301,4 @@ describe("AdminCategoriesPage", () => {
     expect(screen.getByText("Electronics")).toBeDefined();
   });
 });
+

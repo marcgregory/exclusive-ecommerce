@@ -2,17 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ApiError } from "../api/client";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { AdminCouponsPage } from "./AdminCouponsPage";
+import { ecommerceApi } from "../api/ecommerceApi";
 import type { Coupon, PublicUser } from "../types";
-
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api } from "../api/client";
-
-const mockedApi = vi.mocked(api);
 
 const admin: PublicUser = {
   id: "admin-1",
@@ -43,29 +37,122 @@ const fixedCoupon: Coupon = {
   active: false,
 };
 
-function mockCouponApi(coupons: Coupon[] = [coupon, fixedCoupon]) {
-  mockedApi.mockImplementation(async (path, options) => {
-    if (path === "/api/admin/coupons" && options?.method === "POST") {
-      return {
-        coupon: {
-          ...(JSON.parse(options.body as string) as Coupon),
-        },
-      };
+let serverCoupons: Coupon[] = [coupon, fixedCoupon];
+let simulateDeleteError = false;
+
+globalThis.fetch = vi.fn(async (url: string | URL | Request, options?: RequestInit) => {
+  let urlStr: string;
+  let method: string;
+
+  if (typeof url === "string") {
+    urlStr = url;
+    method = options?.method || "GET";
+  } else if (url instanceof URL) {
+    urlStr = url.toString();
+    method = options?.method || "GET";
+  } else {
+    urlStr = url.url;
+    method = url.method;
+  }
+
+  const urlObj = new URL(urlStr, "http://localhost");
+  const path = urlObj.pathname;
+  console.log(`[FETCH] ${method} ${path} (full: ${urlStr})`);
+
+  let body: any = null;
+  if (url instanceof Request) {
+    try {
+      const text = await url.clone().text();
+      if (text) body = JSON.parse(text);
+    } catch (e) {}
+  } else if (options?.body && typeof options.body === "string") {
+    try {
+      body = JSON.parse(options.body);
+    } catch (e) {}
+  }
+
+  // List coupons
+  if (path === "/api/admin/coupons" && method === "GET") {
+    return new Response(JSON.stringify({ coupons: serverCoupons }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Create coupon
+  if (path === "/api/admin/coupons" && method === "POST") {
+    const newCoupon: Coupon = { ...body };
+    serverCoupons = [newCoupon, ...serverCoupons];
+    return new Response(JSON.stringify({ coupon: newCoupon }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Update coupon PATCH
+  if (path.match(/^\/api\/admin\/coupons\/[^/]+$/) && method === "PATCH") {
+    const code = decodeURIComponent(path.split("/").pop()!);
+    const idx = serverCoupons.findIndex((c) => c.code === code);
+    if (idx >= 0) {
+      const updatedCoupon = { ...serverCoupons[idx], ...body };
+      serverCoupons[idx] = updatedCoupon;
+      return new Response(JSON.stringify({ coupon: updatedCoupon }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-    if (path === "/api/admin/coupons") return { coupons };
-    if (path === "/api/admin/coupons/EXCLUSIVE10" && options?.method === "PATCH") {
-      return {
-        coupon: {
-          ...coupon,
-          ...(JSON.parse(options.body as string) as Partial<Coupon>),
-        },
-      };
+    return new Response(JSON.stringify({ message: "Not found" }), { status: 404 });
+  }
+
+  // Delete coupon
+  if (path.match(/^\/api\/admin\/coupons\/[^/]+$/) && method === "DELETE") {
+    if (simulateDeleteError) {
+      return new Response(JSON.stringify({ message: "Coupon could not be deleted" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-    if (path === "/api/admin/coupons/EXCLUSIVE10" && options?.method === "DELETE") {
-      return { ok: true };
+    const code = decodeURIComponent(path.split("/").pop()!);
+    serverCoupons = serverCoupons.filter((c) => c.code !== code);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return Promise.reject(new Error(`Unexpected API call: ${method} ${path}`));
+}) as any;
+
+async function getFetchCall(pathSubstring: string, method: string) {
+  for (const [req, opts] of vi.mocked(globalThis.fetch).mock.calls) {
+    let url = "";
+    let m = "GET";
+    if (typeof req === "string") {
+      url = req;
+      m = opts?.method || "GET";
+    } else if (req instanceof URL) {
+      url = req.toString();
+      m = opts?.method || "GET";
+    } else if (req && typeof req === "object" && "url" in req) {
+      url = req.url;
+      m = req.method;
     }
-    throw new Error(`Unexpected API call: ${path}`);
-  });
+    if (url.includes(pathSubstring) && m.toUpperCase() === method.toUpperCase()) {
+      let body: any = null;
+      if (req instanceof Request) {
+        try {
+          const text = await req.clone().text();
+          if (text) body = JSON.parse(text);
+        } catch (e) {}
+      } else if (opts?.body && typeof opts.body === "string") {
+        try {
+          body = JSON.parse(opts.body);
+        } catch (e) {}
+      }
+      return { url, method: m, body };
+    }
+  }
+  return null;
 }
 
 function renderPage(user: PublicUser | null = admin) {
@@ -74,17 +161,33 @@ function renderPage(user: PublicUser | null = admin) {
     navigate: vi.fn(),
   };
 
-  const view = render(<AdminCouponsPage {...props} />);
-  return { ...props, ...view };
+  const store = configureStore({
+    reducer: {
+      [ecommerceApi.reducerPath]: ecommerceApi.reducer,
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(ecommerceApi.middleware),
+  });
+
+  const view = render(
+    <Provider store={store}>
+      <AdminCouponsPage {...props} />
+    </Provider>
+  );
+  return { ...props, ...view, store };
 }
 
 describe("AdminCouponsPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    serverCoupons = [coupon, fixedCoupon];
+    simulateDeleteError = false;
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
+    serverCoupons = [coupon, fixedCoupon];
+    simulateDeleteError = false;
     vi.restoreAllMocks();
     cleanup();
   });
@@ -93,14 +196,16 @@ describe("AdminCouponsPage", () => {
     renderPage(customer);
 
     expect(screen.getByText(/Admin access required/i)).toBeDefined();
-    expect(mockedApi).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("loads and renders coupon rows for admins", async () => {
-    mockCouponApi();
     renderPage();
 
-    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith("/api/admin/coupons"));
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/admin/coupons", "GET");
+      expect(call).toBeTruthy();
+    });
     const row = (await screen.findByText("EXCLUSIVE10")).closest("article");
     expect(row).toBeTruthy();
     expect(within(row as HTMLElement).getByText("10% off")).toBeDefined();
@@ -111,7 +216,7 @@ describe("AdminCouponsPage", () => {
 
   it("creates a fixed inactive coupon and renders the returned row", async () => {
     const actor = userEvent.setup();
-    mockCouponApi([]);
+    serverCoupons = [];
     renderPage();
 
     await actor.type(await screen.findByLabelText(/Code/i), "vip25");
@@ -121,16 +226,13 @@ describe("AdminCouponsPage", () => {
     await actor.click(screen.getByLabelText(/Active at checkout/i));
     await actor.click(screen.getByRole("button", { name: /Create Coupon/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/coupons",
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
-    const createCall = mockedApi.mock.calls.find(
-      ([path, options]) => path === "/api/admin/coupons" && options?.method === "POST",
-    );
-    expect(JSON.parse(createCall?.[1]?.body as string)).toEqual({
+    let body: any = null;
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/admin/coupons", "POST");
+      expect(call).toBeTruthy();
+      body = call?.body;
+    });
+    expect(body).toEqual({
       code: "VIP25",
       type: "fixed",
       amount: 25,
@@ -143,7 +245,7 @@ describe("AdminCouponsPage", () => {
 
   it("edits a coupon and updates the row", async () => {
     const actor = userEvent.setup();
-    mockCouponApi([coupon]);
+    serverCoupons = [coupon];
     renderPage();
 
     const row = (await screen.findByText("EXCLUSIVE10")).closest("article");
@@ -154,16 +256,13 @@ describe("AdminCouponsPage", () => {
     await actor.click(screen.getByLabelText(/Active at checkout/i));
     await actor.click(screen.getByRole("button", { name: /Update Coupon/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/coupons/EXCLUSIVE10",
-        expect.objectContaining({ method: "PATCH" }),
-      ),
-    );
-    const patchCall = mockedApi.mock.calls.find(
-      ([path, options]) => path === "/api/admin/coupons/EXCLUSIVE10" && options?.method === "PATCH",
-    );
-    expect(JSON.parse(patchCall?.[1]?.body as string)).toMatchObject({
+    let body: any = null;
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/admin/coupons/EXCLUSIVE10", "PATCH");
+      expect(call).toBeTruthy();
+      body = call?.body;
+    });
+    expect(body).toMatchObject({
       code: "EXCLUSIVE10",
       amount: 15,
       active: false,
@@ -173,31 +272,24 @@ describe("AdminCouponsPage", () => {
 
   it("deletes a coupon on success", async () => {
     const actor = userEvent.setup();
-    mockCouponApi([coupon]);
+    serverCoupons = [coupon];
     renderPage();
 
     const row = (await screen.findByText("EXCLUSIVE10")).closest("article");
     expect(row).toBeTruthy();
     await actor.click(within(row as HTMLElement).getByRole("button", { name: /Delete/i }));
 
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/admin/coupons/EXCLUSIVE10",
-        expect.objectContaining({ method: "DELETE" }),
-      ),
-    );
+    await waitFor(async () => {
+      const call = await getFetchCall("/api/admin/coupons/EXCLUSIVE10", "DELETE");
+      expect(call).toBeTruthy();
+    });
     expect(screen.queryByText("EXCLUSIVE10")).toBeNull();
   });
 
   it("keeps a coupon visible when delete fails", async () => {
     const actor = userEvent.setup();
-    mockedApi.mockImplementation(async (path, options) => {
-      if (path === "/api/admin/coupons") return { coupons: [coupon] };
-      if (path === "/api/admin/coupons/EXCLUSIVE10" && options?.method === "DELETE") {
-        throw new ApiError("Coupon could not be deleted", 400);
-      }
-      throw new Error(`Unexpected API call: ${path}`);
-    });
+    simulateDeleteError = true;
+    serverCoupons = [coupon];
     renderPage();
 
     const row = (await screen.findByText("EXCLUSIVE10")).closest("article");

@@ -1,6 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { API_BASE } from "./client";
 import type {
+  AdminCategoryInput,
+  AdminCategoryResponse,
+  AdminCouponInput,
+  AdminCouponListResponse,
+  AdminCouponResponse,
   AdminOrder,
   AdminOrdersResponse,
   AdminProductInput,
@@ -116,7 +121,7 @@ const loggingBaseQuery: typeof customBaseQuery = async (args, api, extraOptions)
 export const ecommerceApi = createApi({
   reducerPath: "ecommerceApi",
   baseQuery: loggingBaseQuery,
-  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders", "AdminProducts", "AdminProductVariants"],
+  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders", "AdminProducts", "AdminProductVariants", "AdminCoupons"],
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
       query: () => "/api/products",
@@ -266,6 +271,56 @@ export const ecommerceApi = createApi({
       }),
       invalidatesTags: ["AdminProductVariants"],
     }),
+    createAdminCategory: builder.mutation<AdminCategoryResponse, AdminCategoryInput>({
+      query: (body) => ({
+        url: "/api/admin/categories",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Catalog"],
+    }),
+    updateAdminCategory: builder.mutation<AdminCategoryResponse, { id: string; updates: Partial<AdminCategoryInput> }>({
+      query: ({ id, updates }) => ({
+        url: `/api/admin/categories/${encodeURIComponent(id)}`,
+        method: "PATCH",
+        body: updates,
+      }),
+      invalidatesTags: ["Catalog"],
+    }),
+    deleteAdminCategory: builder.mutation<{ ok: true }, string>({
+      query: (id) => ({
+        url: `/api/admin/categories/${encodeURIComponent(id)}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Catalog"],
+    }),
+    getAdminCoupons: builder.query<AdminCouponListResponse, void>({
+      query: () => "/api/admin/coupons",
+      providesTags: ["AdminCoupons"],
+    }),
+    createAdminCoupon: builder.mutation<AdminCouponResponse, AdminCouponInput>({
+      query: (body) => ({
+        url: "/api/admin/coupons",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["AdminCoupons"],
+    }),
+    updateAdminCoupon: builder.mutation<AdminCouponResponse, { code: string; updates: Partial<AdminCouponInput> }>({
+      query: ({ code, updates }) => ({
+        url: `/api/admin/coupons/${encodeURIComponent(code)}`,
+        method: "PATCH",
+        body: updates,
+      }),
+      invalidatesTags: ["AdminCoupons"],
+    }),
+    deleteAdminCoupon: builder.mutation<{ ok: true }, string>({
+      query: (code) => ({
+        url: `/api/admin/coupons/${encodeURIComponent(code)}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["AdminCoupons"],
+    }),
   }),
 });
 
@@ -300,4 +355,11 @@ export const {
   useUpdateAdminOrderMutation,
   useUpdateCartItemMutation,
   useUpdateProfileMutation,
+  useCreateAdminCategoryMutation,
+  useUpdateAdminCategoryMutation,
+  useDeleteAdminCategoryMutation,
+  useGetAdminCouponsQuery,
+  useCreateAdminCouponMutation,
+  useUpdateAdminCouponMutation,
+  useDeleteAdminCouponMutation,
 } = ecommerceApi;

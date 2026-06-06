@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Edit3, Plus, RefreshCw, Save, Tag, Trash2, X } from "lucide-react";
-import { api } from "../api/client";
+import {
+  useCreateAdminCouponMutation,
+  useDeleteAdminCouponMutation,
+  useGetAdminCouponsQuery,
+  useUpdateAdminCouponMutation,
+} from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getErrorMessage } from "../lib/errors";
+import { getRtkErrorMessage } from "../lib/rtkErrors";
 import { formatMoney } from "../lib/format";
 import type {
   AdminCouponInput,
-  AdminCouponListResponse,
   AdminCouponResponse,
   AsyncState,
   Coupon,
@@ -58,43 +62,33 @@ function formatCouponValue(coupon: Coupon) {
 }
 
 export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps) {
-  const [couponsState, setCouponsState] = useState<AsyncState<Coupon[]>>({
-    data: [],
-    loading: false,
-    error: "",
+  const {
+    data: couponsData,
+    isLoading: couponsLoading,
+    error: couponsError,
+    refetch: refetchCoupons,
+  } = useGetAdminCouponsQuery(undefined, {
+    skip: userState.data?.role !== "admin",
   });
+
+  const [createAdminCoupon, { isLoading: createSaving }] = useCreateAdminCouponMutation();
+  const [updateAdminCoupon, { isLoading: updateSaving }] = useUpdateAdminCouponMutation();
+  const [deleteAdminCoupon] = useDeleteAdminCouponMutation();
+
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [draft, setDraft] = useState<CouponDraft>(emptyDraft);
-  const [saving, setSaving] = useState(false);
   const [deletingCode, setDeletingCode] = useState("");
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
-  const canLoadCoupons = userState.data?.role === "admin";
-
-  const loadCoupons = useCallback(async () => {
-    if (!canLoadCoupons) return;
-    setCouponsState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<AdminCouponListResponse>("/api/admin/coupons");
-      setCouponsState({ data: data.coupons, loading: false, error: "" });
-    } catch (error) {
-      setCouponsState((current) => ({
-        ...current,
-        loading: false,
-        error: getErrorMessage(error),
-      }));
-    }
-  }, [canLoadCoupons]);
-
-  useEffect(() => {
-    loadCoupons();
-  }, [loadCoupons]);
+  const couponsList = couponsData?.coupons ?? [];
+  const couponsErrorMsg = couponsError ? getRtkErrorMessage(couponsError) : "";
+  const saving = createSaving || updateSaving;
 
   const couponStats = useMemo(() => {
-    const active = couponsState.data.filter((coupon) => coupon.active).length;
-    return { active, inactive: couponsState.data.length - active };
-  }, [couponsState.data]);
+    const active = couponsList.filter((coupon) => coupon.active).length;
+    return { active, inactive: couponsList.length - active };
+  }, [couponsList]);
 
   const startCreate = () => {
     setEditingCode(null);
@@ -112,31 +106,21 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
 
   const submitCoupon = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSaving(true);
     setFormError("");
     setFormSuccess("");
     try {
       const payload = draftToPayload(draft);
-      const path = editingCode
-        ? `/api/admin/coupons/${encodeURIComponent(editingCode)}`
-        : "/api/admin/coupons";
-      const data = await api<AdminCouponResponse>(path, {
-        method: editingCode ? "PATCH" : "POST",
-        body: JSON.stringify(payload),
-      });
-      setCouponsState((current) => {
-        const withoutPrevious = current.data.filter(
-          (coupon) => coupon.code !== editingCode && coupon.code !== data.coupon.code,
-        );
-        return { ...current, data: [data.coupon, ...withoutPrevious] };
-      });
+      let data: AdminCouponResponse;
+      if (editingCode) {
+        data = await updateAdminCoupon({ code: editingCode, updates: payload }).unwrap();
+      } else {
+        data = await createAdminCoupon(payload).unwrap();
+      }
       setEditingCode(data.coupon.code);
       setDraft(couponToDraft(data.coupon));
       setFormSuccess(editingCode ? "Coupon updated." : "Coupon created.");
     } catch (error) {
-      setFormError(getErrorMessage(error));
-    } finally {
-      setSaving(false);
+      setFormError(getRtkErrorMessage(error));
     }
   };
 
@@ -146,17 +130,11 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
     setFormError("");
     setFormSuccess("");
     try {
-      await api(`/api/admin/coupons/${encodeURIComponent(coupon.code)}`, {
-        method: "DELETE",
-      });
-      setCouponsState((current) => ({
-        ...current,
-        data: current.data.filter((item) => item.code !== coupon.code),
-      }));
+      await deleteAdminCoupon(coupon.code).unwrap();
       if (editingCode === coupon.code) startCreate();
       setFormSuccess("Coupon deleted.");
     } catch (error) {
-      setFormError(getErrorMessage(error));
+      setFormError(getRtkErrorMessage(error));
     } finally {
       setDeletingCode("");
     }
@@ -220,31 +198,31 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
       </section>
 
       <section className="admin-orders-toolbar" aria-label="Coupon tools">
-        <Button onClick={loadCoupons} disabled={couponsState.loading}>
+        <Button onClick={refetchCoupons} disabled={couponsLoading}>
           <RefreshCw size={16} />
-          {couponsState.loading ? "Refreshing" : "Refresh"}
+          {couponsLoading ? "Refreshing" : "Refresh"}
         </Button>
         <Button onClick={startCreate}>
           <Plus size={16} />
           New Coupon
         </Button>
-        <span className="admin-catalog-count">{couponsState.data.length} coupons</span>
+        <span className="admin-catalog-count">{couponsList.length} coupons</span>
         <span className="admin-catalog-count">{couponStats.active} active</span>
         <span className="admin-catalog-count">{couponStats.inactive} inactive</span>
       </section>
 
-      {couponsState.error && (
-        <p className="form-status form-status--error">{couponsState.error}</p>
+      {couponsErrorMsg && (
+        <p className="form-status form-status--error">{couponsErrorMsg}</p>
       )}
       {formError && <p className="form-status form-status--error">{formError}</p>}
       {formSuccess && <p className="form-status form-status--success">{formSuccess}</p>}
 
       <section className="admin-catalog-layout">
         <div className="admin-catalog-list" aria-label="Admin coupon list">
-          {!couponsState.loading && !couponsState.error && !couponsState.data.length && (
+          {!couponsLoading && !couponsErrorMsg && !couponsList.length && (
             <p className="admin-orders-empty">No coupons are configured.</p>
           )}
-          {couponsState.data.map((coupon) => (
+          {couponsList.map((coupon) => (
             <article className="admin-catalog-row admin-coupon-row" key={coupon.code}>
               <div className="admin-catalog-row__main">
                 <strong>{coupon.code}</strong>

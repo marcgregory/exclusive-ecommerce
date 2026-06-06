@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Edit3, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
-import { api } from "../api/client";
+import {
+  useCreateAdminCategoryMutation,
+  useDeleteAdminCategoryMutation,
+  useGetCategoriesQuery,
+  useUpdateAdminCategoryMutation,
+} from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getErrorMessage } from "../lib/errors";
+import { getRtkErrorMessage } from "../lib/rtkErrors";
 import type {
   AdminCategoryInput,
   AdminCategoryResponse,
-  AdminCategoryListResponse,
   AsyncState,
   Category,
   Navigate,
@@ -75,39 +79,29 @@ function draftToPayload(draft: CategoryDraft): AdminCategoryInput {
 }
 
 export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPageProps) {
-  const [categoriesState, setCategoriesState] = useState<AsyncState<Category[]>>({
-    data: [],
-    loading: false,
-    error: "",
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    refetch: refetchCategories,
+  } = useGetCategoriesQuery(undefined, {
+    skip: userState.data?.role !== "admin",
   });
+
+  const [createAdminCategory, { isLoading: createSaving }] = useCreateAdminCategoryMutation();
+  const [updateAdminCategory, { isLoading: updateSaving }] = useUpdateAdminCategoryMutation();
+  const [deleteAdminCategory] = useDeleteAdminCategoryMutation();
+
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [draft, setDraft] = useState<CategoryDraft>(emptyDraft);
   const [slugEdited, setSlugEdited] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
-  const canLoadCategories = userState.data?.role === "admin";
-
-  const loadCategories = useCallback(async () => {
-    if (!canLoadCategories) return;
-    setCategoriesState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<AdminCategoryListResponse>("/api/categories");
-      setCategoriesState({ data: data.categories, loading: false, error: "" });
-    } catch (error) {
-      setCategoriesState((current) => ({
-        ...current,
-        loading: false,
-        error: getErrorMessage(error),
-      }));
-    }
-  }, [canLoadCategories]);
-
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+  const categoriesList = categoriesData?.categories ?? [];
+  const categoriesErrorMsg = categoriesError ? getRtkErrorMessage(categoriesError) : "";
+  const saving = createSaving || updateSaving;
 
   const startCreate = () => {
     setEditingCategoryId(null);
@@ -127,37 +121,22 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
 
   const submitCategory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSaving(true);
     setFormError("");
     setFormSuccess("");
     try {
       const payload = draftToPayload(draft);
-      const path = editingCategoryId
-        ? `/api/admin/categories/${editingCategoryId}`
-        : "/api/admin/categories";
-      const data = await api<AdminCategoryResponse>(path, {
-        method: editingCategoryId ? "PATCH" : "POST",
-        body: JSON.stringify(payload),
-      });
-      setCategoriesState((current) => {
-        const exists = current.data.some((category) => category.id === data.category.id);
-        return {
-          ...current,
-          data: exists
-            ? current.data.map((category) =>
-                category.id === data.category.id ? data.category : category,
-              )
-            : [...current.data, data.category],
-        };
-      });
+      let data: AdminCategoryResponse;
+      if (editingCategoryId) {
+        data = await updateAdminCategory({ id: editingCategoryId, updates: payload }).unwrap();
+      } else {
+        data = await createAdminCategory(payload).unwrap();
+      }
       setEditingCategoryId(data.category.id);
       setDraft(categoryToDraft(data.category));
       setSlugEdited(true);
       setFormSuccess(editingCategoryId ? "Category updated." : "Category created.");
     } catch (error) {
-      setFormError(getErrorMessage(error));
-    } finally {
-      setSaving(false);
+      setFormError(getRtkErrorMessage(error));
     }
   };
 
@@ -167,15 +146,11 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
     setFormError("");
     setFormSuccess("");
     try {
-      await api(`/api/admin/categories/${category.id}`, { method: "DELETE" });
-      setCategoriesState((current) => ({
-        ...current,
-        data: current.data.filter((item) => item.id !== category.id),
-      }));
+      await deleteAdminCategory(category.id).unwrap();
       if (editingCategoryId === category.id) startCreate();
       setFormSuccess("Category deleted.");
     } catch (error) {
-      setFormError(getErrorMessage(error));
+      setFormError(getRtkErrorMessage(error));
     } finally {
       setDeletingId("");
     }
@@ -247,29 +222,29 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
       </section>
 
       <section className="admin-orders-toolbar" aria-label="Category tools">
-        <Button onClick={loadCategories} disabled={categoriesState.loading}>
+        <Button onClick={refetchCategories} disabled={categoriesLoading}>
           <RefreshCw size={16} />
-          {categoriesState.loading ? "Refreshing" : "Refresh"}
+          {categoriesLoading ? "Refreshing" : "Refresh"}
         </Button>
         <Button onClick={startCreate}>
           <Plus size={16} />
           New Category
         </Button>
-        <span className="admin-catalog-count">{categoriesState.data.length} categories</span>
+        <span className="admin-catalog-count">{categoriesList.length} categories</span>
       </section>
 
-      {categoriesState.error && (
-        <p className="form-status form-status--error">{categoriesState.error}</p>
+      {categoriesErrorMsg && (
+        <p className="form-status form-status--error">{categoriesErrorMsg}</p>
       )}
       {formError && <p className="form-status form-status--error">{formError}</p>}
       {formSuccess && <p className="form-status form-status--success">{formSuccess}</p>}
 
       <section className="admin-catalog-layout">
         <div className="admin-catalog-list" aria-label="Admin category list">
-          {!categoriesState.loading && !categoriesState.error && !categoriesState.data.length && (
+          {!categoriesLoading && !categoriesErrorMsg && !categoriesList.length && (
             <p className="admin-orders-empty">No categories are configured.</p>
           )}
-          {categoriesState.data.map((category) => (
+          {categoriesList.map((category) => (
             <article className="admin-catalog-row" key={category.id}>
               <div className="admin-catalog-row__main">
                 <strong>{category.label}</strong>
@@ -343,7 +318,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
               Parent
               <select value={draft.parentId} onChange={(event) => updateDraft("parentId", event.target.value)}>
                 <option value="">No parent</option>
-                {categoriesState.data
+                {categoriesList
                   .filter((category) => category.id !== editingCategoryId)
                   .map((category) => (
                     <option key={category.id} value={category.id}>

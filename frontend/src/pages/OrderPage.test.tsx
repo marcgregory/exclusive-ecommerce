@@ -5,13 +5,23 @@ import userEvent from "@testing-library/user-event";
 import { OrderPage } from "./OrderPage";
 import type { Order } from "../types";
 
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api, ApiError } from "../api/client";
+const apiMocks = vi.hoisted(() => ({
+  getOrderDetail: vi.fn(),
+}));
 
-const mockedApi = vi.mocked(api);
+vi.mock("../api/ecommerceApi", () => ({
+  useGetOrderDetailQuery: (id: string, options?: { skip?: boolean }) => {
+    if (options?.skip) {
+      return {
+        data: undefined,
+        error: undefined,
+        isLoading: false,
+        refetch: vi.fn(),
+      };
+    }
+    return apiMocks.getOrderDetail(id);
+  },
+}));
 
 const baseOrder: Order = {
   id: "order-1",
@@ -68,7 +78,7 @@ function renderPage(overrides: Partial<Parameters<typeof OrderPage>[0]> = {}) {
 
 describe("OrderPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    apiMocks.getOrderDetail.mockReset();
   });
 
   afterEach(() => {
@@ -77,6 +87,12 @@ describe("OrderPage", () => {
 
   it("shows guest state", async () => {
     const navigate = vi.fn();
+    apiMocks.getOrderDetail.mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
     renderPage({ authStatus: "guest", navigate });
 
     expect(screen.getByText(/Sign in to view this order/i)).toBeDefined();
@@ -84,28 +100,46 @@ describe("OrderPage", () => {
       screen.getByRole("button", { name: /Sign In or Register/i }),
     );
     expect(navigate).toHaveBeenCalledWith("/account");
-    expect(mockedApi).not.toHaveBeenCalled();
   });
 
   it("shows loading state", () => {
-    mockedApi.mockReturnValue(new Promise(() => {}));
+    apiMocks.getOrderDetail.mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: true,
+      refetch: vi.fn(),
+    });
     renderPage();
 
     expect(screen.getByText(/Loading order/i)).toBeDefined();
   });
 
   it("shows a request error state", async () => {
-    mockedApi.mockRejectedValue(new Error("Order service unavailable"));
+    const refetch = vi.fn();
+    apiMocks.getOrderDetail.mockReturnValue({
+      data: undefined,
+      error: { data: { message: "Order service unavailable" } },
+      isLoading: false,
+      refetch,
+    });
     renderPage();
 
     expect(
       await screen.findByText(/We could not load this order/i),
     ).toBeDefined();
     expect(screen.getByText(/Order service unavailable/i)).toBeDefined();
+    
+    await userEvent.click(screen.getByRole("button", { name: /Try Again/i }));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it("shows not-found state", async () => {
-    mockedApi.mockRejectedValue(new ApiError("Missing order", 404));
+    apiMocks.getOrderDetail.mockReturnValue({
+      data: undefined,
+      error: { status: 404, data: { message: "Missing order" } },
+      isLoading: false,
+      refetch: vi.fn(),
+    });
     renderPage();
 
     expect(await screen.findByText(/Order not found/i)).toBeDefined();
@@ -115,7 +149,12 @@ describe("OrderPage", () => {
   });
 
   it("renders order items, billing, and totals", async () => {
-    mockedApi.mockResolvedValue({ order: baseOrder });
+    apiMocks.getOrderDetail.mockReturnValue({
+      data: { order: baseOrder },
+      error: undefined,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
     renderPage();
 
     expect(await screen.findByText(/Thanks for your purchase/i)).toBeDefined();
@@ -133,20 +172,24 @@ describe("OrderPage", () => {
     expect(screen.getByText(/123 Maple Drive/i)).toBeDefined();
     expect(screen.getByText(/Apt 4/i)).toBeDefined();
     expect(screen.getByText(/jane@example.com/i)).toBeDefined();
-    await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith("/api/orders/order-1"),
-    );
   });
 
   it("shows payment received only for shipped orders", async () => {
-    mockedApi.mockResolvedValueOnce({ order: baseOrder });
+    apiMocks.getOrderDetail.mockReturnValueOnce({
+      data: { order: baseOrder },
+      error: undefined,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
     const { rerender } = renderPage();
 
     expect(await screen.findByText(/Payment received/i)).toBeDefined();
 
-    mockedApi.mockReset();
-    mockedApi.mockResolvedValueOnce({
-      order: { ...baseOrder, status: "pending" },
+    apiMocks.getOrderDetail.mockReturnValueOnce({
+      data: { order: { ...baseOrder, status: "pending" } },
+      error: undefined,
+      isLoading: false,
+      refetch: vi.fn(),
     });
     rerender(
       <OrderPage authStatus="authenticated" id="order-2" navigate={vi.fn()} />,

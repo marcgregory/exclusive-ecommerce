@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { api } from "../api/client";
+import { useGetOrdersQuery } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { FormField } from "../components/FormField";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
-import type { AsyncState, AuthResponse, Navigate, Order, OrdersResponse, PublicUser } from "../types";
+import { getRtkErrorMessage } from "../lib/rtkErrors";
+import type { AsyncState, AuthResponse, Navigate, PublicUser } from "../types";
 
 type AccountPageProps = {
   userState: AsyncState<PublicUser | null>;
@@ -58,7 +60,19 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
   const [authStatusIsError, setAuthStatusIsError] = useState(false);
   const [profileStatus, setProfileStatus] = useState("");
   const [profileStatusIsError, setProfileStatusIsError] = useState(false);
-  const [ordersState, setOrdersState] = useState<AsyncState<Order[]>>({ data: [], loading: false, error: "" });
+  
+  const {
+    data: ordersData,
+    isLoading: ordersLoading,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useGetOrdersQuery(undefined, {
+    skip: !userState.data,
+  });
+
+  const orders = ordersData?.orders ?? [];
+  const ordersErrorMessage = ordersError ? getRtkErrorMessage(ordersError) : "";
+
   const authForm = useForm<AuthFormInput, unknown, AuthForm>({
     resolver: zodResolver(authSchema),
     defaultValues: { firstName: "", lastName: "", email: "", password: "", confirmPassword: "", address: "" },
@@ -66,24 +80,6 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
   const profileForm = useForm<ProfileFormInput, unknown, ProfileForm>({
     resolver: zodResolver(profileSchema),
   });
-
-  const loadOrders = useCallback(async () => {
-    if (!userState.data) {
-      setOrdersState({ data: [], loading: false, error: "" });
-      return;
-    }
-    setOrdersState((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<OrdersResponse>("/api/orders");
-      setOrdersState({ data: data.orders, loading: false, error: "" });
-    } catch (error) {
-      setOrdersState((current) => ({ ...current, loading: false, error: getErrorMessage(error) }));
-    }
-  }, [userState.data]);
-
-  useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
 
   const submitAuth = authForm.handleSubmit(async (payload) => {
     const endpoint = authMode === "login" ? "/api/auth/login" : "/api/auth/register";
@@ -218,13 +214,13 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
           <section className="profile-card order-history">
             <div className="order-history__header">
               <h2>Order History</h2>
-              <Button variant="ghost" onClick={loadOrders} disabled={ordersState.loading}>{ordersState.loading ? "Refreshing..." : "Refresh"}</Button>
+              <Button variant="ghost" onClick={() => refetchOrders()} disabled={ordersLoading}>{ordersLoading ? "Refreshing..." : "Refresh"}</Button>
             </div>
-            {ordersState.error && <p className="form-status form-status--error">{ordersState.error}</p>}
-            {!ordersState.loading && !ordersState.error && !ordersState.data.length && (
+            {ordersErrorMessage && <p className="form-status form-status--error">{ordersErrorMessage}</p>}
+            {!ordersLoading && !ordersErrorMessage && !orders.length && (
               <p className="order-history__empty">Orders you place will appear here.</p>
             )}
-            {ordersState.data.map((order) => (
+            {orders.map((order) => (
               <article className="order-history__row" key={order.id}>
                 <div>
                   <strong>{order.id}</strong>

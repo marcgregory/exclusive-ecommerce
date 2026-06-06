@@ -11,6 +11,8 @@ import type { Cart, Navigate, Order, PublicUser } from "../types";
 const apiMocks = vi.hoisted(() => ({
   createOrder: vi.fn(),
   createPayment: vi.fn(),
+  getOrderDetail: vi.fn(),
+  getOrders: vi.fn(),
 }));
 
 vi.mock("../api/client", () => ({
@@ -28,6 +30,28 @@ vi.mock("../api/client", () => ({
 vi.mock("../api/ecommerceApi", () => ({
   useCreateOrderMutation: () => [apiMocks.createOrder],
   useCreatePaymentMutation: () => [apiMocks.createPayment],
+  useGetOrderDetailQuery: (id: string, options?: { skip?: boolean }) => {
+    if (options?.skip) {
+      return {
+        data: undefined,
+        error: undefined,
+        isLoading: false,
+        refetch: vi.fn(),
+      };
+    }
+    return apiMocks.getOrderDetail(id);
+  },
+  useGetOrdersQuery: (arg: undefined, options?: { skip?: boolean }) => {
+    if (options?.skip) {
+      return {
+        data: undefined,
+        isLoading: false,
+        error: undefined,
+        refetch: vi.fn(),
+      };
+    }
+    return apiMocks.getOrders();
+  },
 }));
 import { api } from "../api/client";
 
@@ -140,7 +164,26 @@ describe("checkout to order history flow", () => {
 
     apiMocks.createOrder.mockReset();
     apiMocks.createPayment.mockReset();
+    apiMocks.getOrderDetail.mockReset();
+    apiMocks.getOrders.mockReset();
     mockedApi.mockReset();
+    
+    apiMocks.getOrderDetail.mockImplementation((id: string) => ({
+      data: orders.find((order) => order.id === id)
+        ? { order: orders.find((order) => order.id === id)! }
+        : undefined,
+      error: undefined,
+      isLoading: false,
+      refetch: vi.fn(),
+    }));
+    
+    apiMocks.getOrders.mockImplementation(() => ({
+      data: { orders },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    }));
+    
     apiMocks.createOrder.mockImplementation((payload: MockCreateOrderInput) => ({
       unwrap: async () => {
         const order: Order = {

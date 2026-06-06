@@ -5,6 +5,24 @@ import userEvent from "@testing-library/user-event";
 import { AccountPage } from "./AccountPage";
 import type { Order, PublicUser } from "../types";
 
+const apiMocks = vi.hoisted(() => ({
+  getOrders: vi.fn(),
+}));
+
+vi.mock("../api/ecommerceApi", () => ({
+  useGetOrdersQuery: (arg: undefined, options?: { skip?: boolean }) => {
+    if (options?.skip) {
+      return {
+        data: undefined,
+        isLoading: false,
+        error: undefined,
+        refetch: vi.fn(),
+      };
+    }
+    return apiMocks.getOrders();
+  },
+}));
+
 vi.mock("../api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api/client")>();
   return { ...actual, api: vi.fn() };
@@ -69,6 +87,7 @@ function renderPage(overrides: Partial<Parameters<typeof AccountPage>[0]> = {}) 
 describe("AccountPage", () => {
   beforeEach(() => {
     mockedApi.mockReset();
+    apiMocks.getOrders.mockReset();
   });
 
   afterEach(() => {
@@ -76,38 +95,71 @@ describe("AccountPage", () => {
   });
 
   it("shows a guest sign-in state", () => {
+    apiMocks.getOrders.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
     renderPage({ userState: { data: null, loading: false, error: "" } });
 
     expect(screen.getByText(/Sign in to continue/i)).toBeDefined();
     expect(screen.getByRole("heading", { level: 2, name: /Sign In/i })).toBeDefined();
     expect(screen.getByLabelText(/Email/i)).toBeDefined();
     expect(screen.getByLabelText(/Password/i)).toBeDefined();
-    expect(mockedApi).not.toHaveBeenCalled();
   });
 
   it("renders the authenticated profile", async () => {
-    mockedApi.mockResolvedValue({ orders: [] });
+    apiMocks.getOrders.mockReturnValue({
+      data: { orders: [] },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
     renderPage();
 
     expect(screen.getByText(/Welcome!/i)).toBeDefined();
     expect(screen.getByDisplayValue("Jane")).toBeDefined();
     expect(screen.getByDisplayValue("Doe")).toBeDefined();
     expect(screen.getByDisplayValue("jane@example.com")).toBeDefined();
-    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith("/api/orders"));
   });
 
   it("shows order history loading and error states", async () => {
-    mockedApi.mockRejectedValue(new Error("Orders unavailable"));
-    renderPage();
+    apiMocks.getOrders.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: undefined,
+      refetch: vi.fn(),
+    });
+    const { rerender } = renderPage();
 
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Refreshing/i })).toBeDefined(),
+    expect(screen.getByRole("button", { name: /Refreshing/i })).toBeDefined();
+
+    apiMocks.getOrders.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: { data: { message: "Orders unavailable" } },
+      refetch: vi.fn(),
+    });
+    rerender(
+      <AccountPage
+        userState={{ data: user, loading: false, error: "" }}
+        onAuthChanged={vi.fn()}
+        onUserRefresh={vi.fn().mockResolvedValue(undefined)}
+        navigate={vi.fn()}
+      />,
     );
-    expect(await screen.findByText(/Orders unavailable/i)).toBeDefined();
+
+    expect(screen.getByText(/Orders unavailable/i)).toBeDefined();
   });
 
   it("renders past orders", async () => {
-    mockedApi.mockResolvedValue({ orders: [order] });
+    apiMocks.getOrders.mockReturnValue({
+      data: { orders: [order] },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
     renderPage();
 
     expect(await screen.findByText("order-1")).toBeDefined();
@@ -119,7 +171,12 @@ describe("AccountPage", () => {
 
   it("navigates to order details", async () => {
     const navigate = vi.fn();
-    mockedApi.mockResolvedValue({ orders: [order] });
+    apiMocks.getOrders.mockReturnValue({
+      data: { orders: [order] },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
     renderPage({ navigate });
 
     await userEvent.click(
@@ -137,9 +194,13 @@ describe("AccountPage", () => {
       address: "456 Oak Street",
     };
     const onAuthChanged = vi.fn();
-    mockedApi
-      .mockResolvedValueOnce({ orders: [] })
-      .mockResolvedValueOnce({ user: updatedUser });
+    apiMocks.getOrders.mockReturnValue({
+      data: { orders: [] },
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
+    mockedApi.mockResolvedValueOnce({ user: updatedUser });
     renderPage({ onAuthChanged });
 
     await userEvent.clear(screen.getByLabelText(/First Name/i));

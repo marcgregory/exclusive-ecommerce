@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
-import { api, ApiError } from "../api/client";
+import { useGetOrderDetailQuery } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { formatMoney } from "../lib/format";
-import { getErrorMessage } from "../lib/errors";
-import type { AuthStatus, Navigate, Order, OrderResponse } from "../types";
+import { getRtkErrorMessage, getRtkStatus } from "../lib/rtkErrors";
+import type { AuthStatus, Navigate } from "../types";
 
 type OrderPageProps = {
   authStatus: AuthStatus;
@@ -26,35 +25,20 @@ function formatStatus(value: string) {
 }
 
 export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [notFound, setNotFound] = useState(false);
+  const {
+    data,
+    error,
+    isLoading,
+    refetch,
+  } = useGetOrderDetailQuery(id ?? "", {
+    skip: authStatus !== "authenticated" || !id,
+  });
 
-  const loadOrder = useCallback(async () => {
-    if (authStatus !== "authenticated" || !id) return;
-    setLoading(true);
-    setError("");
-    setNotFound(false);
-    try {
-      const data = await api<OrderResponse>(`/api/orders/${id}`);
-      setOrder(data.order);
-    } catch (requestError) {
-      setOrder(null);
-      setNotFound(
-        requestError instanceof ApiError && requestError.status === 404,
-      );
-      setError(getErrorMessage(requestError));
-    } finally {
-      setLoading(false);
-    }
-  }, [authStatus, id]);
+  const order = data?.order ?? null;
+  const notFound = getRtkStatus(error) === 404;
+  const errorMessage = error ? getRtkErrorMessage(error) : "";
 
-  useEffect(() => {
-    loadOrder();
-  }, [loadOrder]);
-
-  if (authStatus === "checking" || loading) {
+  if (authStatus === "checking" || isLoading) {
     return (
       <main className="container page">
         <LoadingState
@@ -105,14 +89,14 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
     );
   }
 
-  if (error || !order) {
+  if (errorMessage || !order) {
     return (
       <main className="container page">
         <Breadcrumbs items={["Home", "Orders"]} />
         <ErrorState
           title="We could not load this order"
-          message={error}
-          action={{ label: "Try Again", onClick: loadOrder }}
+          message={errorMessage}
+          action={{ label: "Try Again", onClick: () => refetch() }}
           secondaryAction={{
             label: "View Account",
             onClick: () => navigate("/account"),

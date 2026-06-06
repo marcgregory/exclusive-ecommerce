@@ -5,6 +5,7 @@ import type {
   CategoriesResponse,
   MeResponse,
   OrderResponse,
+  OrdersResponse,
   PaymentResponse,
   ProductDetailResponse,
   ProductsResponse,
@@ -45,7 +46,7 @@ export const ecommerceApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Catalog", "Session", "Cart", "Wishlist"],
+  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders"],
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
       query: () => "/api/products",
@@ -97,7 +98,15 @@ export const ecommerceApi = createApi({
     }),
     createOrder: builder.mutation<OrderResponse, CreateOrderInput>({
       query: (body) => ({ url: "/api/orders", method: "POST", body }),
-      invalidatesTags: ["Cart"],
+      invalidatesTags: ["Cart", "Orders"],
+    }),
+    getOrders: builder.query<OrdersResponse, void>({
+      query: () => "/api/orders",
+      providesTags: ["Orders"],
+    }),
+    getOrderDetail: builder.query<OrderResponse, string>({
+      query: (id) => `/api/orders/${encodeURIComponent(id)}`,
+      providesTags: ["Orders"],
     }),
     createPayment: builder.mutation<PaymentResponse, CreatePaymentInput>({
       query: (body) => ({ url: "/api/payments", method: "POST", body }),
@@ -120,6 +129,8 @@ export const {
   useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,
+  useGetOrderDetailQuery,
+  useGetOrdersQuery,
   useGetProductDetailQuery,
   useGetProductsQuery,
   useGetWishlistQuery,

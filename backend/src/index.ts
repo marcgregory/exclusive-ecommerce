@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
+import path from "node:path";
 import {
   asyncRoute,
   requireAdmin,
@@ -69,6 +70,10 @@ import { verifyStripeWebhookEvent } from "./payments.js";
 import { createSessionOptions } from "./session-store.js";
 import { getErrorLogFields, logError, logInfo } from "./logger.js";
 import { migrate } from "./migrate.js";
+import {
+  productImageStorage,
+  productImageUploadsRoot,
+} from "./image-storage.js";
 import {
   addCartItemSchema,
   adminCategorySchema,
@@ -179,6 +184,21 @@ app.post(
 app.use(express.json());
 app.use(cookieParser());
 app.use(session(createSessionOptions(config)));
+
+app.use(
+  "/uploads/product-images",
+  express.static(productImageUploadsRoot, {
+    dotfiles: "deny",
+    fallthrough: false,
+    index: false,
+    immutable: true,
+    maxAge: config.isProduction ? "30d" : 0,
+    setHeaders(res) {
+      res.setHeader("x-content-type-options", "nosniff");
+      res.setHeader("content-security-policy", "default-src 'none'; img-src 'self'");
+    },
+  }),
+);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -630,6 +650,33 @@ app.patch(
 );
 
 // Products
+app.post(
+  "/api/admin/uploads/product-image",
+  requireAdmin,
+  adminWriteLimiter,
+  express.raw({
+    type: ["image/jpeg", "image/png", "image/webp"],
+    limit: "5mb",
+  }),
+  asyncRoute(async (req, res) => {
+    const contentType = String(req.headers["content-type"] || "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
+    const originalName =
+      typeof req.headers["x-file-name"] === "string"
+        ? path.basename(req.headers["x-file-name"])
+        : undefined;
+    const upload = await productImageStorage.saveProductImage({
+      buffer: Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0),
+      contentType,
+      originalName,
+    });
+
+    res.status(201).json({ upload });
+  }),
+);
+
 app.get(
   "/api/admin/products",
   requireAdmin,

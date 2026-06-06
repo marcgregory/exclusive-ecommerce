@@ -143,6 +143,17 @@ export type AdminProductResponse = {
   product: Product;
 };
 
+export type ProductImageUploadResponse = {
+  upload: {
+    url: string;
+    key: string;
+    width: number;
+    height: number;
+    contentType: string;
+    size: number;
+  };
+};
+
 export type ProductSort = "featured" | "price-asc" | "price-desc" | "rating";
 
 export const PRODUCT_SORTS: { value: ProductSort; label: string }[] = [

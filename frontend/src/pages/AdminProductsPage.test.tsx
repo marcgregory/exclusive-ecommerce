@@ -74,6 +74,18 @@ function mockAdminApi(products: Product[] = [product]) {
         },
       };
     }
+    if (path === "/api/admin/uploads/product-image" && options.method === "POST") {
+      return {
+        upload: {
+          url: "/uploads/product-images/2026/06/uploaded-keyboard.png",
+          key: "2026/06/uploaded-keyboard.png",
+          width: 800,
+          height: 600,
+          contentType: "image/png",
+          size: 128,
+        },
+      };
+    }
     if (path === "/api/admin/products/product-1" && options.method === "DELETE") {
       return { ok: true };
     }
@@ -151,7 +163,7 @@ describe("AdminProductsPage", () => {
     await actor.type(screen.getByLabelText(/Colors/i), "Black, Cream");
     await actor.type(screen.getByLabelText(/Sizes/i), "S, M");
     await actor.type(screen.getByLabelText(/Flags/i), "flash, best");
-    await actor.type(screen.getByLabelText(/Image key/i), "hoodie");
+    await actor.type(screen.getByLabelText(/Image URL or key/i), "hoodie");
     await actor.click(screen.getByLabelText(/New arrival/i));
     await actor.click(screen.getByRole("button", { name: /Create Product/i }));
 
@@ -179,6 +191,34 @@ describe("AdminProductsPage", () => {
       image: "hoodie",
     });
     expect(await screen.findByText("New Hoodie")).toBeDefined();
+  });
+
+  it("uploads a product image and saves the returned URL in the image field", async () => {
+    const actor = userEvent.setup();
+    mockAdminApi();
+    renderPage();
+
+    await screen.findByLabelText(/Image URL or key/i);
+    const file = new File(["image"], "keyboard.png", { type: "image/png" });
+    await actor.upload(screen.getByLabelText(/Upload image/i), file);
+
+    await waitFor(() =>
+      expect(mockedApi).toHaveBeenCalledWith(
+        "/api/admin/uploads/product-image",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            "Content-Type": "image/png",
+            "X-File-Name": "keyboard.png",
+          }),
+          body: file,
+        }),
+      ),
+    );
+    expect((screen.getByLabelText(/Image URL or key/i) as HTMLInputElement).value).toBe(
+      "/uploads/product-images/2026/06/uploaded-keyboard.png",
+    );
+    expect(screen.getByText(/Image uploaded \(800x600\)/i)).toBeDefined();
   });
 
   it("edits a product and updates the row", async () => {

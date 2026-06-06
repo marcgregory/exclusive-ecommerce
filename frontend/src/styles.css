@@ -1854,9 +1854,79 @@ button {
 }
 
 .admin-catalog-form__wide,
+.admin-catalog-image-field,
 .admin-catalog-check,
 .admin-catalog-form__actions {
   grid-column: 1 / -1;
+}
+
+.admin-catalog-image-field {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--soft);
+}
+
+.admin-catalog-image-field label {
+  color: var(--muted);
+}
+
+.admin-catalog-image-field p {
+  grid-column: 2;
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.admin-catalog-image-preview {
+  grid-row: span 3;
+  width: 120px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.admin-catalog-image-preview .product-visual {
+  width: 104px;
+  height: 86px;
+}
+
+.admin-catalog-upload-button input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.admin-catalog-upload-button span {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-catalog-upload-button input:disabled + span {
+  color: var(--muted);
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .admin-catalog-check {
@@ -2222,6 +2292,18 @@ button {
 .product-visual b {
   position: absolute;
   display: block;
+}
+
+.product-visual--uploaded {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.product-visual--uploaded img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .product-visual--gamepad-red span,
@@ -2647,8 +2729,19 @@ button {
   .admin-order-detail-item,
   .admin-catalog-layout,
   .admin-catalog-row,
-  .admin-catalog-form {
+  .admin-catalog-form,
+  .admin-catalog-image-field {
     grid-template-columns: 1fr;
+  }
+
+  .admin-catalog-image-field p {
+    grid-column: 1;
+  }
+
+  .admin-catalog-image-preview {
+    grid-row: span 1;
+    width: 100%;
+    max-width: 180px;
   }
 
   .admin-catalog-form-card {

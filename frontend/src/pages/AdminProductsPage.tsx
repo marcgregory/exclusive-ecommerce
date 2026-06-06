@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Edit3, Plus, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { Edit3, ImageUp, Plus, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
 import { api } from "../api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
+import { ProductVisual } from "../components/ProductVisual";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
@@ -15,6 +16,7 @@ import type {
   Category,
   Navigate,
   Product,
+  ProductImageUploadResponse,
   PublicUser,
 } from "../types";
 
@@ -125,6 +127,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
@@ -249,6 +252,37 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
     }
   };
 
+  const uploadProductImage = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setUploadingImage(true);
+    setFormError("");
+    setFormSuccess("");
+    try {
+      const data = await api<ProductImageUploadResponse>(
+        "/api/admin/uploads/product-image",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type,
+            "X-File-Name": file.name,
+          },
+          body: file,
+        },
+      );
+      setDraft((current) => ({ ...current, image: data.upload.url }));
+      setFormSuccess(
+        `Image uploaded (${data.upload.width}x${data.upload.height}). Save the product to publish it.`,
+      );
+    } catch (error) {
+      setFormError(getErrorMessage(error));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const deleteProduct = async (product: Product) => {
     if (!window.confirm(`Delete ${product.name}?`)) return;
     setDeletingId(product.id);
@@ -317,7 +351,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
         <div>
           <p className="eyebrow">Admin console</p>
           <h1 className="page-title">Product catalog</h1>
-          <p>Manage product records, merchandising flags, option labels, and image keys.</p>
+          <p>Manage product records, merchandising flags, option labels, and product images.</p>
         </div>
         <div className="admin-catalog-nav" aria-label="Admin sections">
           <Button onClick={() => navigate("/admin/products")}>Products</Button>
@@ -378,7 +412,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
                 <strong>{formatMoney(product.price)}</strong>
                 <span>{product.stockStatus}</span>
                 <span>{product.flags.length ? product.flags.join(", ") : "No flags"}</span>
-                <span>{product.image || "No image key"}</span>
+                <span>{product.image || "No image"}</span>
               </div>
               <div className="admin-catalog-row__actions">
                 <Button variant="ghost" onClick={() => startEdit(product)}>
@@ -469,10 +503,28 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
               Flags
               <input value={draft.flags} onChange={(event) => updateDraft("flags", event.target.value)} placeholder="flash, best" />
             </label>
-            <label>
-              Image key
-              <input value={draft.image} onChange={(event) => updateDraft("image", event.target.value)} placeholder="product-image-key" />
-            </label>
+            <div className="admin-catalog-image-field">
+              <div className="admin-catalog-image-preview">
+                <ProductVisual type={draft.image || "default"} alt={draft.name || "Product image preview"} />
+              </div>
+              <label>
+                Image URL or key
+                <input value={draft.image} onChange={(event) => updateDraft("image", event.target.value)} placeholder="product-image-key or /uploads/product-images/..." />
+              </label>
+              <label className="admin-catalog-upload-button">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={uploadProductImage}
+                  disabled={uploadingImage}
+                />
+                <span>
+                  <ImageUp size={16} />
+                  {uploadingImage ? "Uploading image" : "Upload image"}
+                </span>
+              </label>
+              <p>JPG, PNG, or WebP. 64px minimum, 4096px maximum, 5MB limit.</p>
+            </div>
             <label className="admin-catalog-check">
               <input type="checkbox" checked={draft.isNew} onChange={(event) => updateDraft("isNew", event.target.checked)} />
               New arrival

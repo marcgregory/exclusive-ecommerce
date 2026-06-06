@@ -1,14 +1,20 @@
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it, beforeEach, vi } from "vitest";
+import { afterEach, describe, expect, it, beforeEach, vi, type Mock } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CartPage } from "./CartPage";
 import type { Cart } from "../types";
 
-vi.mock("../api/client", () => ({ api: vi.fn() }));
-import { api } from "../api/client";
+vi.mock("../api/ecommerceApi", () => ({
+  useDeleteCartItemMutation: vi.fn(),
+  useUpdateCartItemMutation: vi.fn(),
+}));
+import { useDeleteCartItemMutation, useUpdateCartItemMutation } from "../api/ecommerceApi";
 
-const mockedApi = vi.mocked(api);
+const mockedUseUpdateCartItemMutation = useUpdateCartItemMutation as unknown as Mock;
+const mockedUseDeleteCartItemMutation = useDeleteCartItemMutation as unknown as Mock;
+let updateCartItem: Mock;
+let deleteCartItem: Mock;
 
 const baseCart: Cart = {
   items: [
@@ -46,7 +52,10 @@ const baseCart: Cart = {
 
 describe("CartPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    updateCartItem = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
+    deleteCartItem = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
+    mockedUseUpdateCartItemMutation.mockReturnValue([updateCartItem, {}]);
+    mockedUseDeleteCartItemMutation.mockReturnValue([deleteCartItem, {}]);
   });
 
   afterEach(() => {
@@ -147,9 +156,8 @@ describe("CartPage", () => {
 
   it("renders cart items and updates quantity via API", async () => {
     const refreshCart = vi.fn();
-    mockedApi.mockResolvedValue({});
 
-    const { container } = render(
+    render(
       <CartPage
         authStatus="authenticated"
         cart={baseCart}
@@ -173,10 +181,7 @@ describe("CartPage", () => {
     const plusButton = row?.querySelectorAll(".quantity button")[1];
     await userEvent.click(plusButton!);
 
-    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith("/api/cart/items/item-1", {
-      method: "PATCH",
-      body: JSON.stringify({ quantity: 3 })
-    }));
+    await waitFor(() => expect(updateCartItem).toHaveBeenCalledWith({ id: "item-1", quantity: 3 }));
     expect(refreshCart).toHaveBeenCalledWith("");
 
     const couponInput = screen.getByPlaceholderText("Coupon Code");
@@ -188,7 +193,7 @@ describe("CartPage", () => {
 
   it("shows an action error when quantity update fails", async () => {
     const refreshCart = vi.fn();
-    mockedApi.mockRejectedValue(new Error("Update failed"));
+    updateCartItem.mockReturnValueOnce({ unwrap: vi.fn().mockRejectedValue(new Error("Update failed")) });
 
     const row = render(
       <CartPage
@@ -212,7 +217,12 @@ describe("CartPage", () => {
 
   it("shows stock errors when quantity exceeds availability", async () => {
     const refreshCart = vi.fn();
-    mockedApi.mockRejectedValue(new Error("Only 2 Test Product items are available"));
+    updateCartItem.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({
+        status: 409,
+        data: { message: "Only 2 Test Product items are available" }
+      })
+    });
 
     const row = render(
       <CartPage
@@ -234,7 +244,54 @@ describe("CartPage", () => {
     expect((screen.getByRole("button", { name: /Increase Test Product quantity unavailable/i }) as HTMLButtonElement).disabled).toBe(true);
 
     await userEvent.click(screen.getByRole("button", { name: /Increase Test Product quantity unavailable/i }));
-    expect(mockedApi).toHaveBeenCalledTimes(1);
+    expect(updateCartItem).toHaveBeenCalledTimes(1);
+    expect(refreshCart).not.toHaveBeenCalled();
+  });
+
+  it("removes cart items via API and refreshes the coupon-aware cart", async () => {
+    const refreshCart = vi.fn();
+
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={refreshCart}
+        appliedCoupon="SAVE10"
+        onAppliedCouponChange={vi.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Remove Test Product/i }));
+
+    await waitFor(() => expect(deleteCartItem).toHaveBeenCalledWith("item-1"));
+    expect(refreshCart).toHaveBeenCalledWith("SAVE10");
+  });
+
+  it("shows an action error when remove fails", async () => {
+    const refreshCart = vi.fn();
+    deleteCartItem.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({ message: "Remove failed" })
+    });
+
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={refreshCart}
+        appliedCoupon=""
+        onAppliedCouponChange={vi.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Remove Test Product/i }));
+
+    await waitFor(() => expect(screen.getByText(/Remove failed/i)).toBeDefined());
     expect(refreshCart).not.toHaveBeenCalled();
   });
 });

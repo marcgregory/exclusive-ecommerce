@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { useState } from "react";
-import { api } from "../api/client";
+import { useDeleteCartItemMutation, useUpdateCartItemMutation } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { CartTotals } from "../components/CartTotals";
@@ -9,6 +9,7 @@ import { ProductVisual } from "../components/ProductVisual";
 import { QuantityStepper } from "../components/QuantityStepper";
 import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
+import { getRtkErrorMessage } from "../lib/rtkErrors";
 import type { AuthStatus, Cart, CartItem, Navigate, RefreshCart } from "../types";
 
 type CartPageProps = {
@@ -23,6 +24,8 @@ type CartPageProps = {
 };
 
 export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, refreshCart, appliedCoupon, onAppliedCouponChange }: CartPageProps) {
+  const [updateCartItem] = useUpdateCartItemMutation();
+  const [deleteCartItem] = useDeleteCartItemMutation();
   const [couponInput, setCouponInput] = useState(appliedCoupon);
   const [actionError, setActionError] = useState("");
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
@@ -32,6 +35,12 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
   const extractStockLimit = (message: string) => {
     const match = message.match(/Only\s+(\d+)\s+.+\s+items?\s+are\s+available/i);
     return match ? Number(match[1]) : undefined;
+  };
+
+  const getMutationErrorMessage = (error: unknown) => {
+    const rtkMessage = getRtkErrorMessage(error);
+    if (rtkMessage && rtkMessage !== "Request failed") return rtkMessage;
+    return getErrorMessage(error, rtkMessage || "Request failed");
   };
 
   const getVariantLabels = (item: CartItem) => [
@@ -59,7 +68,7 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
         return rest;
       });
       setPendingItemId(item.id);
-      await api(`/api/cart/items/${item.id}`, { method: "PATCH", body: JSON.stringify({ quantity }) });
+      await updateCartItem({ id: item.id, quantity }).unwrap();
       setStockLimits((current) => {
         const rest = { ...current };
         delete rest[item.id];
@@ -67,7 +76,7 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
       });
       refreshCart(appliedCoupon);
     } catch (error) {
-      const message = getErrorMessage(error);
+      const message = getMutationErrorMessage(error);
       const stockLimit = extractStockLimit(message);
       if (typeof stockLimit === "number") {
         setRowErrors((current) => ({ ...current, [item.id]: message }));
@@ -87,10 +96,10 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
         delete rest[id];
         return rest;
       });
-      await api(`/api/cart/items/${id}`, { method: "DELETE" });
+      await deleteCartItem(id).unwrap();
       refreshCart(appliedCoupon);
     } catch (error) {
-      setActionError(getErrorMessage(error));
+      setActionError(getMutationErrorMessage(error));
     }
   };
 

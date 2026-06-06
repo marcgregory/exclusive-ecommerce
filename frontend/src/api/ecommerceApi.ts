@@ -15,6 +15,11 @@ type AddCartItemInput = {
   selectedSize?: string;
 };
 
+type UpdateCartItemInput = {
+  id: string;
+  quantity: number;
+};
+
 export const ecommerceApi = createApi({
   reducerPath: "ecommerceApi",
   baseQuery: fetchBaseQuery({
@@ -51,6 +56,18 @@ export const ecommerceApi = createApi({
       query: (body) => ({ url: "/api/cart/items", method: "POST", body }),
       invalidatesTags: ["Cart"],
     }),
+    updateCartItem: builder.mutation<CartResponse, UpdateCartItemInput>({
+      query: ({ id, quantity }) => ({
+        url: `/api/cart/items/${id}`,
+        method: "PATCH",
+        body: { quantity },
+      }),
+      invalidatesTags: ["Cart"],
+    }),
+    deleteCartItem: builder.mutation<CartResponse, string>({
+      query: (id) => ({ url: `/api/cart/items/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Cart"],
+    }),
     addWishlistProduct: builder.mutation<WishlistResponse, string>({
       query: (productId) => ({ url: `/api/wishlist/${productId}`, method: "POST" }),
       invalidatesTags: ["Wishlist"],
@@ -65,10 +82,12 @@ export const ecommerceApi = createApi({
 export const {
   useAddCartItemMutation,
   useAddWishlistProductMutation,
+  useDeleteCartItemMutation,
   useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,
   useGetProductsQuery,
   useGetWishlistQuery,
   useLogoutMutation,
+  useUpdateCartItemMutation,
 } = ecommerceApi;

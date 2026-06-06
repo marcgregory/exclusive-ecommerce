@@ -74,17 +74,6 @@ const order: Order = {
 };
 
 function renderPage(overrides: Partial<Parameters<typeof AccountPage>[0]> = {}) {
-  // Setup default mocks if not already set
-  if (!apiMocks.register.mock.calls.length) {
-    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-  }
-  if (!apiMocks.login.mock.calls.length) {
-    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-  }
-  if (!apiMocks.updateProfile.mock.calls.length) {
-    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-  }
-  
   const props = {
     userState: { data: user, loading: false, error: "" },
     onAuthChanged: vi.fn(),
@@ -116,6 +105,9 @@ describe("AccountPage", () => {
       error: undefined,
       refetch: vi.fn(),
     });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     
     renderPage({ userState: { data: null, loading: false, error: "" } });
 
@@ -132,6 +124,9 @@ describe("AccountPage", () => {
       error: undefined,
       refetch: vi.fn(),
     });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     
     renderPage();
 
@@ -148,6 +143,10 @@ describe("AccountPage", () => {
       error: undefined,
       refetch: vi.fn(),
     });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    
     const { rerender } = renderPage();
 
     expect(screen.getByRole("button", { name: /Refreshing/i })).toBeDefined();
@@ -177,6 +176,10 @@ describe("AccountPage", () => {
       error: undefined,
       refetch: vi.fn(),
     });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    
     renderPage();
 
     expect(await screen.findByText("order-1")).toBeDefined();
@@ -194,6 +197,10 @@ describe("AccountPage", () => {
       error: undefined,
       refetch: vi.fn(),
     });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    
     renderPage({ navigate });
 
     await userEvent.click(
@@ -220,6 +227,8 @@ describe("AccountPage", () => {
       error: undefined,
       refetch: vi.fn(),
     });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.updateProfile.mockReturnValue([mockUpdateProfile, { isLoading: false, error: undefined }]);
     
     renderPage({ onAuthChanged });
@@ -269,6 +278,7 @@ describe("AccountPage", () => {
     });
     apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.login.mockReturnValue([mockLogin, { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     
     renderPage({ userState: { data: null, loading: false, error: "" }, onAuthChanged });
 
@@ -280,10 +290,12 @@ describe("AccountPage", () => {
     await userEvent.click(submitButtons[submitButtons.length - 1]);
 
     await waitFor(() =>
-      expect(mockLogin).toHaveBeenCalledWith({
-        email: "jane@example.com",
-        password: "password123",
-      })
+      expect(mockLogin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "jane@example.com",
+          password: "password123",
+        })
+      )
     );
     expect(onAuthChanged).toHaveBeenCalledWith(user);
     expect(await screen.findByText(/Signed in/i)).toBeDefined();
@@ -302,6 +314,7 @@ describe("AccountPage", () => {
     });
     apiMocks.register.mockReturnValue([mockRegister, { isLoading: false, error: undefined }]);
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     
     renderPage({ userState: { data: null, loading: false, error: "" }, onAuthChanged });
 
@@ -348,6 +361,7 @@ describe("AccountPage", () => {
     });
     apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.login.mockReturnValue([mockLogin, { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     
     renderPage({ userState: { data: null, loading: false, error: "" } });
 
@@ -357,6 +371,14 @@ describe("AccountPage", () => {
     const submitButtons = screen.getAllByRole("button", { name: /Sign In/i });
     await userEvent.click(submitButtons[submitButtons.length - 1]);
 
+    await waitFor(() =>
+      expect(mockLogin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "wrong@example.com",
+          password: "wrongpass",
+        })
+      )
+    );
     expect(await screen.findByText(/Invalid credentials/i)).toBeDefined();
   });
 
@@ -375,6 +397,7 @@ describe("AccountPage", () => {
     });
     apiMocks.register.mockReturnValue([mockRegister, { isLoading: false, error: undefined }]);
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     
     renderPage({ userState: { data: null, loading: false, error: "" } });
 
@@ -389,6 +412,15 @@ describe("AccountPage", () => {
     const submitButtons = screen.getAllByRole("button", { name: /Create Account/i });
     await userEvent.click(submitButtons[submitButtons.length - 1]);
 
+    await waitFor(() =>
+      expect(mockRegister).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "existing@example.com",
+          password: "password123",
+          confirmPassword: "password123",
+        })
+      )
+    );
     expect(await screen.findByText(/Email already exists/i)).toBeDefined();
   });
 
@@ -405,6 +437,8 @@ describe("AccountPage", () => {
       error: undefined,
       refetch: vi.fn(),
     });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.updateProfile.mockReturnValue([mockUpdateProfile, { isLoading: false, error: undefined }]);
     
     renderPage();
@@ -415,6 +449,15 @@ describe("AccountPage", () => {
     await userEvent.type(screen.getByLabelText(/Confirm New Password/i), "newpass123");
     await userEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
 
+    await waitFor(() =>
+      expect(mockUpdateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentPassword: "wrongpass",
+          newPassword: "newpass123",
+          confirmPassword: "newpass123",
+        })
+      )
+    );
     expect(await screen.findByText(/Current password is incorrect/i)).toBeDefined();
   });
 });

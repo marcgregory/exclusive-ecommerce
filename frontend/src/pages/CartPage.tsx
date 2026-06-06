@@ -9,7 +9,7 @@ import { ProductVisual } from "../components/ProductVisual";
 import { QuantityStepper } from "../components/QuantityStepper";
 import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
-import type { AuthStatus, Cart, Navigate, RefreshCart } from "../types";
+import type { AuthStatus, Cart, CartItem, Navigate, RefreshCart } from "../types";
 
 type CartPageProps = {
   authStatus: AuthStatus;
@@ -25,6 +25,19 @@ type CartPageProps = {
 export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, refreshCart, appliedCoupon, onAppliedCouponChange }: CartPageProps) {
   const [couponInput, setCouponInput] = useState(appliedCoupon);
   const [actionError, setActionError] = useState("");
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [stockLimits, setStockLimits] = useState<Record<string, number>>({});
+  const [pendingItemId, setPendingItemId] = useState("");
+
+  const extractStockLimit = (message: string) => {
+    const match = message.match(/Only\s+(\d+)\s+.+\s+items?\s+are\s+available/i);
+    return match ? Number(match[1]) : undefined;
+  };
+
+  const getVariantLabels = (item: CartItem) => [
+    ...(item.selectedColor ? [{ label: "Color", value: item.selectedColor }] : []),
+    ...(item.selectedSize ? [{ label: "Size", value: item.selectedSize }] : [])
+  ];
 
   const applyCoupon = async () => {
     try {
@@ -36,18 +49,44 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
     }
   };
 
-  const updateQty = async (id: string, quantity: number) => {
+  const updateQty = async (item: CartItem, quantity: number) => {
+    if (quantity === item.quantity) return;
     try {
       setActionError("");
-      await api(`/api/cart/items/${id}`, { method: "PATCH", body: JSON.stringify({ quantity }) });
+      setRowErrors((current) => {
+        const rest = { ...current };
+        delete rest[item.id];
+        return rest;
+      });
+      setPendingItemId(item.id);
+      await api(`/api/cart/items/${item.id}`, { method: "PATCH", body: JSON.stringify({ quantity }) });
+      setStockLimits((current) => {
+        const rest = { ...current };
+        delete rest[item.id];
+        return rest;
+      });
       refreshCart(appliedCoupon);
     } catch (error) {
-      setActionError(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      const stockLimit = extractStockLimit(message);
+      if (typeof stockLimit === "number") {
+        setRowErrors((current) => ({ ...current, [item.id]: message }));
+        setStockLimits((current) => ({ ...current, [item.id]: stockLimit }));
+      } else {
+        setActionError(message);
+      }
+    } finally {
+      setPendingItemId("");
     }
   };
   const remove = async (id: string) => {
     try {
       setActionError("");
+      setRowErrors((current) => {
+        const rest = { ...current };
+        delete rest[id];
+        return rest;
+      });
       await api(`/api/cart/items/${id}`, { method: "DELETE" });
       refreshCart(appliedCoupon);
     } catch (error) {
@@ -106,7 +145,45 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
       {actionError && <p className="form-status form-status--error">{actionError}</p>}
       <div className="cart-table">
         <div className="cart-head"><span>Product</span><span>Price</span><span>Quantity</span><span>Subtotal</span></div>
-        {cart.items.map((item) => <div className="cart-row" key={item.id}><div><ProductVisual type={item.product.image} /><button onClick={() => remove(item.id)}><X size={16} /></button><span>{item.product.name}</span></div><span>{formatMoney(item.product.price)}</span><QuantityStepper value={item.quantity} onChange={(qty) => updateQty(item.id, qty)} /><strong>{formatMoney(item.lineTotal)}</strong></div>)}
+        {cart.items.map((item) => {
+          const variantLabels = getVariantLabels(item);
+          const rowError = rowErrors[item.id];
+
+          return (
+            <div className="cart-row" key={item.id}>
+              <div>
+                <ProductVisual type={item.product.image} />
+                <button onClick={() => remove(item.id)} aria-label={`Remove ${item.product.name}`}><X size={16} /></button>
+                <span className="cart-row__product">
+                  <span>{item.product.name}</span>
+                  {variantLabels.length > 0 && (
+                    <span className="cart-row__variants" aria-label={`Selected options for ${item.product.name}`}>
+                      {variantLabels.map((variant) => (
+                        <span className="cart-row__variant" key={variant.label}>
+                          {variant.label === "Color" && <i style={{ backgroundColor: variant.value }} aria-hidden="true" />}
+                          {variant.label}: {variant.value}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <span>{formatMoney(item.product.price)}</span>
+              <div className="cart-row__quantity">
+                <QuantityStepper
+                  value={item.quantity}
+                  max={stockLimits[item.id]}
+                  disabled={pendingItemId === item.id}
+                  onChange={(qty) => updateQty(item, qty)}
+                  decrementLabel={`Decrease ${item.product.name} quantity`}
+                  incrementLabel={`Increase ${item.product.name} quantity`}
+                />
+                {rowError && <p className="cart-row__error">{rowError}</p>}
+              </div>
+              <strong>{formatMoney(item.lineTotal)}</strong>
+            </div>
+          );
+        })}
       </div>
       <div className="cart-actions"><Button variant="ghost" onClick={() => navigate("/")}>Return To Shop</Button><Button variant="ghost" onClick={() => refreshCart(appliedCoupon)}>Update Cart</Button></div>
       <div className="checkout-strip"><div className="coupon"><input value={couponInput} onChange={(event) => setCouponInput(event.target.value)} placeholder="Coupon Code" /><Button onClick={applyCoupon}>{appliedCoupon ? `Applied: ${appliedCoupon}` : "Apply Coupon"}</Button></div><CartTotals cart={cart} action={<Button onClick={() => navigate("/checkout")}>Proceed to checkout</Button>} /></div>

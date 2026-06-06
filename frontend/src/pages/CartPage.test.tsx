@@ -163,6 +163,8 @@ describe("CartPage", () => {
     );
 
     expect(screen.getByText("Test Product")).toBeDefined();
+    expect(screen.getByText("Color: red")).toBeDefined();
+    expect(screen.getByText("Size: S")).toBeDefined();
     expect(screen.getByText("$1999")).toBeDefined();
     expect(screen.getByRole("button", { name: /Apply Coupon/i })).toBeDefined();
 
@@ -229,6 +231,10 @@ describe("CartPage", () => {
     await userEvent.click(plusButton!);
 
     await waitFor(() => expect(screen.getByText(/Only 2 Test Product items are available/i)).toBeDefined());
+    expect((screen.getByRole("button", { name: /Increase Test Product quantity unavailable/i }) as HTMLButtonElement).disabled).toBe(true);
+
+    await userEvent.click(screen.getByRole("button", { name: /Increase Test Product quantity unavailable/i }));
+    expect(mockedApi).toHaveBeenCalledTimes(1);
     expect(refreshCart).not.toHaveBeenCalled();
   });
 });

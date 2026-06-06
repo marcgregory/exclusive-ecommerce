@@ -9,19 +9,21 @@ import {
 import { loadStripe, type Stripe, type StripeElements } from "@stripe/stripe-js";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { api } from "../api/client";
+import {
+  useCreateOrderMutation,
+  useCreatePaymentMutation,
+} from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { FormField } from "../components/FormField";
 import { OrderSummary } from "../components/OrderSummary";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
+import { getRtkErrorMessage, getRtkStatus } from "../lib/rtkErrors";
 import type {
   AuthStatus,
   Cart,
   Navigate,
-  OrderResponse,
-  PaymentResponse,
   RefreshCart,
 } from "../types";
 
@@ -65,12 +67,20 @@ function clearPendingCheckout() {
 }
 
 function getApiStatus(error: unknown) {
+  const rtkStatus = getRtkStatus(error);
+  if (typeof rtkStatus === "number") return rtkStatus;
   return typeof error === "object" &&
     error !== null &&
     "status" in error &&
     typeof error.status === "number"
     ? error.status
     : undefined;
+}
+
+function getCheckoutErrorMessage(error: unknown) {
+  const rtkMessage = getRtkErrorMessage(error);
+  if (rtkMessage && rtkMessage !== "Request failed") return rtkMessage;
+  return getErrorMessage(error, rtkMessage || "Request failed");
 }
 
 type CheckoutPageProps = {
@@ -135,6 +145,8 @@ export function CheckoutPage({
   appliedCoupon,
   onCouponConsumed,
 }: CheckoutPageProps) {
+  const [createOrder] = useCreateOrderMutation();
+  const [createPayment] = useCreatePaymentMutation();
   const [status, setStatus] = useState("");
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -173,13 +185,10 @@ export function CheckoutPage({
   }, [pendingStripePayment?.clientSecret, publishableKey]);
 
   const startStripePayment = async (checkout: PendingStripeCheckout) => {
-    const paymentData = await api<PaymentResponse>(`/api/payments`, {
-      method: "POST",
-      body: JSON.stringify({
-        orderId: checkout.orderId,
-        paymentMethod: "stripe",
-      }),
-    });
+    const paymentData = await createPayment({
+      orderId: checkout.orderId,
+      paymentMethod: "stripe",
+    }).unwrap();
     if (
       paymentData.payment.provider === "stripe" &&
       paymentData.payment.clientSecret
@@ -204,15 +213,12 @@ export function CheckoutPage({
       setSubmitting(true);
       setStatus("");
       setStatusIsError(false);
-      const data = await api<OrderResponse>("/api/orders", {
-        method: "POST",
-        body: JSON.stringify({
-          billing,
-          paymentMethod: "stripe",
-          couponCode: appliedCoupon || undefined,
-          idempotencyKey,
-        }),
-      });
+      const data = await createOrder({
+        billing,
+        paymentMethod: "stripe",
+        couponCode: appliedCoupon || undefined,
+        idempotencyKey,
+      }).unwrap();
 
       const checkout: PendingStripeCheckout = {
         orderId: data.order.id,
@@ -227,7 +233,7 @@ export function CheckoutPage({
         }
       } catch (payErr) {
         setStatusIsError(true);
-        setStatus(getErrorMessage(payErr));
+        setStatus(getCheckoutErrorMessage(payErr));
         await refreshCart();
         return;
       }
@@ -237,7 +243,7 @@ export function CheckoutPage({
       navigate(`/orders/${data.order.id}`);
     } catch (error) {
       setStatusIsError(true);
-      setStatus(getErrorMessage(error));
+      setStatus(getCheckoutErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -259,7 +265,7 @@ export function CheckoutPage({
         return;
       }
       setStatusIsError(true);
-      setStatus(getErrorMessage(error));
+      setStatus(getCheckoutErrorMessage(error));
     } finally {
       setSubmitting(false);
     }

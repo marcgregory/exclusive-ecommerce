@@ -8,6 +8,11 @@ import { CheckoutPage } from "./CheckoutPage";
 import { OrderPage } from "./OrderPage";
 import type { Cart, Navigate, Order, PublicUser } from "../types";
 
+const apiMocks = vi.hoisted(() => ({
+  createOrder: vi.fn(),
+  createPayment: vi.fn(),
+}));
+
 vi.mock("../api/client", () => ({
   ApiError: class ApiError extends Error {
     status: number;
@@ -20,9 +25,22 @@ vi.mock("../api/client", () => ({
   },
   api: vi.fn(),
 }));
+vi.mock("../api/ecommerceApi", () => ({
+  useCreateOrderMutation: () => [apiMocks.createOrder],
+  useCreatePaymentMutation: () => [apiMocks.createPayment],
+}));
 import { api } from "../api/client";
 
 const mockedApi = vi.mocked(api);
+
+type MockCreateOrderInput = {
+  billing: Record<string, string>;
+  paymentMethod: string;
+};
+
+type MockCreatePaymentInput = {
+  orderId: string;
+};
 
 const user: PublicUser = {
   id: "user-1",
@@ -120,7 +138,47 @@ describe("checkout to order history flow", () => {
   beforeEach(() => {
     const orders: Order[] = [];
 
+    apiMocks.createOrder.mockReset();
+    apiMocks.createPayment.mockReset();
     mockedApi.mockReset();
+    apiMocks.createOrder.mockImplementation((payload: MockCreateOrderInput) => ({
+      unwrap: async () => {
+        const order: Order = {
+          id: "order-1",
+          userId: user.id,
+          items: checkoutCart.items.map((item) => ({
+            id: `order-${item.id}`,
+            productId: item.productId,
+            quantity: item.quantity,
+            selectedColor: item.selectedColor,
+            selectedSize: item.selectedSize,
+            name: item.product.name,
+            price: item.product.price,
+          })),
+          billing: payload.billing,
+          paymentMethod: payload.paymentMethod,
+          subtotal: checkoutCart.subtotal,
+          discount: checkoutCart.discount,
+          shipping: checkoutCart.shipping,
+          total: checkoutCart.total,
+          status: "pending",
+          createdAt: "2026-04-10T12:00:00.000Z",
+        };
+        orders.push(order);
+        return { order };
+      },
+    }));
+    apiMocks.createPayment.mockImplementation((payload: MockCreatePaymentInput) => ({
+      unwrap: async () => {
+        const order = orders.find((current) => current.id === payload.orderId);
+        if (!order) throw new Error("Order not found");
+        order.status = "shipped";
+        return {
+          payment: { id: "payment-1", status: "succeeded" },
+          order,
+        };
+      },
+    }));
     mockedApi.mockImplementation(async (path, options = {}) => {
       if (path === "/api/orders" && options.method === "POST") {
         const payload = JSON.parse(String(options.body));

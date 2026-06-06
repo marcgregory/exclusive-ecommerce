@@ -4,6 +4,8 @@ import type {
   CartResponse,
   CategoriesResponse,
   MeResponse,
+  OrderResponse,
+  PaymentResponse,
   ProductDetailResponse,
   ProductsResponse,
   WishlistResponse,
@@ -19,6 +21,18 @@ type AddCartItemInput = {
 type UpdateCartItemInput = {
   id: string;
   quantity: number;
+};
+
+type CreateOrderInput = {
+  billing: Record<string, string>;
+  paymentMethod: string;
+  couponCode?: string;
+  idempotencyKey: string;
+};
+
+type CreatePaymentInput = {
+  orderId: string;
+  paymentMethod: string;
 };
 
 export const ecommerceApi = createApi({
@@ -81,6 +95,14 @@ export const ecommerceApi = createApi({
       query: (productId) => ({ url: `/api/wishlist/${productId}`, method: "DELETE" }),
       invalidatesTags: ["Wishlist"],
     }),
+    createOrder: builder.mutation<OrderResponse, CreateOrderInput>({
+      query: (body) => ({ url: "/api/orders", method: "POST", body }),
+      invalidatesTags: ["Cart"],
+    }),
+    createPayment: builder.mutation<PaymentResponse, CreatePaymentInput>({
+      query: (body) => ({ url: "/api/payments", method: "POST", body }),
+      invalidatesTags: ["Cart"],
+    }),
     logout: builder.mutation<{ ok: true }, void>({
       query: () => ({ url: "/api/auth/logout", method: "POST" }),
       invalidatesTags: ["Session", "Cart", "Wishlist"],
@@ -91,6 +113,8 @@ export const ecommerceApi = createApi({
 export const {
   useAddCartItemMutation,
   useAddWishlistProductMutation,
+  useCreateOrderMutation,
+  useCreatePaymentMutation,
   useDeleteCartItemMutation,
   useDeleteWishlistProductMutation,
   useGetCartQuery,

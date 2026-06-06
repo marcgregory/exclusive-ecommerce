@@ -5,13 +5,21 @@ import userEvent from "@testing-library/user-event";
 import { CheckoutPage } from "./CheckoutPage";
 import type { Cart } from "../types";
 
+const apiMocks = vi.hoisted(() => ({
+  createOrder: vi.fn(),
+  createPayment: vi.fn(),
+}));
+
 const stripeMocks = vi.hoisted(() => ({
   stripe: null as any,
   elements: { id: "elements" } as any,
   loadStripe: vi.fn(() => Promise.resolve({ id: "stripe-promise" })),
 }));
 
-vi.mock("../api/client", () => ({ api: vi.fn() }));
+vi.mock("../api/ecommerceApi", () => ({
+  useCreateOrderMutation: () => [apiMocks.createOrder],
+  useCreatePaymentMutation: () => [apiMocks.createPayment],
+}));
 vi.mock("@stripe/stripe-js", () => ({ loadStripe: stripeMocks.loadStripe }));
 vi.mock("@stripe/react-stripe-js", async () => {
   const React = await import("react");
@@ -27,9 +35,14 @@ vi.mock("@stripe/react-stripe-js", async () => {
     useStripe: () => stripeMocks.stripe,
   };
 });
-import { api } from "../api/client";
 
-const mockedApi = vi.mocked(api);
+function resolveMutation(value: unknown) {
+  return { unwrap: vi.fn().mockResolvedValue(value) };
+}
+
+function rejectMutation(error: unknown) {
+  return { unwrap: vi.fn().mockRejectedValue(error) };
+}
 
 const cart: Cart = {
   items: [
@@ -67,7 +80,8 @@ const cart: Cart = {
 
 describe("CheckoutPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    apiMocks.createOrder.mockReset();
+    apiMocks.createPayment.mockReset();
     stripeMocks.loadStripe.mockClear();
     stripeMocks.stripe = null;
     stripeMocks.elements = { id: "elements" };
@@ -165,12 +179,15 @@ describe("CheckoutPage", () => {
     const refreshCart = vi.fn();
     const navigate = vi.fn();
     const onCouponConsumed = vi.fn();
-    mockedApi
-      .mockResolvedValueOnce({ order: { id: "order-1" } })
-      .mockResolvedValueOnce({
+    apiMocks.createOrder.mockReturnValueOnce(
+      resolveMutation({ order: { id: "order-1" } }),
+    );
+    apiMocks.createPayment.mockReturnValueOnce(
+      resolveMutation({
         payment: { id: "pay-1", status: "succeeded" },
         order: { id: "order-1", status: "shipped" },
-      });
+      }),
+    );
 
     render(
       <CheckoutPage
@@ -196,22 +213,16 @@ describe("CheckoutPage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Place Order/i }));
 
-    await waitFor(() => expect(mockedApi).toHaveBeenCalled());
-    const [path, options] = mockedApi.mock.calls[0];
-    expect(path).toBe("/api/orders");
-    expect(options?.method).toBe("POST");
-    expect(JSON.parse(options?.body as string)).toMatchObject({
+    await waitFor(() => expect(apiMocks.createOrder).toHaveBeenCalled());
+    expect(apiMocks.createOrder).toHaveBeenCalledWith({
       billing: expect.any(Object),
       paymentMethod: "stripe",
       couponCode: "SAVE10",
       idempotencyKey: expect.any(String),
     });
-    expect(mockedApi).toHaveBeenNthCalledWith(2, "/api/payments", {
-      method: "POST",
-      body: JSON.stringify({
-        orderId: "order-1",
-        paymentMethod: "stripe",
-      }),
+    expect(apiMocks.createPayment).toHaveBeenCalledWith({
+      orderId: "order-1",
+      paymentMethod: "stripe",
     });
 
     expect(refreshCart).toHaveBeenCalled();
@@ -228,9 +239,11 @@ describe("CheckoutPage", () => {
       paymentIntent: { status: "succeeded" },
     });
     stripeMocks.stripe = { confirmPayment };
-    mockedApi
-      .mockResolvedValueOnce({ order: { id: "order-1" } })
-      .mockResolvedValueOnce({
+    apiMocks.createOrder.mockReturnValueOnce(
+      resolveMutation({ order: { id: "order-1" } }),
+    );
+    apiMocks.createPayment.mockReturnValueOnce(
+      resolveMutation({
         payment: {
           id: "pi_1",
           status: "requires_payment_method",
@@ -238,7 +251,8 @@ describe("CheckoutPage", () => {
           clientSecret: "pi_1_secret_test",
         },
         order: { id: "order-1", status: "processing" },
-      });
+      }),
+    );
 
     render(
       <CheckoutPage
@@ -290,9 +304,11 @@ describe("CheckoutPage", () => {
       error: { message: "Your card was declined." },
     });
     stripeMocks.stripe = { confirmPayment };
-    mockedApi
-      .mockResolvedValueOnce({ order: { id: "order-1" } })
-      .mockResolvedValueOnce({
+    apiMocks.createOrder.mockReturnValueOnce(
+      resolveMutation({ order: { id: "order-1" } }),
+    );
+    apiMocks.createPayment.mockReturnValueOnce(
+      resolveMutation({
         payment: {
           id: "pi_1",
           status: "requires_payment_method",
@@ -300,7 +316,8 @@ describe("CheckoutPage", () => {
           clientSecret: "pi_1_secret_test",
         },
         order: { id: "order-1", status: "processing" },
-      });
+      }),
+    );
 
     render(
       <CheckoutPage
@@ -345,15 +362,17 @@ describe("CheckoutPage", () => {
         idempotencyKey: "checkout-existing-1",
       }),
     );
-    mockedApi.mockResolvedValueOnce({
-      payment: {
-        id: "pi_1",
-        status: "requires_payment_method",
-        provider: "stripe",
-        clientSecret: "pi_1_secret_test",
-      },
-      order: { id: "order-1", status: "processing" },
-    });
+    apiMocks.createPayment.mockReturnValueOnce(
+      resolveMutation({
+        payment: {
+          id: "pi_1",
+          status: "requires_payment_method",
+          provider: "stripe",
+          clientSecret: "pi_1_secret_test",
+        },
+        order: { id: "order-1", status: "processing" },
+      }),
+    );
 
     render(
       <CheckoutPage
@@ -371,22 +390,22 @@ describe("CheckoutPage", () => {
     expect(screen.getByText(/waiting for payment confirmation/i)).toBeDefined();
     await userEvent.click(screen.getByRole("button", { name: /Resume Payment/i }));
 
-    expect(mockedApi).toHaveBeenCalledTimes(1);
-    expect(mockedApi).toHaveBeenCalledWith("/api/payments", {
-      method: "POST",
-      body: JSON.stringify({
-        orderId: "order-1",
-        paymentMethod: "stripe",
-      }),
+    expect(apiMocks.createOrder).not.toHaveBeenCalled();
+    expect(apiMocks.createPayment).toHaveBeenCalledTimes(1);
+    expect(apiMocks.createPayment).toHaveBeenCalledWith({
+      orderId: "order-1",
+      paymentMethod: "stripe",
     });
     expect(await screen.findByTestId("payment-element")).toBeDefined();
   });
 
   it("shows an error when the Stripe publishable key is missing", async () => {
     vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "");
-    mockedApi
-      .mockResolvedValueOnce({ order: { id: "order-1" } })
-      .mockResolvedValueOnce({
+    apiMocks.createOrder.mockReturnValueOnce(
+      resolveMutation({ order: { id: "order-1" } }),
+    );
+    apiMocks.createPayment.mockReturnValueOnce(
+      resolveMutation({
         payment: {
           id: "pi_1",
           status: "requires_payment_method",
@@ -394,7 +413,8 @@ describe("CheckoutPage", () => {
           clientSecret: "pi_1_secret_test",
         },
         order: { id: "order-1", status: "processing" },
-      });
+      }),
+    );
 
     render(
       <CheckoutPage
@@ -435,8 +455,8 @@ describe("CheckoutPage", () => {
         idempotencyKey: "checkout-stale-1",
       }),
     );
-    mockedApi.mockRejectedValueOnce(
-      Object.assign(new Error("Order not found"), { status: 404 }),
+    apiMocks.createPayment.mockReturnValueOnce(
+      rejectMutation({ status: 404, data: { message: "Order not found" } }),
     );
 
     render(
@@ -475,9 +495,12 @@ describe("CheckoutPage", () => {
     const refreshCart = vi.fn();
     const navigate = vi.fn();
     const onCouponConsumed = vi.fn();
-    mockedApi
-      .mockResolvedValueOnce({ order: { id: "order-1" } })
-      .mockRejectedValueOnce(new Error("Payment failed"));
+    apiMocks.createOrder.mockReturnValueOnce(
+      resolveMutation({ order: { id: "order-1" } }),
+    );
+    apiMocks.createPayment.mockReturnValueOnce(
+      rejectMutation({ status: 500, data: { message: "Payment failed" } }),
+    );
 
     render(
       <CheckoutPage
@@ -513,9 +536,12 @@ describe("CheckoutPage", () => {
 
   it("keeps the created order available for payment retry when payment setup fails", async () => {
     const refreshCart = vi.fn();
-    mockedApi
-      .mockResolvedValueOnce({ order: { id: "order-1" } })
-      .mockRejectedValueOnce(new Error("Stripe unavailable"));
+    apiMocks.createOrder.mockReturnValueOnce(
+      resolveMutation({ order: { id: "order-1" } }),
+    );
+    apiMocks.createPayment.mockReturnValueOnce(
+      rejectMutation({ status: 503, data: { message: "Stripe unavailable" } }),
+    );
 
     render(
       <CheckoutPage
@@ -552,7 +578,9 @@ describe("CheckoutPage", () => {
   });
 
   it("shows an error status when checkout submission fails", async () => {
-    mockedApi.mockRejectedValue(new Error("Checkout failed"));
+    apiMocks.createOrder.mockReturnValueOnce(
+      rejectMutation({ status: 400, data: { message: "Checkout failed" } }),
+    );
 
     render(
       <CheckoutPage
@@ -584,7 +612,12 @@ describe("CheckoutPage", () => {
   });
 
   it("shows stock errors when inventory changes before purchase", async () => {
-    mockedApi.mockRejectedValue(new Error("Only 0 Checkout Product items are available"));
+    apiMocks.createOrder.mockReturnValueOnce(
+      rejectMutation({
+        status: 409,
+        data: { message: "Only 0 Checkout Product items are available" },
+      }),
+    );
 
     render(
       <CheckoutPage

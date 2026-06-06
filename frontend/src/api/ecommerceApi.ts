@@ -99,6 +99,7 @@ export const {
   useGetProductDetailQuery,
   useGetProductsQuery,
   useGetWishlistQuery,
+  useLazyGetProductDetailQuery,
   useLogoutMutation,
   useUpdateCartItemMutation,
 } = ecommerceApi;

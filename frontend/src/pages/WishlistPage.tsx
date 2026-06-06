@@ -1,7 +1,11 @@
 import { Trash2, ShoppingCart } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { api } from "../api/client";
-import { useAddCartItemMutation, useDeleteWishlistProductMutation } from "../api/ecommerceApi";
+import { useEffect, useState } from "react";
+import {
+  useAddCartItemMutation,
+  useDeleteWishlistProductMutation,
+  useGetWishlistQuery,
+  useLazyGetProductDetailQuery,
+} from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { ProductCard } from "../components/ProductCard";
@@ -10,7 +14,7 @@ import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
 import { getQuickAddSelection, requiresVariantSelection } from "../lib/productVariants";
 import { getRtkErrorMessage } from "../lib/rtkErrors";
-import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, ProductDetailResponse, RefreshCart, WishlistResponse } from "../types";
+import type { AddToCart, AuthStatus, Navigate, Product, RefreshCart } from "../types";
 
 type WishlistPageProps = {
   authStatus: AuthStatus;
@@ -21,9 +25,11 @@ type WishlistPageProps = {
 };
 
 export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refreshWishlist }: WishlistPageProps) {
+  const wishlistQuery = useGetWishlistQuery(undefined, { skip: authStatus !== "authenticated" });
+  const [getProductDetail] = useLazyGetProductDetailQuery();
   const [addCartItem] = useAddCartItemMutation();
   const [deleteWishlistProduct] = useDeleteWishlistProductMutation();
-  const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
+  const [products, setProducts] = useState<Product[]>([]);
   const [actionError, setActionError] = useState("");
   const [pendingProductId, setPendingProductId] = useState("");
 
@@ -33,32 +39,28 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
     return getErrorMessage(error, rtkMessage || "Request failed");
   };
 
-  const loadWishlist = useCallback(async () => {
-    setProducts((current) => ({ ...current, loading: true, error: "" }));
-    try {
-      const data = await api<WishlistResponse>("/api/wishlist");
-      setProducts({ data: data.products, loading: false, error: "" });
-    } catch (error) {
-      setProducts((current) => ({ ...current, loading: false, error: getErrorMessage(error) }));
-    }
-  }, []);
-
   useEffect(() => {
-    if (authStatus !== "authenticated") return;
-    loadWishlist();
-  }, [authStatus, loadWishlist]);
+    if (wishlistQuery.data) {
+      setProducts(wishlistQuery.data.products);
+    }
+  }, [wishlistQuery.data]);
+
+  const loadWishlist = () => {
+    wishlistQuery.refetch();
+  };
 
   const handleRemove = async (productId: string) => {
     if (pendingProductId) return;
     try {
       setActionError("");
       setPendingProductId(productId);
-      setProducts((current) => ({ ...current, data: current.data.filter((product) => product.id !== productId) }));
+      setProducts((current) => current.filter((product) => product.id !== productId));
       await deleteWishlistProduct(productId).unwrap();
       await refreshWishlist();
     } catch (error) {
       setActionError(getMutationErrorMessage(error));
-      loadWishlist();
+      setProducts(wishlistQuery.data?.products ?? []);
+      wishlistQuery.refetch();
     } finally {
       setPendingProductId("");
     }
@@ -72,7 +74,7 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
       let selection = getQuickAddSelection(product);
 
       if (!selection && requiresVariantSelection(product)) {
-        const data = await api<ProductDetailResponse>(`/api/products/${product.id}`);
+        const data = await getProductDetail(product.id).unwrap();
         selection = getQuickAddSelection(data.product, data.variants);
 
         if (!selection) {
@@ -89,7 +91,7 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
         selectedSize: selection?.selectedSize ?? ""
       }).unwrap();
       await deleteWishlistProduct(product.id).unwrap();
-      setProducts((current) => ({ ...current, data: current.data.filter((entry) => entry.id !== product.id) }));
+      setProducts((current) => current.filter((entry) => entry.id !== product.id));
       await Promise.all([refreshCart(), refreshWishlist()]);
     } catch (error) {
       setActionError(getMutationErrorMessage(error));
@@ -116,17 +118,19 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
     );
   }
 
-  if (products.loading) {
+  if (wishlistQuery.isLoading || (!wishlistQuery.data && wishlistQuery.isFetching)) {
     return <main className="container page"><LoadingState title="Loading wishlist" message="We are checking your wishlist." /></main>;
   }
 
-  if (products.error) {
+  const wishlistError = getRtkErrorMessage(wishlistQuery.error);
+
+  if (wishlistError || (!wishlistQuery.data && wishlistQuery.isError)) {
     return (
       <main className="container page">
         <Breadcrumbs items={["Home", "Wishlist"]} />
         <ErrorState
           title="We could not load your wishlist"
-          message={products.error}
+          message={wishlistError || "Request failed"}
           action={{ label: "Try Again", onClick: loadWishlist }}
           secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
         />
@@ -134,7 +138,7 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
     );
   }
 
-  if (!products.data.length) {
+  if (!products.length) {
     return (
       <main className="container page">
         <Breadcrumbs items={["Home", "Wishlist"]} />
@@ -150,10 +154,10 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
   return (
     <main className="container page">
       <Breadcrumbs items={["Home", "Wishlist"]} />
-      <SectionHeader kicker="Wishlist" title={`Wishlist (${products.data.length})`} />
+      <SectionHeader kicker="Wishlist" title={`Wishlist (${products.length})`} />
       {actionError && <p className="form-status form-status--error">{actionError}</p>}
       <div className="product-grid four">
-        {products.data.map((product) => (
+        {products.map((product) => (
           <ProductCard
             key={product.id}
             product={product}

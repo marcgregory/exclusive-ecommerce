@@ -10,7 +10,10 @@ import {
   useGetMeQuery,
   useGetProductsQuery,
   useGetWishlistQuery,
+  useLoginMutation,
   useLogoutMutation,
+  useRegisterMutation,
+  useUpdateProfileMutation,
 } from "./api/ecommerceApi";
 import { store, type AppDispatch } from "./app/store";
 import { Footer } from "./components/Footer";

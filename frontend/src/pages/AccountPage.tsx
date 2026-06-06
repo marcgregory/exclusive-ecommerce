@@ -2,16 +2,14 @@ import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { api } from "../api/client";
-import { useGetOrdersQuery } from "../api/ecommerceApi";
+import { useGetOrdersQuery, useLoginMutation, useRegisterMutation, useUpdateProfileMutation } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { FormField } from "../components/FormField";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getErrorMessage } from "../lib/errors";
 import { formatMoney } from "../lib/format";
 import { getRtkErrorMessage } from "../lib/rtkErrors";
-import type { AsyncState, AuthResponse, Navigate, PublicUser } from "../types";
+import type { AsyncState, Navigate, PublicUser } from "../types";
 
 type AccountPageProps = {
   userState: AsyncState<PublicUser | null>;
@@ -70,6 +68,10 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
     skip: !userState.data,
   });
 
+  const [register, registerState] = useRegisterMutation();
+  const [login, loginState] = useLoginMutation();
+  const [updateProfile, updateProfileState] = useUpdateProfileMutation();
+
   const orders = ordersData?.orders ?? [];
   const ordersErrorMessage = ordersError ? getRtkErrorMessage(ordersError) : "";
 
@@ -82,17 +84,16 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
   });
 
   const submitAuth = authForm.handleSubmit(async (payload) => {
-    const endpoint = authMode === "login" ? "/api/auth/login" : "/api/auth/register";
-
     try {
       setAuthStatus("");
       setAuthStatusIsError(false);
-      const data = await api<AuthResponse>(endpoint, { method: "POST", body: JSON.stringify(payload) });
-      onAuthChanged(data.user);
+      const mutationFn = authMode === "login" ? login : register;
+      const result = await mutationFn(payload).unwrap();
+      onAuthChanged(result.user);
       setAuthStatus(authMode === "login" ? "Signed in." : "Account created.");
     } catch (error) {
       setAuthStatusIsError(true);
-      setAuthStatus(getErrorMessage(error));
+      setAuthStatus(getRtkErrorMessage(error));
     }
   });
 
@@ -109,21 +110,21 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
     try {
       setProfileStatus("");
       setProfileStatusIsError(false);
-      const data = await api<AuthResponse>("/api/me", { method: "PATCH", body: JSON.stringify(nextPayload) });
-      onAuthChanged(data.user);
+      const result = await updateProfile(nextPayload).unwrap();
+      onAuthChanged(result.user);
       setProfileStatus("Profile saved.");
       profileForm.reset({
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        email: data.user.email,
-        address: data.user.address,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
+        email: result.user.email,
+        address: result.user.address,
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
     } catch (error) {
       setProfileStatusIsError(true);
-      setProfileStatus(getErrorMessage(error));
+      setProfileStatus(getRtkErrorMessage(error));
     }
   });
 
@@ -176,7 +177,9 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
               <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}>
                 {authMode === "login" ? "Create account" : "Sign in instead"}
               </button>
-              <Button type="submit" disabled={authForm.formState.isSubmitting}>{authForm.formState.isSubmitting ? "Please wait..." : authMode === "login" ? "Sign In" : "Create Account"}</Button>
+              <Button type="submit" disabled={registerState.isLoading || loginState.isLoading}>
+                {(registerState.isLoading || loginState.isLoading) ? "Please wait..." : authMode === "login" ? "Sign In" : "Create Account"}
+              </Button>
             </div>
             {authStatus && <p className={`form-status ${authStatusIsError ? "form-status--error" : ""}`}>{authStatus}</p>}
           </form>
@@ -207,7 +210,7 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
               <FormField label="New Password" name="newPassword" type="password" register={profileForm.register("newPassword")} error={profileForm.formState.errors.newPassword?.message} />
               <FormField label="Confirm New Password" name="confirmPassword" type="password" register={profileForm.register("confirmPassword")} error={profileForm.formState.errors.confirmPassword?.message} />
             </div>
-            <div className="form-actions"><button type="button" onClick={onUserRefresh}>Cancel</button><Button type="submit" disabled={profileForm.formState.isSubmitting}>{profileForm.formState.isSubmitting ? "Saving..." : "Save Changes"}</Button></div>
+            <div className="form-actions"><button type="button" onClick={onUserRefresh}>Cancel</button><Button type="submit" disabled={updateProfileState.isLoading}>{updateProfileState.isLoading ? "Saving..." : "Save Changes"}</Button></div>
             {profileStatus && <p className={`form-status ${profileStatusIsError ? "form-status--error" : ""}`}>{profileStatus}</p>}
           </form>
 

@@ -36,6 +36,41 @@ type CreatePaymentInput = {
   paymentMethod: string;
 };
 
+type RegisterInput = {
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  address?: string;
+};
+
+type LoginInput = {
+  email: string;
+  password: string;
+};
+
+type UpdateProfileInput = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  address?: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+};
+
+type AuthResponse = {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    address: string;
+    role: "customer" | "admin";
+  };
+};
+
 export const ecommerceApi = createApi({
   reducerPath: "ecommerceApi",
   baseQuery: fetchBaseQuery({
@@ -116,6 +151,18 @@ export const ecommerceApi = createApi({
       query: () => ({ url: "/api/auth/logout", method: "POST" }),
       invalidatesTags: ["Session", "Cart", "Wishlist"],
     }),
+    register: builder.mutation<AuthResponse, RegisterInput>({
+      query: (body) => ({ url: "/api/auth/register", method: "POST", body }),
+      invalidatesTags: ["Session", "Cart", "Wishlist"],
+    }),
+    login: builder.mutation<AuthResponse, LoginInput>({
+      query: (body) => ({ url: "/api/auth/login", method: "POST", body }),
+      invalidatesTags: ["Session", "Cart", "Wishlist"],
+    }),
+    updateProfile: builder.mutation<AuthResponse, UpdateProfileInput>({
+      query: (body) => ({ url: "/api/me", method: "PATCH", body }),
+      invalidatesTags: ["Session"],
+    }),
   }),
 });
 
@@ -135,6 +182,9 @@ export const {
   useGetProductsQuery,
   useGetWishlistQuery,
   useLazyGetProductDetailQuery,
+  useLoginMutation,
   useLogoutMutation,
+  useRegisterMutation,
   useUpdateCartItemMutation,
+  useUpdateProfileMutation,
 } = ecommerceApi;

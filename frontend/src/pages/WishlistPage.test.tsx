@@ -1,14 +1,23 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WishlistPage } from "./WishlistPage";
 import type { Product } from "../types";
 
 vi.mock("../api/client", () => ({ api: vi.fn() }));
+vi.mock("../api/ecommerceApi", () => ({
+  useAddCartItemMutation: vi.fn(),
+  useDeleteWishlistProductMutation: vi.fn(),
+}));
 import { api } from "../api/client";
+import { useAddCartItemMutation, useDeleteWishlistProductMutation } from "../api/ecommerceApi";
 
 const mockedApi = vi.mocked(api);
+const mockedUseAddCartItemMutation = useAddCartItemMutation as unknown as Mock;
+const mockedUseDeleteWishlistProductMutation = useDeleteWishlistProductMutation as unknown as Mock;
+let addCartItem: Mock;
+let deleteWishlistProduct: Mock;
 
 const product: Product = {
   id: "p1",
@@ -65,6 +74,10 @@ function renderPage(overrides: Partial<Parameters<typeof WishlistPage>[0]> = {})
 describe("WishlistPage", () => {
   beforeEach(() => {
     mockedApi.mockReset();
+    addCartItem = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
+    deleteWishlistProduct = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
+    mockedUseAddCartItemMutation.mockReturnValue([addCartItem, {}]);
+    mockedUseDeleteWishlistProductMutation.mockReturnValue([deleteWishlistProduct, {}]);
   });
 
   afterEach(() => {
@@ -140,7 +153,7 @@ describe("WishlistPage", () => {
     await screen.findByText("Wishlist Product");
     await userEvent.click(screen.getByRole("button", { name: /Remove Wishlist Product/i }));
 
-    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith("/api/wishlist/p1", { method: "DELETE" }));
+    await waitFor(() => expect(deleteWishlistProduct).toHaveBeenCalledWith("p1"));
     await waitFor(() => expect(refreshWishlist).toHaveBeenCalled());
     expect(screen.getByText(/Your wishlist is empty/i)).toBeDefined();
   });
@@ -170,15 +183,12 @@ describe("WishlistPage", () => {
 
     await waitFor(() => {
       expect(mockedApi).toHaveBeenCalledWith("/api/products/p1");
-      expect(mockedApi).toHaveBeenCalledWith("/api/cart/items", {
-        method: "POST",
-        body: JSON.stringify({ productId: "p1", quantity: 1, selectedColor: "blue", selectedSize: "M" })
-      });
-      expect(mockedApi).toHaveBeenCalledWith("/api/wishlist/p1", { method: "DELETE" });
+      expect(addCartItem).toHaveBeenCalledWith({ productId: "p1", quantity: 1, selectedColor: "blue", selectedSize: "M" });
+      expect(deleteWishlistProduct).toHaveBeenCalledWith("p1");
     });
 
-    const cartAddCall = mockedApi.mock.calls.findIndex(([path]) => path === "/api/cart/items");
-    const wishlistDeleteCall = mockedApi.mock.calls.findIndex(([path]) => path === "/api/wishlist/p1");
+    const cartAddCall = addCartItem.mock.invocationCallOrder[0];
+    const wishlistDeleteCall = deleteWishlistProduct.mock.invocationCallOrder[0];
     expect(cartAddCall).toBeGreaterThan(-1);
     expect(wishlistDeleteCall).toBeGreaterThan(cartAddCall);
     expect(refreshCart).toHaveBeenCalled();
@@ -194,10 +204,7 @@ describe("WishlistPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /Move to cart/i }));
 
     await waitFor(() => {
-      expect(mockedApi).toHaveBeenCalledWith("/api/cart/items", {
-        method: "POST",
-        body: JSON.stringify({ productId: "p1", quantity: 1, selectedColor: "", selectedSize: "" })
-      });
+      expect(addCartItem).toHaveBeenCalledWith({ productId: "p1", quantity: 1, selectedColor: "", selectedSize: "" });
     });
     expect(mockedApi).not.toHaveBeenCalledWith("/api/products/p1");
   });
@@ -222,8 +229,8 @@ describe("WishlistPage", () => {
 
     expect(await screen.findByText(/Choose available options for Wishlist Product before moving it to cart/i)).toBeDefined();
     expect(navigate).toHaveBeenCalledWith("/product/p1");
-    expect(mockedApi).not.toHaveBeenCalledWith("/api/cart/items", expect.anything());
-    expect(mockedApi).not.toHaveBeenCalledWith("/api/wishlist/p1", { method: "DELETE" });
+    expect(addCartItem).not.toHaveBeenCalled();
+    expect(deleteWishlistProduct).not.toHaveBeenCalled();
   });
 
   it("keeps out-of-stock items from moving to the cart", async () => {
@@ -240,8 +247,13 @@ describe("WishlistPage", () => {
   it("shows an action error when moving to cart fails", async () => {
     mockedApi.mockImplementation(async (path: string) => {
       if (path === "/api/wishlist") return { products: [productWithoutOptions] };
-      if (path === "/api/cart/items") throw new Error("Only 0 Wishlist Product items are available");
       return {};
+    });
+    addCartItem.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({
+        status: 409,
+        data: { message: "Only 0 Wishlist Product items are available" }
+      })
     });
     renderPage();
 
@@ -250,14 +262,16 @@ describe("WishlistPage", () => {
 
     expect(await screen.findByText(/Only 0 Wishlist Product items are available/i)).toBeDefined();
     expect(screen.getByText("Wishlist Product")).toBeDefined();
-    expect(mockedApi).not.toHaveBeenCalledWith("/api/wishlist/p1", { method: "DELETE" });
+    expect(deleteWishlistProduct).not.toHaveBeenCalled();
   });
 
   it("shows an action error and reloads when remove fails", async () => {
-    mockedApi.mockImplementation(async (path: string, options?: RequestInit) => {
-      if (path === "/api/wishlist" && !options?.method) return { products: [product] };
-      if (path === "/api/wishlist/p1") throw new Error("Remove failed");
+    mockedApi.mockImplementation(async (path: string) => {
+      if (path === "/api/wishlist") return { products: [product] };
       return {};
+    });
+    deleteWishlistProduct.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({ message: "Remove failed" })
     });
     renderPage();
 

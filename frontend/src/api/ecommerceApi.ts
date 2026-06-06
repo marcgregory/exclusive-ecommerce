@@ -72,6 +72,10 @@ export const ecommerceApi = createApi({
       query: (productId) => ({ url: `/api/wishlist/${productId}`, method: "POST" }),
       invalidatesTags: ["Wishlist"],
     }),
+    deleteWishlistProduct: builder.mutation<WishlistResponse, string>({
+      query: (productId) => ({ url: `/api/wishlist/${productId}`, method: "DELETE" }),
+      invalidatesTags: ["Wishlist"],
+    }),
     logout: builder.mutation<{ ok: true }, void>({
       query: () => ({ url: "/api/auth/logout", method: "POST" }),
       invalidatesTags: ["Session", "Cart", "Wishlist"],
@@ -83,6 +87,7 @@ export const {
   useAddCartItemMutation,
   useAddWishlistProductMutation,
   useDeleteCartItemMutation,
+  useDeleteWishlistProductMutation,
   useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,

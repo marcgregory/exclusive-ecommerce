@@ -1,6 +1,7 @@
 import { Trash2, ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
+import { useAddCartItemMutation, useDeleteWishlistProductMutation } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { ProductCard } from "../components/ProductCard";
@@ -8,6 +9,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
 import { getErrorMessage } from "../lib/errors";
 import { getQuickAddSelection, requiresVariantSelection } from "../lib/productVariants";
+import { getRtkErrorMessage } from "../lib/rtkErrors";
 import type { AddToCart, AsyncState, AuthStatus, Navigate, Product, ProductDetailResponse, RefreshCart, WishlistResponse } from "../types";
 
 type WishlistPageProps = {
@@ -19,9 +21,17 @@ type WishlistPageProps = {
 };
 
 export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refreshWishlist }: WishlistPageProps) {
+  const [addCartItem] = useAddCartItemMutation();
+  const [deleteWishlistProduct] = useDeleteWishlistProductMutation();
   const [products, setProducts] = useState<AsyncState<Product[]>>({ data: [], loading: true, error: "" });
   const [actionError, setActionError] = useState("");
   const [pendingProductId, setPendingProductId] = useState("");
+
+  const getMutationErrorMessage = (error: unknown) => {
+    const rtkMessage = getRtkErrorMessage(error);
+    if (rtkMessage && rtkMessage !== "Request failed") return rtkMessage;
+    return getErrorMessage(error, rtkMessage || "Request failed");
+  };
 
   const loadWishlist = useCallback(async () => {
     setProducts((current) => ({ ...current, loading: true, error: "" }));
@@ -44,10 +54,10 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
       setActionError("");
       setPendingProductId(productId);
       setProducts((current) => ({ ...current, data: current.data.filter((product) => product.id !== productId) }));
-      await api(`/api/wishlist/${productId}`, { method: "DELETE" });
+      await deleteWishlistProduct(productId).unwrap();
       await refreshWishlist();
     } catch (error) {
-      setActionError(getErrorMessage(error));
+      setActionError(getMutationErrorMessage(error));
       loadWishlist();
     } finally {
       setPendingProductId("");
@@ -72,20 +82,17 @@ export function WishlistPage({ authStatus, navigate, onAdd, refreshCart, refresh
         }
       }
 
-      await api("/api/cart/items", {
-        method: "POST",
-        body: JSON.stringify({
-          productId: product.id,
-          quantity: 1,
-          selectedColor: selection?.selectedColor ?? "",
-          selectedSize: selection?.selectedSize ?? ""
-        })
-      });
-      await api(`/api/wishlist/${product.id}`, { method: "DELETE" });
+      await addCartItem({
+        productId: product.id,
+        quantity: 1,
+        selectedColor: selection?.selectedColor ?? "",
+        selectedSize: selection?.selectedSize ?? ""
+      }).unwrap();
+      await deleteWishlistProduct(product.id).unwrap();
       setProducts((current) => ({ ...current, data: current.data.filter((entry) => entry.id !== product.id) }));
       await Promise.all([refreshCart(), refreshWishlist()]);
     } catch (error) {
-      setActionError(getErrorMessage(error));
+      setActionError(getMutationErrorMessage(error));
     } finally {
       setPendingProductId("");
     }

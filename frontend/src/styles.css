@@ -2444,6 +2444,66 @@ button {
   object-fit: contain;
 }
 
+/* Skeleton loader styles */
+.product-visual__skeleton {
+  width: 100%;
+  height: 100%;
+  background: var(--soft);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-visual__skeleton-wave {
+  width: 80%;
+  height: 8px;
+  background: var(--line);
+  border-radius: 4px;
+  animation: skeleton-wave 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Image error styles */
+.product-visual__image--error {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Fallback content styles */
+.product-visual__fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+.product-visual__fallback-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.product-visual__fallback-text {
+  font-weight: 500;
+}
+
 .product-visual--gamepad-red span,
 .product-visual--havic-gamepad span,
 .product-visual--gamepad-black span {

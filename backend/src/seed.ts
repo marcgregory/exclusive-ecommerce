@@ -28,7 +28,7 @@ export const products: Product[] = [
     sizes: ["XS", "S", "M", "L", "XL"],
     isNew: false,
     flags: ["flash", "related"],
-    image: "gamepad-red"
+    image: "/uploads/products/havic-gamepad.jpg"
   },
   {
     id: "ak-keyboard",
@@ -45,7 +45,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["flash", "related"],
-    image: "keyboard"
+    image: "/uploads/products/ak-keyboard.jpg"
   },
   {
     id: "ips-monitor",
@@ -62,7 +62,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["flash", "related", "best"],
-    image: "monitor"
+    image: "/uploads/products/ips-monitor.jpg"
   },
   {
     id: "comfort-chair",
@@ -79,7 +79,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["flash"],
-    image: "chair"
+    image: "/uploads/products/comfort-chair.jpg"
   },
   {
     id: "north-coat",
@@ -96,7 +96,7 @@ export const products: Product[] = [
     sizes: ["S", "M", "L", "XL"],
     isNew: false,
     flags: ["best"],
-    image: "coat"
+    image: "/uploads/products/north-coat.jpg"
   },
   {
     id: "gucci-bag",
@@ -113,7 +113,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["best"],
-    image: "bag"
+    image: "/uploads/products/gucci-bag.jpg"
   },
   {
     id: "rgb-cooler",
@@ -130,7 +130,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["best", "related"],
-    image: "cooler"
+    image: "/uploads/products/rgb-cooler.jpg"
   },
   {
     id: "bookshelf",
@@ -147,7 +147,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["best"],
-    image: "bookshelf"
+    image: "/uploads/products/bookshelf.jpg"
   },
   {
     id: "breed-dog-food",
@@ -164,7 +164,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["explore"],
-    image: "dogfood"
+    image: "/uploads/products/breed-dog-food.jpg"
   },
   {
     id: "canon-camera",
@@ -181,7 +181,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["explore"],
-    image: "camera"
+    image: "/uploads/products/canon-camera.jpg"
   },
   {
     id: "gaming-laptop",
@@ -198,7 +198,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["explore"],
-    image: "laptop"
+    image: "/uploads/products/gaming-laptop.jpg"
   },
   {
     id: "curology-set",
@@ -215,7 +215,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: false,
     flags: ["explore"],
-    image: "skincare"
+    image: "/uploads/products/curology-set.jpg"
   },
   {
     id: "kids-car",
@@ -232,7 +232,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: true,
     flags: ["explore"],
-    image: "toycar"
+    image: "/uploads/products/kids-car.jpg"
   },
   {
     id: "soccer-cleats",
@@ -249,7 +249,7 @@ export const products: Product[] = [
     sizes: ["S", "M", "L"],
     isNew: false,
     flags: ["explore"],
-    image: "cleats"
+    image: "/uploads/products/soccer-cleats.jpg"
   },
   {
     id: "gamepad-black",
@@ -266,7 +266,7 @@ export const products: Product[] = [
     sizes: [],
     isNew: true,
     flags: ["explore"],
-    image: "gamepad-black"
+    image: "/uploads/products/gamepad-black.jpg"
   },
   {
     id: "satin-jacket",
@@ -283,7 +283,7 @@ export const products: Product[] = [
     sizes: ["S", "M", "L"],
     isNew: false,
     flags: ["explore"],
-    image: "jacket"
+    image: "/uploads/products/satin-jacket.jpg"
   }
 ];
 

@@ -174,9 +174,9 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
               </>
             )}
             <div className="form-actions">
-              <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}>
+              <Button variant="ghost" type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}>
                 {authMode === "login" ? "Create account" : "Sign in instead"}
-              </button>
+              </Button>
               <Button type="submit" disabled={registerState.isLoading || loginState.isLoading}>
                 {(registerState.isLoading || loginState.isLoading) ? "Please wait..." : authMode === "login" ? "Sign In" : "Create Account"}
               </Button>
@@ -210,7 +210,7 @@ export function AccountPage({ userState, onAuthChanged, onUserRefresh, navigate 
               <FormField label="New Password" name="newPassword" type="password" register={profileForm.register("newPassword")} error={profileForm.formState.errors.newPassword?.message} />
               <FormField label="Confirm New Password" name="confirmPassword" type="password" register={profileForm.register("confirmPassword")} error={profileForm.formState.errors.confirmPassword?.message} />
             </div>
-            <div className="form-actions"><button type="button" onClick={onUserRefresh}>Cancel</button><Button type="submit" disabled={updateProfileState.isLoading}>{updateProfileState.isLoading ? "Saving..." : "Save Changes"}</Button></div>
+            <div className="form-actions"><Button variant="ghost" type="button" onClick={onUserRefresh}>Cancel</Button><Button type="submit" disabled={updateProfileState.isLoading}>{updateProfileState.isLoading ? "Saving..." : "Save Changes"}</Button></div>
             {profileStatus && <p className={`form-status ${profileStatusIsError ? "form-status--error" : ""}`}>{profileStatus}</p>}
           </form>
 

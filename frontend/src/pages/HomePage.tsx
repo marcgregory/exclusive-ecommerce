@@ -6,6 +6,7 @@ import { ProductCard } from "../components/ProductCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { ServiceBadges } from "../components/ServiceBadges";
 import type { AddToCart, AddToWishlist, Category, Navigate, Product } from "../types";
+import { useRef } from "react";
 
 type HomePageProps = {
   products: Product[];
@@ -13,12 +14,14 @@ type HomePageProps = {
   navigate: Navigate;
   onAdd: AddToCart;
   onWishlist: AddToWishlist;
+  wishlistProductIds: string[];
 };
 
-export function HomePage({ products, categories, navigate, onAdd, onWishlist }: HomePageProps) {
+export function HomePage({ products, categories, navigate, onAdd, onWishlist, wishlistProductIds }: HomePageProps) {
   const flash = products.filter((product) => product.flags.includes("flash"));
   const best = products.filter((product) => product.flags.includes("best"));
   const explore = products.filter((product) => product.flags.includes("explore"));
+  const productRowRef = useRef<HTMLDivElement>(null);
 
   return (
     <main>
@@ -38,20 +41,26 @@ export function HomePage({ products, categories, navigate, onAdd, onWishlist }: 
       </section>
 
       <section className="container section">
-        <SectionHeader kicker="Today's" title="Flash Sales" controls />
+        <SectionHeader
+          kicker="Today's"
+          title="Flash Sales"
+          controls
+          onLeftScroll={() => productRowRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
+          onRightScroll={() => productRowRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
+        />
         <div className="section-title-row"><CountdownTimer /></div>
-        <div className="product-row">{flash.map((product) => <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />)}</div>
+        <div className="product-row" ref={productRowRef}>{flash.map((product) => <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} isInWishlist={wishlistProductIds.includes(product.id)} />)}</div>
         <Button className="center-button" onClick={() => navigate("/category/electronics")}>View All Products</Button>
       </section>
 
       <section className="container section bordered">
-        <SectionHeader kicker="Categories" title="Browse By Category" controls />
+        <SectionHeader kicker="Categories" title="Browse By Category" />
         <div className="category-grid">{categories.slice(2, 8).map((category) => <CategoryTile key={category.id} category={category} navigate={navigate} />)}</div>
       </section>
 
       <section className="container section">
         <SectionHeader kicker="This Month" title="Best Selling Products" action={<Button onClick={() => navigate("/category/electronics")}>View All</Button>} />
-        <div className="product-grid four">{best.map((product) => <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />)}</div>
+        <div className="product-grid four">{best.map((product) => <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} isInWishlist={wishlistProductIds.includes(product.id)} />)}</div>
       </section>
 
       <section className="container promo">
@@ -60,8 +69,8 @@ export function HomePage({ products, categories, navigate, onAdd, onWishlist }: 
       </section>
 
       <section className="container section">
-        <SectionHeader kicker="Our Products" title="Explore Our Products" controls />
-        <div className="product-grid four">{explore.map((product) => <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />)}</div>
+        <SectionHeader kicker="Our Products" title="Explore Our Products" />
+        <div className="product-grid four">{explore.map((product) => <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} isInWishlist={wishlistProductIds.includes(product.id)} />)}</div>
         <Button className="center-button">View All Products</Button>
       </section>
 

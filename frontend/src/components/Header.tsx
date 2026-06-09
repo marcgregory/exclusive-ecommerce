@@ -1,4 +1,4 @@
-import { Heart, LogOut, Menu, Search, ShoppingCart, User, X } from "lucide-react";
+import { ChevronDown, Heart, LogOut, Menu, Search, ShoppingCart, User, X } from "lucide-react";
 import { useState } from "react";
 import type { Navigate, PublicUser } from "../types";
 
@@ -14,6 +14,7 @@ type HeaderProps = {
 export function Header({ navigate, user, cartCount, wishlistCount, onLogout, logoutSaving }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [adminOpen, setAdminOpen] = useState(false);
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -22,19 +23,17 @@ export function Header({ navigate, user, cartCount, wishlistCount, onLogout, log
     navigate(`/search?q=${encodeURIComponent(trimmed)}`);
   };
 
-  const links = [
+  const publicLinks = [
     ["/", "Home"],
     ["/contact", "Contact"],
     ["/about", "About"],
     ["/account", user ? "Account" : "Sign Up"],
-    ...(user?.role === "admin"
-      ? [
-          ["/admin/products", "Products"],
-          ["/admin/categories", "Categories"],
-          ["/admin/coupons", "Coupons"],
-          ["/admin/orders", "Orders"],
-        ]
-      : []),
+  ];
+  const adminLinks = [
+    ["/admin/products", "Products"],
+    ["/admin/categories", "Categories"],
+    ["/admin/coupons", "Coupons"],
+    ["/admin/orders", "Orders"],
   ];
 
   const logout = async () => {
@@ -48,7 +47,34 @@ export function Header({ navigate, user, cartCount, wishlistCount, onLogout, log
         <div className="container site-header__inner">
           <button className="logo" onClick={() => navigate("/")}>Exclusive</button>
           <nav className="desktop-nav">
-            {links.map(([href, label]) => <button key={href} onClick={() => navigate(href)}>{label}</button>)}
+            {publicLinks.map(([href, label]) => <button key={href} onClick={() => navigate(href)}>{label}</button>)}
+            {user?.role === "admin" && (
+              <>
+                <button
+                  className="admin-trigger"
+                  onClick={() => setAdminOpen(!adminOpen)}
+                  aria-label="Admin menu"
+                  aria-expanded={adminOpen}
+                >
+                  Admin<ChevronDown size={16} />
+                </button>
+                {adminOpen && (
+                  <div className="admin-dropdown-menu">
+                    {adminLinks.map(([href, label]) => (
+                      <button
+                        key={href}
+                        onClick={() => {
+                          setAdminOpen(false);
+                          navigate(href);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </nav>
           <div className="header-actions">
             <form className="search-box" role="search" onSubmit={submitSearch}>
@@ -82,9 +108,22 @@ export function Header({ navigate, user, cartCount, wishlistCount, onLogout, log
       {open && (
         <div className="mobile-drawer">
           <button className="icon-button drawer-close" onClick={() => setOpen(false)} aria-label="Close navigation"><X /></button>
-          {links.map(([href, label]) => (
+          {publicLinks.map(([href, label]) => (
             <button key={href} onClick={() => { setOpen(false); navigate(href); }}>{label}</button>
           ))}
+          {user?.role === "admin" && (
+            <>
+              {/* In mobile drawer, show admin links as simple buttons */}
+              {adminLinks.map(([href, label]) => (
+                <button key={href} onClick={() => {
+                  setOpen(false);
+                  navigate(href);
+                }}>
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
           <button onClick={() => { setOpen(false); navigate("/cart"); }}>Cart</button>
           <button onClick={() => { setOpen(false); navigate("/account"); }}>Account</button>
           {user && <button onClick={logout} disabled={logoutSaving}>Log Out</button>}

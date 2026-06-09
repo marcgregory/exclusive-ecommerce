@@ -14,9 +14,10 @@ type ProductCardProps = {
   navigate: Navigate;
   showWishlistButton?: boolean;
   secondaryAction?: React.ReactNode;
+  isInWishlist?: boolean;
 };
 
-export function ProductCard({ product, variants, onAdd, onWishlist, navigate, showWishlistButton = true, secondaryAction }: ProductCardProps) {
+export function ProductCard({ product, variants, onAdd, onWishlist, navigate, showWishlistButton = true, secondaryAction, isInWishlist = false }: ProductCardProps) {
   const isOutOfStock = product.stockStatus === "Out of Stock";
   const quickAddSelection = getQuickAddSelection(product, variants);
   const shouldChooseOptions = requiresVariantSelection(product) && !quickAddSelection;
@@ -42,7 +43,13 @@ export function ProductCard({ product, variants, onAdd, onWishlist, navigate, sh
         {product.isNew && !isOutOfStock && <span className="new-badge">NEW</span>}
         <div className="card-tools">
           {showWishlistButton && (
-            <button onClick={() => onWishlist(product.id)} aria-label={`Wishlist ${product.name}`}><Heart size={18} /></button>
+            <button onClick={() => onWishlist(product.id)} aria-label={`Wishlist ${product.name}`}>
+              <Heart
+                size={18}
+                fill={isInWishlist ? "currentColor" : undefined}
+                className={isInWishlist ? "text-red-500" : ""}
+              />
+            </button>
           )}
           <button onClick={() => navigate(`/product/${product.id}`)} aria-label={`View ${product.name}`}><Eye size={18} /></button>
         </div>

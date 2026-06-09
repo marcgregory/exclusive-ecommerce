@@ -73,6 +73,7 @@ function renderPage(overrides: Partial<Parameters<typeof CategoryPage>[0]> = {})
     navigate: vi.fn(),
     onAdd: vi.fn().mockResolvedValue(undefined),
     onWishlist: vi.fn().mockResolvedValue(undefined),
+    wishlistProductIds: [],
     ...overrides,
   };
 

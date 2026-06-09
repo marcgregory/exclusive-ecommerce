@@ -41,6 +41,8 @@ describe("ProductCard", () => {
         onAdd={vi.fn()}
         onWishlist={vi.fn()}
         navigate={vi.fn()}
+        isInWishlist={false}
+        fill={undefined}
       />
     );
 
@@ -60,7 +62,7 @@ describe("ProductCard", () => {
     const navigate = vi.fn();
 
     const { container } = render(
-      <ProductCard product={productWithoutOptions} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />
+      <ProductCard product={productWithoutOptions} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} isInWishlist={false} fill={undefined} />
     );
 
     const user = userEvent.setup();
@@ -110,6 +112,8 @@ describe("ProductCard", () => {
         onAdd={onAdd}
         onWishlist={vi.fn()}
         navigate={navigate}
+        isInWishlist={false}
+        fill={undefined}
       />
     );
 
@@ -143,6 +147,8 @@ describe("ProductCard", () => {
         navigate={vi.fn()}
         showWishlistButton={false}
         secondaryAction={<button>Secondary</button>}
+        isInWishlist={false}
+        fill={undefined}
       />
     );
 

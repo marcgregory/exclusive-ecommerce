@@ -23,6 +23,7 @@ type ProductDetailsPageProps = {
   navigate: Navigate;
   onAdd: AddToCart;
   onWishlist: AddToWishlist;
+  wishlistProductIds: string[];
 };
 
 function getActionErrorMessage(error: unknown) {
@@ -30,7 +31,7 @@ function getActionErrorMessage(error: unknown) {
   return rtkMessage && rtkMessage !== "Request failed" ? rtkMessage : getErrorMessage(error);
 }
 
-export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductDetailsPageProps) {
+export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistProductIds }: ProductDetailsPageProps) {
   const productQuery = useGetProductDetailQuery(id || "", { skip: !id });
   const [addCartItem] = useAddCartItemMutation();
   const [addWishlistProduct] = useAddWishlistProductMutation();
@@ -222,7 +223,7 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist }: ProductD
       </section>
       <section className="section">
         <SectionHeader kicker="Related Item" title="" />
-        <div className="product-grid four">{related.map((entry) => <ProductCard key={entry.id} product={entry} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />)}</div>
+        <div className="product-grid four">{related.map((entry) => <ProductCard key={entry.id} product={entry} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} isInWishlist={wishlistProductIds.includes(entry.id)} />)}</div>
       </section>
     </main>
   );

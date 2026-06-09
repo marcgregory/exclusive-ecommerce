@@ -36,6 +36,7 @@ type CategoryPageProps = {
   navigate: Navigate;
   onAdd: AddToCart;
   onWishlist: AddToWishlist;
+  wishlistProductIds: string[];
 };
 
 function getSort(query: URLSearchParams): ProductSort {
@@ -53,7 +54,7 @@ function getPage(query: URLSearchParams) {
   return Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
 }
 
-export function CategoryPage({ categorySlug, searchQuery, query, categories, navigate, onAdd, onWishlist }: CategoryPageProps) {
+export function CategoryPage({ categorySlug, searchQuery, query, categories, navigate, onAdd, onWishlist, wishlistProductIds }: CategoryPageProps) {
   const trimmedSearch = (searchQuery || "").trim();
   const isSearch = Boolean(trimmedSearch);
   const resolvedCategory = isSearch ? undefined : categories.find((entry) => entry.slug === categorySlug);
@@ -168,7 +169,14 @@ export function CategoryPage({ categorySlug, searchQuery, query, categories, nav
         <>
           <div className="product-grid four">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAdd={onAdd}
+                onWishlist={onWishlist}
+                navigate={navigate}
+                isInWishlist={wishlistProductIds.includes(product.id)}
+              />
             ))}
           </div>
           <div className="listing-pagination">

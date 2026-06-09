@@ -1,10 +1,15 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-export function CarouselControls() {
+type CarouselControlsProps = {
+  onLeftClick: () => void;
+  onRightClick: () => void;
+};
+
+export function CarouselControls({ onLeftClick, onRightClick }: CarouselControlsProps) {
   return (
     <div className="carousel-controls">
-      <button aria-label="Previous"><ArrowLeft size={22} /></button>
-      <button aria-label="Next"><ArrowRight size={22} /></button>
+      <button onClick={onLeftClick} aria-label="Previous"><ArrowLeft size={22} /></button>
+      <button onClick={onRightClick} aria-label="Next"><ArrowRight size={22} /></button>
     </div>
   );
 }

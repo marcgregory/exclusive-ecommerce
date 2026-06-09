@@ -295,6 +295,15 @@ button {
   font-size: 16px;
 }
 
+/* Handle text overflow for category names */
+.category-rail button span:first-child {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .hero-card {
   position: relative;
   margin-top: 40px;
@@ -380,6 +389,12 @@ button {
 
 .section {
   padding: 70px 0;
+}
+
+.section-title-row {
+  margin-top: -112px;
+  margin-left: 298px;
+  margin-bottom: 60px;
 }
 
 .page {
@@ -1726,6 +1741,15 @@ button {
   color: var(--muted);
 }
 
+/* Prevent overflow in admin order main fields (email, phone, etc.) */
+.admin-order-row__main span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-order-row__meta,
 .admin-order-row__items {
   flex-wrap: wrap;
@@ -1738,6 +1762,19 @@ button {
   padding: 6px 10px;
   border-radius: 4px;
   background: var(--soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Prevent overflow in admin order main fields (order ID, email, phone, etc.) */
+.admin-order-row__main span,
+.admin-order-row__main strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-order-alert {
@@ -1822,9 +1859,23 @@ button {
   overflow-wrap: anywhere;
 }
 
+/* Prevent overflow in admin category labels */
+.admin-catalog-row__main strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-catalog-row__main span,
 .admin-catalog-row__meta {
   color: var(--muted);
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-catalog-row__meta {
@@ -1842,6 +1893,18 @@ button {
   padding: 5px 9px;
   border-radius: 4px;
   background: var(--soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Prevent overflow in admin category labels */
+.admin-catalog-row__main strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-catalog-row__meta strong {
@@ -1987,6 +2050,7 @@ button {
 
 .admin-variants-row input {
   min-height: 38px;
+  width: 100%;
 }
 
 .admin-variants-row .button {
@@ -2414,6 +2478,10 @@ button {
   z-index: 5;
 }
 
+.text-red-500 {
+  color: var(--accent) !important;
+}
+
 .product-visual {
   width: 190px;
   height: 150px;
@@ -2703,6 +2771,11 @@ button {
     right: 24px;
   }
 
+  .section-title-row {
+    margin-left: 0;
+    margin-top: 0;
+  }
+
   .hero-zone,
   .product-detail,
   .checkout-form,
@@ -2879,6 +2952,11 @@ button {
     flex-wrap: wrap;
   }
 
+  .section-title-row {
+    margin-left: 0;
+    margin-top: 0;
+  }
+
   .order-history__header,
   .order-history__row,
   .order-item-row,
@@ -3012,4 +3090,56 @@ button {
   .thumbs button {
     height: 90px;
   }
+}
+
+/* Admin dropdown in header */
+.admin-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  height: auto;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  position: relative;
+}
+.admin-trigger svg {
+  width: 16px;
+  height: 16px;
+}
+.admin-trigger:hover {
+  text-decoration: underline;
+}
+.admin-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: white;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  padding: 0.5rem 0;
+  min-width: 150px;
+  z-index: 1000;
+}
+.admin-dropdown-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.admin-dropdown-menu button:hover {
+  background-color: #f5f5f5;
+}
+
+/* Make site-header__inner relative for dropdown positioning */
+.site-header__inner {
+  position: relative;
 }

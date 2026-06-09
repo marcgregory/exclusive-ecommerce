@@ -163,6 +163,7 @@ function App() {
           navigate={navigate}
           onAdd={onAdd}
           onWishlist={onWishlist}
+          wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []}
         />
       );
     }
@@ -177,10 +178,11 @@ function App() {
           navigate={navigate}
           onAdd={onAdd}
           onWishlist={onWishlist}
+          wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []}
         />
       );
     }
-    if (path.startsWith("/product/")) return <ProductDetailsPage id={path.split("/").pop()} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} />;
+    if (path.startsWith("/product/")) return <ProductDetailsPage id={path.split("/").pop()} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []} />;
     if (path.startsWith("/orders/")) return <OrderPage authStatus={authStatus} id={path.split("/").pop()} navigate={navigate} />;
     if (path === "/admin" || path === "/admin/products") return <AdminProductsPage userState={userState} navigate={navigate} />;
     if (path === "/admin/categories") return <AdminCategoriesPage userState={userState} navigate={navigate} />;
@@ -195,7 +197,7 @@ function App() {
     if (path === "/wishlist") return <WishlistPage authStatus={authStatus} navigate={navigate} onAdd={onAdd} refreshCart={refreshCart} refreshWishlist={refreshWishlist} />;
     if (catalogLoading) return catalogLoadingView;
     if (catalogError) return catalogErrorView;
-    return <HomePage products={products.data} categories={categories.data} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} />;
+    return <HomePage products={products.data} categories={categories.data} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []} />;
   }, [path, products, categories, userState, authStatus, cart, navigate, loadProducts, loadCategories, refreshCart, refreshWishlist, loadUser, handleAuthChanged, onAdd, onWishlist]);
 
   return (

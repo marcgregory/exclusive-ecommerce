@@ -39,7 +39,7 @@ const imageTypeByContentType = {
   "image/webp": "webp",
 } as const;
 
-function detectImageType(buffer: Buffer) {
+export function detectImageType(buffer: Buffer) {
   if (
     buffer.length >= 8 &&
     buffer[0] === 0x89 &&
@@ -243,7 +243,7 @@ export class CloudinaryProductImageStorage implements ProductImageStorage {
   }
 }
 
-function uploadBufferToCloudinary(
+export function uploadBufferToCloudinary(
   buffer: Buffer,
   options: UploadApiOptions,
 ) {

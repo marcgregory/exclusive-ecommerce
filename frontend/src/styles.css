@@ -9,6 +9,24 @@
   --container: 1170px;
 }
 
+/* Product visual empty state */
+.product-visual__empty {
+  width: 190px;
+  height: 150px;
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.product-visual--large .product-visual__empty {
+  width: 446px;
+  height: 315px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -594,6 +612,12 @@ button {
   place-items: center;
 }
 
+.product-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .discount,
 .new-badge,
 .out-badge {
@@ -989,6 +1013,16 @@ button {
   color: rgba(255, 255, 255, 0.35);
 }
 
+/* Product Details image fixes */
+.main-product-image {
+  overflow: hidden;
+}
+.main-product-image .product-visual__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .breadcrumbs {
   display: flex;
   align-items: center;
@@ -1023,7 +1057,16 @@ button {
 }
 
 .thumbs button {
+  width: 100%;
   height: 138px;
+  padding: 0;
+  background: none;
+  border: none;
+}
+.thumbs button .product-visual__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .main-product-image {
@@ -2482,239 +2525,6 @@ button {
   color: var(--accent) !important;
 }
 
-.product-visual {
-  width: 190px;
-  height: 150px;
-  position: relative;
-}
-
-.product-visual--large {
-  width: 446px;
-  height: 315px;
-}
-
-.product-visual span,
-.product-visual i,
-.product-visual b {
-  position: absolute;
-  display: block;
-}
-
-.product-visual--uploaded {
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-.product-visual--uploaded img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-/* Skeleton loader styles */
-.product-visual__skeleton {
-  width: 100%;
-  height: 100%;
-  background: var(--soft);
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.product-visual__skeleton-wave {
-  width: 80%;
-  height: 8px;
-  background: var(--line);
-  border-radius: 4px;
-  animation: skeleton-wave 1.5s ease-in-out infinite;
-}
-
-@keyframes skeleton-wave {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* Image error styles */
-.product-visual__image--error {
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-/* Fallback content styles */
-.product-visual__fallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: var(--soft);
-  color: var(--muted);
-  font-size: 14px;
-  text-align: center;
-  padding: 20px;
-}
-
-.product-visual__fallback-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
-}
-
-.product-visual__fallback-text {
-  font-weight: 500;
-}
-
-.product-visual--gamepad-red span,
-.product-visual--havic-gamepad span,
-.product-visual--gamepad-black span {
-  inset: 34px 18px;
-  border-radius: 46px 46px 28px 28px;
-  background: #db4444;
-  transform: rotate(-8deg);
-}
-
-.product-visual--gamepad-red i,
-.product-visual--havic-gamepad i,
-.product-visual--gamepad-black i {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #111;
-  left: 46px;
-  top: 64px;
-  box-shadow: 62px 0 0 #111;
-}
-
-.product-visual--gamepad-red b,
-.product-visual--havic-gamepad b,
-.product-visual--gamepad-black b {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  right: 44px;
-  top: 46px;
-  box-shadow: 24px 0 0 #fff, 12px 19px 0 #fff;
-}
-
-.product-visual--gamepad-black span,
-.product-visual--havic-gamepad span {
-  background: linear-gradient(135deg, #f8f8f8 0 50%, #111 51%);
-}
-
-.product-visual--keyboard span {
-  left: 18px;
-  right: 18px;
-  top: 62px;
-  height: 54px;
-  border-radius: 8px;
-  background: repeating-linear-gradient(90deg, #202020 0 12px, #39d 12px 15px, #202020 15px 24px);
-  transform: perspective(150px) rotateX(18deg);
-}
-
-.product-visual--monitor span {
-  left: 30px;
-  right: 30px;
-  top: 24px;
-  height: 92px;
-  border-radius: 4px;
-  background: radial-gradient(circle at center, #db4444, #050505 60%);
-}
-
-.product-visual--monitor i {
-  left: 84px;
-  top: 116px;
-  width: 22px;
-  height: 34px;
-  background: #111;
-}
-
-.product-visual--monitor b {
-  left: 58px;
-  top: 143px;
-  width: 74px;
-  height: 6px;
-  background: #111;
-}
-
-.product-visual--cooler span {
-  width: 70px;
-  height: 70px;
-  left: 24px;
-  top: 42px;
-  border-radius: 50%;
-  background: conic-gradient(#0ff, #f0f, #ff0, #0ff);
-  box-shadow: 78px 0 0 #111;
-}
-
-.product-visual--chair span,
-.product-visual--coat span,
-.product-visual--bag span,
-.product-visual--bookshelf span,
-.product-visual--dogfood span,
-.product-visual--camera span,
-.product-visual--laptop span,
-.product-visual--skincare span,
-.product-visual--toycar span,
-.product-visual--cleats span,
-.product-visual--jacket span,
-.product-visual--default span {
-  inset: 28px 48px;
-  border-radius: 18px;
-  background: linear-gradient(145deg, #dedede, #737373);
-}
-
-.product-visual--bag span {
-  background: linear-gradient(145deg, #9a6a4a, #2d1c13);
-  border-radius: 26px 26px 12px 12px;
-}
-
-.product-visual--coat span,
-.product-visual--jacket span {
-  background: linear-gradient(145deg, #313131, #8a1f2d);
-  clip-path: polygon(25% 0, 75% 0, 100% 100%, 0 100%);
-}
-
-.product-visual--toycar span {
-  background: #db4444;
-  border-radius: 30px 30px 14px 14px;
-}
-
-.product-visual--toycar i {
-  left: 48px;
-  bottom: 24px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #111;
-  box-shadow: 70px 0 0 #111;
-}
-
-.product-visual--laptop span {
-  left: 32px;
-  right: 32px;
-  top: 30px;
-  height: 82px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #222, #7ad);
-}
-
-.product-visual--laptop i {
-  left: 24px;
-  right: 24px;
-  bottom: 24px;
-  height: 14px;
-  background: #222;
-  border-radius: 2px;
-}
 
 @media (max-width: 900px) {
   .container {

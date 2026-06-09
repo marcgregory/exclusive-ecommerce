@@ -1,11 +1,12 @@
 import { Heart, ShieldCheck, Truck } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useAddCartItemMutation,
   useAddWishlistProductMutation,
   useDeleteWishlistProductMutation,
   useGetProductDetailQuery,
 } from "../api/ecommerceApi";
+import { resolveProductImage } from "../lib/productUtils";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { ErrorState, LoadingState } from "../components/StateViews";
@@ -42,13 +43,29 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistPr
   const [selectedSize, setSelectedSize] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const productError = !id ? "Product not found" : getRtkErrorMessage(productQuery.error);
+  // Debug logging for product images
+  useEffect(() => {
+    const { product } = productQuery.data || {};
+    if (product) {
+      console.log('Product details:', {
+        name: product.name,
+        image: product.image,
+        imageUrl: product.imageUrl,
+        thumbnail: product.thumbnail,
+        images: product.images
+      });
+    }
+  }, [productQuery.data]);
 
-  if (productQuery.isLoading) {
+  const productError = !id ? "Product not found" : getRtkErrorMessage(productQuery.error);
+  const isLoading = productQuery.isLoading;
+  const productData = productQuery.data;
+
+  if (isLoading) {
     return <main className="container page"><LoadingState title="Loading product" message="We are getting the product details." /></main>;
   }
 
-  if (productError || !productQuery.data) {
+  if (productError || !productData) {
     return (
       <main className="container page">
         <Breadcrumbs items={["Home", "Product"]} />
@@ -62,7 +79,7 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistPr
     );
   }
 
-  const { product, related, variants = [] } = productQuery.data;
+  const { product, related, variants = [] } = productData;
   const isInWishlist = wishlistProductIds.includes(product.id);
   const isOutOfStock = product.stockStatus === "Out of Stock";
   const requiresColor = product.colors.length > 0;
@@ -176,8 +193,12 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistPr
       <Breadcrumbs items={["Account", product.category, product.name]} />
       {actionError && <p className="form-status form-status--error">{actionError}</p>}
       <section className="product-detail">
-        <div className="thumbs">{[product.image, "gamepad-black", "gamepad-red", "default"].map((img, index) => <button key={`${img}-${index}`}><ProductVisual type={img} /></button>)}</div>
-        <div className="main-product-image"><ProductVisual type={product.image} large /></div>
+        <div className="thumbs">
+          {(product.images?.length ?? 0 > 0 ? product.images : [product.image]).map((img, index) => (
+            <button key={img}><ProductVisual src={img} /></button>
+          ))}
+        </div>
+        <div className="main-product-image"><ProductVisual src={resolveProductImage(product)} type={product.image} large /></div>
         <div className="product-info">
           <h1>{product.name}</h1>
           <div className="review-line"><Stars value={product.rating} /><span>({product.reviewCount} Reviews)</span><i /> <strong className={isOutOfStock ? "stock-out" : "stock-in"}>{isOutOfStock ? "Out of stock" : product.stockStatus}</strong></div>

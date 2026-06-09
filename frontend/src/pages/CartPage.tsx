@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { useDeleteCartItemMutation, useUpdateCartItemMutation } from "../api/ecommerceApi";
+import { resolveProductImage } from "../lib/productUtils";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { CartTotals } from "../components/CartTotals";
@@ -161,7 +162,7 @@ export function CartPage({ authStatus, cart, cartLoading, cartError, navigate, r
           return (
             <div className="cart-row" key={item.id}>
               <div>
-                <ProductVisual type={item.product.image} />
+                <ProductVisual src={resolveProductImage(item.product)} type={item.product.image} />
                 <button onClick={() => remove(item.id)} aria-label={`Remove ${item.product.name}`}><X size={16} /></button>
                 <span className="cart-row__product">
                   <span>{item.product.name}</span>

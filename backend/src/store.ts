@@ -63,7 +63,8 @@ function mapProduct(row: QueryResultRow): Product {
     sizes: Array.isArray(row.sizes) ? row.sizes.map(String) : [],
     isNew: Boolean(row.is_new),
     flags: Array.isArray(row.flags) ? row.flags.map(String) : [],
-    image: String(row.image_key || "")
+    image: String(row.image_key || ""),
+    imageUrl: String(row.image_key || "")
   };
 }
 
@@ -319,6 +320,9 @@ export async function listProducts(filters: ProductFilters = {}): Promise<{ prod
     `SELECT * FROM products ${whereSql} ${sortSql} LIMIT $${pageValues.length - 1} OFFSET $${pageValues.length}`,
     pageValues
   );
+
+  // Debug: log raw rows
+  console.log("listProducts raw rows:", result.rows.map(r => ({ id: r.id, name: r.name, image_key: r.image_key })));
 
   return { products: result.rows.map(mapProduct), total: Number(totalResult.rows[0]?.count || 0), page, limit };
 }

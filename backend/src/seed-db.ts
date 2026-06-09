@@ -1,9 +1,24 @@
 import { closePool, query, withTransaction } from "./db.js";
 import { createInitialStore } from "./seed.js";
 import { pathToFileURL } from "node:url";
+import { loadRuntimeConfig } from "./config.js";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { v2 as cloudinary } from "cloudinary";
+import { uploadBufferToCloudinary, detectImageType } from "./image-storage.js";
 
 export async function seedDatabase(): Promise<void> {
   const state = createInitialStore();
+  const config = loadRuntimeConfig();
+
+  // Configure cloudinary
+  cloudinary.config({
+    ...(config.cloudinary.cloudinaryUrl ? { cloudinary_url: config.cloudinary.cloudinaryUrl } : {}),
+    ...(config.cloudinary.cloudName ? { cloud_name: config.cloudinary.cloudName } : {}),
+    ...(config.cloudinary.apiKey ? { api_key: config.cloudinary.apiKey } : {}),
+    ...(config.cloudinary.apiSecret ? { api_secret: config.cloudinary.apiSecret } : {}),
+    secure: true,
+  });
 
   await withTransaction(async (client) => {
     await client.query(
@@ -25,6 +40,25 @@ export async function seedDatabase(): Promise<void> {
     }
 
     for (const [index, product] of state.products.entries()) {
+      // Read the image file
+      const imagePath = resolve(process.cwd(), '..', 'frontend', 'public', product.image.replace(/^\//, ''));
+      const imageBuffer = await readFile(imagePath);
+      // Detect content type
+      const contentType = detectImageType(imageBuffer);
+      if (!contentType) {
+        throw new Error(`Could not detect image type for ${product.image}`);
+      }
+      // Prepare the public_id based on product slug (we'll use product.id as slug)
+      const publicId = product.id; // e.g., "havic-gamepad"
+      // Upload to Cloudinary
+      const uploadResult = await uploadBufferToCloudinary(imageBuffer, {
+        folder: "exclusive/product-images",
+        public_id: publicId,
+        overwrite: true,
+        resource_type: "image",
+      });
+      const secureUrl = uploadResult.secure_url;
+
       await client.query(
         `INSERT INTO products (
           id, name, category_id, description, price, original_price, discount_percent,
@@ -44,7 +78,7 @@ export async function seedDatabase(): Promise<void> {
           product.colors,
           product.sizes,
           product.isNew,
-          product.image,
+          secureUrl, // <-- use the Cloudinary URL instead of the local path
           product.flags,
           index
         ]

@@ -14,6 +14,9 @@ export type Product = {
   isNew: boolean;
   flags: string[];
   image: string;
+  imageUrl?: string;
+  thumbnail?: string;
+  images?: string[];
 };
 
 export type ProductVariant = {
@@ -144,6 +147,9 @@ export type AdminProductInput = {
   isNew: boolean;
   flags: string[];
   image: string;
+  imageUrl?: string;
+  thumbnail?: string;
+  images?: string[];
 };
 
 export type AdminProductListResponse = ProductsResponse;

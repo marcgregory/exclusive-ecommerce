@@ -1,27 +1,15 @@
 import { API_BASE } from "../api/client";
 import { useState } from "react";
+import { isImageUrl, imageSrc, resolveProductImage } from "../lib/productUtils";
 
 type ProductVisualProps = {
   type?: string;
+  src?: string;
   large?: boolean;
   alt?: string;
 };
 
-function isImageUrl(value: string) {
-  return value.startsWith("/uploads/") || /^https?:\/\//i.test(value);
-}
-
-function imageSrc(value: string) {
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${API_BASE}${value}`;
-}
-
-function visualClassName(type = "default", large = false) {
-  const safeType = type.replace(/[^a-z0-9_-]/gi, "-") || "default";
-  return `product-visual product-visual--${safeType} ${large ? "product-visual--large" : ""}`;
-}
-
-export function ProductVisual({ type, large = false, alt = "" }: ProductVisualProps) {
+export function ProductVisual({ type, src, large = false, alt = "" }: ProductVisualProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,7 +22,9 @@ export function ProductVisual({ type, large = false, alt = "" }: ProductVisualPr
     setIsLoading(false);
   };
 
-  if (type && isImageUrl(type)) {
+  const activeSrc = src || (type && isImageUrl(type) ? type : undefined);
+
+  if (activeSrc) {
     return (
       <div className={`product-visual product-visual--uploaded ${large ? "product-visual--large" : ""}`}>
         {/* Skeleton loader */}
@@ -45,12 +35,12 @@ export function ProductVisual({ type, large = false, alt = "" }: ProductVisualPr
         )}
         {/* Image with error handling */}
         <img
-          src={imageSrc(type)}
+          src={imageSrc(activeSrc)}
           alt={alt}
           loading="lazy"
           onError={handleImageError}
           onLoad={handleImageLoad}
-          className={`product-visual__image ${hasError ? "product-visual__image--error" : ""}`}
+          className={`product-visual__image ${hasError ? "product-visual--image--error" : ""}`}
         />
         {/* Fallback content when image fails to load */}
         {hasError && (
@@ -64,10 +54,8 @@ export function ProductVisual({ type, large = false, alt = "" }: ProductVisualPr
   }
 
   return (
-    <div className={visualClassName(type, large)}>
-      <span />
-      <i />
-      <b />
+    <div className="product-visual__empty">
+      No image
     </div>
   );
 }

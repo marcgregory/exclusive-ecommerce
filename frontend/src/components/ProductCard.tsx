@@ -1,6 +1,7 @@
 import { Eye, Heart } from "lucide-react";
 import { formatMoney } from "../lib/format";
 import { getQuickAddSelection, requiresVariantSelection } from "../lib/productVariants";
+import { resolveProductImage } from "../lib/productUtils";
 import type { AddToCart, AddToWishlist, Navigate, Product, ProductVariant } from "../types";
 import { ProductVisual } from "./ProductVisual";
 import { Stars } from "./Stars";
@@ -46,14 +47,14 @@ export function ProductCard({ product, variants, onAdd, onWishlist, navigate, sh
             <button onClick={() => onWishlist(product.id)} aria-label={`Wishlist ${product.name}`}>
               <Heart
                 size={18}
-                fill={isInWishlist ? "currentColor" : undefined}
+                fill={isInWishlist ? "currentColor" : "none"}
                 className={isInWishlist ? "text-red-500" : ""}
               />
             </button>
           )}
           <button onClick={() => navigate(`/product/${product.id}`)} aria-label={`View ${product.name}`}><Eye size={18} /></button>
         </div>
-        <ProductVisual type={product.image} />
+        <ProductVisual src={resolveProductImage(product)} type={product.image} />
         <button
           className="add-cart"
           onClick={handleQuickAdd}

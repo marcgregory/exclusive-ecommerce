@@ -24,6 +24,7 @@ export type Product = {
   isNew: boolean;
   flags: string[];
   image: string;
+  imageUrl?: string;
 };
 
 export type ProductVariant = {

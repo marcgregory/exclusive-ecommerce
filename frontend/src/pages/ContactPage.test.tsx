@@ -4,17 +4,21 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ContactPage } from "./ContactPage";
 
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api } from "../api/client";
+const apiMocks = vi.hoisted(() => ({
+  sendContactMessage: vi.fn(),
+}));
 
-const mockedApi = vi.mocked(api);
+vi.mock("../api/ecommerceApi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api/ecommerceApi")>();
+  return {
+    ...actual,
+    useSendContactMessageMutation: () => apiMocks.sendContactMessage(),
+  };
+});
 
 describe("ContactPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
+    apiMocks.sendContactMessage.mockReset();
   });
 
   afterEach(() => {
@@ -22,7 +26,10 @@ describe("ContactPage", () => {
   });
 
   it("submits the contact form and resets it", async () => {
-    mockedApi.mockResolvedValue({ message: { id: "msg-1" } });
+    const unwrapFn = vi.fn().mockResolvedValue({ message: { id: "msg-1" } });
+    const mockSend = vi.fn().mockReturnValue({ unwrap: unwrapFn });
+    apiMocks.sendContactMessage.mockReturnValue([mockSend, { isLoading: false }]);
+
     render(<ContactPage />);
 
     await userEvent.type(screen.getByLabelText(/Your Name/i), "Jane Doe");
@@ -33,18 +40,14 @@ describe("ContactPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /Send Message/i }));
 
     await waitFor(() =>
-      expect(mockedApi).toHaveBeenCalledWith(
-        "/api/contact",
-        expect.objectContaining({ method: "POST" }),
-      ),
+      expect(mockSend).toHaveBeenCalledWith({
+        name: "Jane Doe",
+        email: "jane@example.com",
+        phone: "555-0123",
+        message: "I need help with an order.",
+      }),
     );
-    const [, options] = mockedApi.mock.calls[0];
-    expect(JSON.parse(options?.body as string)).toEqual({
-      name: "Jane Doe",
-      email: "jane@example.com",
-      phone: "555-0123",
-      message: "I need help with an order.",
-    });
+
     expect(await screen.findByText(/Message sent/i)).toBeDefined();
     expect(screen.getByLabelText<HTMLInputElement>(/Your Name/i).value).toBe("");
     expect(screen.getByLabelText<HTMLInputElement>(/Your Email/i).value).toBe("");

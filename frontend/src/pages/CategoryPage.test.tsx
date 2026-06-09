@@ -2,16 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { CategoryPage } from "./CategoryPage";
+import { ecommerceApi } from "../api/ecommerceApi";
 import type { Category, Product } from "../types";
-
-vi.mock("../api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/client")>();
-  return { ...actual, api: vi.fn() };
-});
-import { api } from "../api/client";
-
-const mockedApi = vi.mocked(api);
 
 const categories: Category[] = [
   {
@@ -41,7 +36,36 @@ const product: Product = {
   image: "default",
 };
 
+type FetchResponse = { products: Product[]; total: number; page: number; limit: number };
+
+let mockResponse: FetchResponse = {
+  products: [product],
+  total: 36,
+  page: 2,
+  limit: 12,
+};
+
+globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+  const urlStr = typeof url === "string" ? url : url instanceof URL ? url.toString() : url.url;
+  const urlObj = new URL(urlStr, "http://localhost");
+  const path = urlObj.pathname;
+
+  if (path === "/api/products") {
+    return new Response(JSON.stringify(mockResponse), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return Promise.reject(new Error(`Unexpected fetch: ${path}`));
+}) as any;
+
 function renderPage(overrides: Partial<Parameters<typeof CategoryPage>[0]> = {}) {
+  const store = configureStore({
+    reducer: { [ecommerceApi.reducerPath]: ecommerceApi.reducer },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(ecommerceApi.middleware),
+  });
+
   const props = {
     categorySlug: "electronics",
     query: new URLSearchParams(),
@@ -52,19 +76,18 @@ function renderPage(overrides: Partial<Parameters<typeof CategoryPage>[0]> = {})
     ...overrides,
   };
 
-  const view = render(<CategoryPage {...props} />);
+  const view = render(
+    <Provider store={store}>
+      <CategoryPage {...props} />
+    </Provider>
+  );
   return { ...props, ...view };
 }
 
 describe("CategoryPage", () => {
   beforeEach(() => {
-    mockedApi.mockReset();
-    mockedApi.mockResolvedValue({
-      products: [product],
-      total: 36,
-      page: 2,
-      limit: 12,
-    });
+    vi.mocked(globalThis.fetch).mockClear();
+    mockResponse = { products: [product], total: 36, page: 2, limit: 12 };
   });
 
   afterEach(() => {
@@ -72,21 +95,22 @@ describe("CategoryPage", () => {
   });
 
   it("fetches products with URL-derived sort, flag, and page", async () => {
-    mockedApi.mockResolvedValueOnce({
-      products: [product],
-      total: 13,
-      page: 2,
-      limit: 12,
-    });
+    mockResponse = { products: [product], total: 13, page: 2, limit: 12 };
     renderPage({
       query: new URLSearchParams("sort=price-desc&flag=flash&page=2"),
     });
 
-    await waitFor(() => expect(mockedApi).toHaveBeenCalled());
-    const [path] = mockedApi.mock.calls[0];
-    expect(path).toBe("/api/products?category=electronics&flag=flash&sort=price-desc&page=2&limit=12");
     expect(await screen.findByText("Gaming Keyboard")).toBeDefined();
     expect(screen.getByText(/Page 2 of 2 - 13 products/i)).toBeDefined();
+
+    // Verify query params were sent — RTK Query passes a Request object to fetch
+    const fetchCalls = vi.mocked(globalThis.fetch).mock.calls;
+    const firstArg = fetchCalls[0][0];
+    const calledUrl = firstArg instanceof Request ? firstArg.url : String(firstArg);
+    expect(calledUrl).toContain("category=electronics");
+    expect(calledUrl).toContain("flag=flash");
+    expect(calledUrl).toContain("sort=price-desc");
+    expect(calledUrl).toContain("page=2");
   });
 
   it("updates the URL when changing product filters", async () => {
@@ -131,12 +155,7 @@ describe("CategoryPage", () => {
 
   it("shows a clear-filters action for empty filtered results", async () => {
     const navigate = vi.fn();
-    mockedApi.mockResolvedValueOnce({
-      products: [],
-      total: 0,
-      page: 1,
-      limit: 12,
-    });
+    mockResponse = { products: [], total: 0, page: 1, limit: 12 };
     renderPage({
       navigate,
       query: new URLSearchParams("flag=flash&sort=rating"),

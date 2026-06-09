@@ -3,11 +3,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, Phone } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { api } from "../api/client";
+import { useSendContactMessageMutation } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { FormField } from "../components/FormField";
-import { getErrorMessage } from "../lib/errors";
+import { getRtkErrorMessage } from "../lib/rtkErrors";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -22,6 +22,7 @@ type ContactForm = z.output<typeof contactSchema>;
 export function ContactPage() {
   const [status, setStatus] = useState("");
   const [statusIsError, setStatusIsError] = useState(false);
+  const [sendContactMessage] = useSendContactMessageMutation();
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
@@ -36,12 +37,12 @@ export function ContactPage() {
     try {
       setStatus("");
       setStatusIsError(false);
-      await api("/api/contact", { method: "POST", body: JSON.stringify(payload) });
+      await sendContactMessage(payload).unwrap();
       setStatus("Message sent.");
       reset();
     } catch (error) {
       setStatusIsError(true);
-      setStatus(getErrorMessage(error));
+      setStatus(getRtkErrorMessage(error));
     }
   });
 

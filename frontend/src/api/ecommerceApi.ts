@@ -53,6 +53,13 @@ type AdminOrdersFilter = {
   limit?: number;
 };
 
+type ContactInput = {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+};
+
 type AdminOrderUpdate = {
   status?: string;
   internalNote?: string;
@@ -60,6 +67,15 @@ type AdminOrderUpdate = {
 
 type AdminProductsFilter = {
   q?: string;
+  limit?: number;
+};
+
+type ProductsFilter = {
+  category?: string;
+  q?: string;
+  flag?: string;
+  sort?: string;
+  page?: number;
   limit?: number;
 };
 
@@ -109,22 +125,26 @@ const customBaseQuery = fetchBaseQuery({
   },
 });
 
-const loggingBaseQuery: typeof customBaseQuery = async (args, api, extraOptions) => {
-  const argsStr = typeof args === 'string' ? args : args.url;
-  const method = typeof args === 'string' ? 'GET' : args.method || 'GET';
-  console.log('[RTK QUERY]', method, argsStr, args);
-  const result = await customBaseQuery(args, api, extraOptions);
-  console.log('[RTK RESULT]', result);
-  return result;
-};
-
 export const ecommerceApi = createApi({
   reducerPath: "ecommerceApi",
-  baseQuery: loggingBaseQuery,
+  baseQuery: customBaseQuery,
   tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders", "AdminProducts", "AdminProductVariants", "AdminCoupons"],
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
       query: () => "/api/products",
+      providesTags: ["Catalog"],
+    }),
+    getFilteredProducts: builder.query<ProductsResponse, ProductsFilter>({
+      query: (filters) => {
+        const params = new URLSearchParams();
+        if (filters.category) params.set("category", filters.category);
+        if (filters.q) params.set("q", filters.q);
+        if (filters.flag) params.set("flag", filters.flag);
+        if (filters.sort && filters.sort !== "featured") params.set("sort", filters.sort);
+        if (filters.page) params.set("page", String(filters.page));
+        if (filters.limit) params.set("limit", String(filters.limit));
+        return `/api/products?${params.toString()}`;
+      },
       providesTags: ["Catalog"],
     }),
     getProductDetail: builder.query<ProductDetailResponse, string>({
@@ -321,6 +341,9 @@ export const ecommerceApi = createApi({
       }),
       invalidatesTags: ["AdminCoupons"],
     }),
+    sendContactMessage: builder.mutation<{ message: { id: string } }, ContactInput>({
+      query: (body) => ({ url: "/api/contact", method: "POST", body }),
+    }),
   }),
 });
 
@@ -362,4 +385,6 @@ export const {
   useCreateAdminCouponMutation,
   useUpdateAdminCouponMutation,
   useDeleteAdminCouponMutation,
+  useSendContactMessageMutation,
+  useLazyGetFilteredProductsQuery,
 } = ecommerceApi;

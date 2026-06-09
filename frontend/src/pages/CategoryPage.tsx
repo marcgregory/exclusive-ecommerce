@@ -1,20 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
+import { useCallback, useEffect, useMemo } from "react";
+import { useLazyGetFilteredProductsQuery } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { Button } from "../components/Button";
 import { ProductCard } from "../components/ProductCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getErrorMessage } from "../lib/errors";
+import { getRtkErrorMessage } from "../lib/rtkErrors";
 import {
   PRODUCT_SORTS,
   type AddToCart,
   type AddToWishlist,
   type Category,
   type Navigate,
-  type Product,
   type ProductSort,
-  type ProductsResponse
 } from "../types";
 
 const PAGE_LIMIT = 12;
@@ -40,16 +38,6 @@ type CategoryPageProps = {
   onWishlist: AddToWishlist;
 };
 
-type ListingState = {
-  products: Product[];
-  total: number;
-  page: number;
-  loading: boolean;
-  error: string;
-};
-
-const emptyState: ListingState = { products: [], total: 0, page: 1, loading: true, error: "" };
-
 function getSort(query: URLSearchParams): ProductSort {
   const sort = query.get("sort") as ProductSort | null;
   return sort && PRODUCT_SORT_VALUES.has(sort) ? sort : "featured";
@@ -72,8 +60,25 @@ export function CategoryPage({ categorySlug, searchQuery, query, categories, nav
   const sort = getSort(query);
   const flag = getFlag(query);
   const page = getPage(query);
-  const [state, setState] = useState<ListingState>(emptyState);
   const basePath = isSearch ? "/search" : `/category/${categorySlug || ""}`;
+
+  const [fetchProducts, { data, isLoading, error, isFetching }] = useLazyGetFilteredProductsQuery();
+
+  const load = useCallback(() => {
+    const filters: Record<string, unknown> = { limit: PAGE_LIMIT, page };
+    if (isSearch) {
+      filters.q = trimmedSearch;
+    } else if (resolvedCategory) {
+      filters.category = resolvedCategory.id;
+    }
+    if (flag) filters.flag = flag;
+    if (sort !== "featured") filters.sort = sort;
+    fetchProducts(filters as Parameters<typeof fetchProducts>[0]);
+  }, [fetchProducts, flag, isSearch, page, resolvedCategory, sort, trimmedSearch]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const buildListingHref = useCallback((updates: { sort?: ProductSort; flag?: ProductFlag; page?: number }) => {
     const params = new URLSearchParams();
@@ -91,45 +96,27 @@ export function CategoryPage({ categorySlug, searchQuery, query, categories, nav
     return queryString ? `${basePath}?${queryString}` : basePath;
   }, [basePath, flag, isSearch, page, sort, trimmedSearch]);
 
-  const activeFilterLabel = PRODUCT_FLAGS.find((option) => option.value === flag)?.label || "All";
-
-  const load = useCallback(async () => {
-    setState((current) => ({ ...current, loading: true, error: "" }));
-    const params = new URLSearchParams();
-    if (isSearch) {
-      params.set("q", trimmedSearch);
-    } else if (resolvedCategory) {
-      params.set("category", resolvedCategory.id);
-    }
-    if (flag) params.set("flag", flag);
-    if (sort !== "featured") params.set("sort", sort);
-    params.set("page", String(page));
-    params.set("limit", String(PAGE_LIMIT));
-    try {
-      const data = await api<ProductsResponse>(`/api/products?${params.toString()}`);
-      setState({ products: data.products, total: data.total, page: data.page, loading: false, error: "" });
-    } catch (error) {
-      setState((current) => ({ ...current, loading: false, error: getErrorMessage(error) }));
-    }
-  }, [flag, isSearch, resolvedCategory, sort, page, trimmedSearch]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const products = data?.products ?? [];
+  const total = data?.total ?? 0;
+  const currentPage = data?.page ?? page;
+  const loading = isLoading || isFetching;
+  const errorMessage = error ? getRtkErrorMessage(error) : "";
 
   const title = isSearch ? `Search results for "${trimmedSearch}"` : resolvedCategory?.label || "All Products";
   const breadcrumbs = isSearch ? ["Home", `Search: ${trimmedSearch}`] : ["Home", resolvedCategory?.label || "Category"];
-  const totalPages = Math.max(1, Math.ceil(state.total / PAGE_LIMIT));
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
   const hasActiveControls = Boolean(flag || sort !== "featured" || page > 1);
   const loadingMessage = isSearch
     ? `Finding products that match "${trimmedSearch}".`
     : `Loading ${resolvedCategory?.label || "products"}.`;
+  const activeFilterLabel = PRODUCT_FLAGS.find((option) => option.value === flag)?.label || "All";
   const emptyMessage = useMemo(() => {
     if (isSearch && flag) return `No ${activeFilterLabel.toLowerCase()} products match "${trimmedSearch}".`;
     if (isSearch) return "Try a different search term or clear your filters.";
     if (flag) return `No ${activeFilterLabel.toLowerCase()} products are available in this category yet.`;
     return "There are no products in this category yet.";
   }, [activeFilterLabel, flag, isSearch, trimmedSearch]);
+
   const clearFilters = () => navigate(buildListingHref({ sort: "featured", flag: "", page: 1 }));
   const setFilter = (nextFlag: ProductFlag) => navigate(buildListingHref({ flag: nextFlag, page: 1 }));
   const setSort = (nextSort: ProductSort) => navigate(buildListingHref({ sort: nextSort, page: 1 }));
@@ -165,11 +152,11 @@ export function CategoryPage({ categorySlug, searchQuery, query, categories, nav
         </div>
       </div>
 
-      {state.loading && <LoadingState title="Loading products" message={loadingMessage} />}
-      {state.error && (
-        <ErrorState title="We could not load products" message={state.error} action={{ label: "Try Again", onClick: load }} />
+      {loading && <LoadingState title="Loading products" message={loadingMessage} />}
+      {errorMessage && (
+        <ErrorState title="We could not load products" message={errorMessage} action={{ label: "Try Again", onClick: load }} />
       )}
-      {!state.loading && !state.error && state.products.length === 0 && (
+      {!loading && !errorMessage && products.length === 0 && (
         <EmptyState
           title={isSearch ? "No products match your search" : "No products found"}
           message={emptyMessage}
@@ -177,22 +164,22 @@ export function CategoryPage({ categorySlug, searchQuery, query, categories, nav
           secondaryAction={hasActiveControls ? { label: "View All Products", onClick: () => navigate("/") } : undefined}
         />
       )}
-      {!state.loading && !state.error && state.products.length > 0 && (
+      {!loading && !errorMessage && products.length > 0 && (
         <>
           <div className="product-grid four">
-            {state.products.map((product) => (
+            {products.map((product) => (
               <ProductCard key={product.id} product={product} onAdd={onAdd} onWishlist={onWishlist} navigate={navigate} />
             ))}
           </div>
           <div className="listing-pagination">
             <span>
-              Page {state.page} of {totalPages} - {state.total} product{state.total === 1 ? "" : "s"}
+              Page {currentPage} of {totalPages} - {total} product{total === 1 ? "" : "s"}
             </span>
             <div className="listing-pagination__actions">
-              <Button variant="ghost" disabled={state.page <= 1} onClick={() => setPage(Math.max(1, state.page - 1))}>
+              <Button variant="ghost" disabled={currentPage <= 1} onClick={() => setPage(Math.max(1, currentPage - 1))}>
                 Previous
               </Button>
-              <Button variant="ghost" disabled={state.page >= totalPages} onClick={() => setPage(Math.min(totalPages, state.page + 1))}>
+              <Button variant="ghost" disabled={currentPage >= totalPages} onClick={() => setPage(Math.min(totalPages, currentPage + 1))}>
                 Next
               </Button>
             </div>

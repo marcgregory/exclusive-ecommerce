@@ -8,19 +8,23 @@ import type { Product, ProductDetailResponse, ProductVariant } from "../types";
 vi.mock("../api/ecommerceApi", () => ({
   useAddCartItemMutation: vi.fn(),
   useAddWishlistProductMutation: vi.fn(),
+  useDeleteWishlistProductMutation: vi.fn(),
   useGetProductDetailQuery: vi.fn(),
 }));
 import {
   useAddCartItemMutation,
   useAddWishlistProductMutation,
+  useDeleteWishlistProductMutation,
   useGetProductDetailQuery,
 } from "../api/ecommerceApi";
 
 const mockedUseGetProductDetailQuery = useGetProductDetailQuery as unknown as Mock;
 const mockedUseAddCartItemMutation = useAddCartItemMutation as unknown as Mock;
 const mockedUseAddWishlistProductMutation = useAddWishlistProductMutation as unknown as Mock;
+const mockedUseDeleteWishlistProductMutation = useDeleteWishlistProductMutation as unknown as Mock;
 let addCartItem: Mock;
 let addWishlistProduct: Mock;
+let deleteWishlistProduct: Mock;
 let refetchProduct: Mock;
 
 const product: Product = {
@@ -82,6 +86,7 @@ describe("ProductDetailsPage", () => {
     refetchProduct = vi.fn();
     addCartItem = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
     addWishlistProduct = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
+    deleteWishlistProduct = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
     mockedUseGetProductDetailQuery.mockReturnValue({
       data: response,
       error: undefined,
@@ -90,6 +95,7 @@ describe("ProductDetailsPage", () => {
     });
     mockedUseAddCartItemMutation.mockReturnValue([addCartItem, {}]);
     mockedUseAddWishlistProductMutation.mockReturnValue([addWishlistProduct, {}]);
+    mockedUseDeleteWishlistProductMutation.mockReturnValue([deleteWishlistProduct, {}]);
   });
 
   afterEach(() => {

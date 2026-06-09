@@ -5,6 +5,7 @@ import {
   ecommerceApi,
   useAddCartItemMutation,
   useAddWishlistProductMutation,
+  useDeleteWishlistProductMutation,
   useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,
@@ -59,6 +60,7 @@ function App() {
   const wishlistQuery = useGetWishlistQuery(undefined, { skip: !user });
   const [addCartItem] = useAddCartItemMutation();
   const [addWishlistProduct] = useAddWishlistProductMutation();
+  const [deleteWishlistProduct] = useDeleteWishlistProductMutation();
   const [logout, logoutState] = useLogoutMutation();
 
   const products: AsyncState<Product[]> = {
@@ -113,13 +115,19 @@ function App() {
     await addCartItem({ productId, quantity, selectedColor, selectedSize }).unwrap();
   }, [addCartItem, navigate, userState.data]);
 
+  const wishlistProductIds = wishlistQuery.data?.products.map(p => p.id) ?? [];
+
   const onWishlist = useCallback(async (productId: string) => {
     if (!userState.data) {
       navigate("/account");
       return;
     }
-    await addWishlistProduct(productId).unwrap();
-  }, [addWishlistProduct, navigate, userState.data]);
+    if (wishlistProductIds.includes(productId)) {
+      await deleteWishlistProduct(productId).unwrap();
+    } else {
+      await addWishlistProduct(productId).unwrap();
+    }
+  }, [addWishlistProduct, deleteWishlistProduct, navigate, userState.data, wishlistProductIds]);
 
   const handleAuthChanged = useCallback((user: PublicUser) => {
     dispatch(ecommerceApi.util.upsertQueryData("getMe", undefined, { user }));
@@ -163,7 +171,7 @@ function App() {
           navigate={navigate}
           onAdd={onAdd}
           onWishlist={onWishlist}
-          wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []}
+          wishlistProductIds={wishlistProductIds}
         />
       );
     }
@@ -178,11 +186,11 @@ function App() {
           navigate={navigate}
           onAdd={onAdd}
           onWishlist={onWishlist}
-          wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []}
+          wishlistProductIds={wishlistProductIds}
         />
       );
     }
-    if (path.startsWith("/product/")) return <ProductDetailsPage id={path.split("/").pop()} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []} />;
+    if (path.startsWith("/product/")) return <ProductDetailsPage id={path.split("/").pop()} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} wishlistProductIds={wishlistProductIds} />;
     if (path.startsWith("/orders/")) return <OrderPage authStatus={authStatus} id={path.split("/").pop()} navigate={navigate} />;
     if (path === "/admin" || path === "/admin/products") return <AdminProductsPage userState={userState} navigate={navigate} />;
     if (path === "/admin/categories") return <AdminCategoriesPage userState={userState} navigate={navigate} />;
@@ -197,8 +205,8 @@ function App() {
     if (path === "/wishlist") return <WishlistPage authStatus={authStatus} navigate={navigate} onAdd={onAdd} refreshCart={refreshCart} refreshWishlist={refreshWishlist} />;
     if (catalogLoading) return catalogLoadingView;
     if (catalogError) return catalogErrorView;
-    return <HomePage products={products.data} categories={categories.data} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} wishlistProductIds={wishlistQuery.data?.products.map(p => p.id) ?? []} />;
-  }, [path, products, categories, userState, authStatus, cart, navigate, loadProducts, loadCategories, refreshCart, refreshWishlist, loadUser, handleAuthChanged, onAdd, onWishlist]);
+    return <HomePage products={products.data} categories={categories.data} navigate={navigate} onAdd={onAdd} onWishlist={onWishlist} wishlistProductIds={wishlistProductIds} />;
+  }, [path, products, categories, userState, authStatus, cart, navigate, loadProducts, loadCategories, refreshCart, refreshWishlist, loadUser, handleAuthChanged, onAdd, onWishlist, wishlistProductIds]);
 
   return (
     <>

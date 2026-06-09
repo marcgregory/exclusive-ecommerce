@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   useAddCartItemMutation,
   useAddWishlistProductMutation,
+  useDeleteWishlistProductMutation,
   useGetProductDetailQuery,
 } from "../api/ecommerceApi";
 import { Breadcrumbs } from "../components/Breadcrumbs";
@@ -35,6 +36,7 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistPr
   const productQuery = useGetProductDetailQuery(id || "", { skip: !id });
   const [addCartItem] = useAddCartItemMutation();
   const [addWishlistProduct] = useAddWishlistProductMutation();
+  const [deleteWishlistProduct] = useDeleteWishlistProductMutation();
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
@@ -61,6 +63,7 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistPr
   }
 
   const { product, related, variants = [] } = productQuery.data;
+  const isInWishlist = wishlistProductIds.includes(product.id);
   const isOutOfStock = product.stockStatus === "Out of Stock";
   const requiresColor = product.colors.length > 0;
   const requiresSize = product.sizes.length > 0;
@@ -154,7 +157,11 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistPr
   const addToWishlist = async () => {
     try {
       setActionError("");
-      await addWishlistProduct(product.id).unwrap();
+      if (isInWishlist) {
+        await deleteWishlistProduct(product.id).unwrap();
+      } else {
+        await addWishlistProduct(product.id).unwrap();
+      }
     } catch (error) {
       if (getRtkStatus(error) === 401) {
         navigate("/account");
@@ -216,7 +223,14 @@ export function ProductDetailsPage({ id, navigate, onAdd, onWishlist, wishlistPr
           <div className="buy-row">
             <QuantityStepper value={quantity} onChange={setQuantity} />
             <Button onClick={addToCart} disabled={!canAddToCart}>{isOutOfStock ? "Out of stock" : "Buy Now"}</Button>
-            <button className="wishlist-square" onClick={addToWishlist} aria-label="Add to wishlist"><Heart /></button>
+            <button className="wishlist-square" onClick={addToWishlist} aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={isInWishlist}>
+              <Heart
+                size={20}
+                fill={isInWishlist ? "currentColor" : "none"}
+                stroke="currentColor"
+                className={isInWishlist ? "text-red-500" : ""}
+              />
+            </button>
           </div>
           <div className="delivery-box"><div><Truck /><div><h4>Free Delivery</h4><p>Enter your postal code for Delivery Availability</p></div></div><div><ShieldCheck /><div><h4>Return Delivery</h4><p>Free 30 Days Delivery Returns. Details</p></div></div></div>
         </div>

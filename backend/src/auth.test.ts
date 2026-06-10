@@ -187,6 +187,8 @@ describe("auth endpoints", () => {
     }
     process.env.NODE_ENV = "test";
     process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+    // Ensure we use local image storage for tests to avoid needing Cloudinary credentials
+    process.env.IMAGE_STORAGE_PROVIDER = "local";
     await migrate();
     const { default: app } = await import("./index.js");
     testApp = app;

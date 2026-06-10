@@ -54,6 +54,8 @@ async function importRateLimitedApp() {
   process.env.DISABLE_RATE_LIMIT_BYPASS = "true";
   process.env.DATABASE_URL = "postgres://example/test";
   process.env.SESSION_SECRET = "test-session-secret-with-at-least-32-chars";
+  // Ensure we use local image storage for tests to avoid needing Cloudinary credentials
+  process.env.IMAGE_STORAGE_PROVIDER = "local";
   vi.doMock("./db.js", () => ({
     closePool: vi.fn(),
     query: vi.fn().mockResolvedValue({ rows: [{ "?column?": 1 }] }),

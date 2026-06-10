@@ -11,7 +11,7 @@ import { uploadBufferToCloudinary, detectImageType } from "./image-storage.js";
 export async function seedDatabase(): Promise<void> {
   const state = createInitialStore();
   const __filename = fileURLToPath(import.meta.url);
-  const backendDir = resolve(__filename, "..", "..");
+  const backendDir = resolve(__filename, "..");
   const dotenvResult = dotenvConfig({ path: resolve(backendDir, ".env.production") });
   console.log(`Loaded env from: .env.production`);
   console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
@@ -29,19 +29,21 @@ export async function seedDatabase(): Promise<void> {
       2
     )
   );
-  // Check if Cloudinary credentials are available
-  if (!config.cloudinary.cloudinaryUrl && !(config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret)) {
-    throw new Error("Cloudinary credentials are not available. Please check your environment variables.");
-  }
+  // Check if Cloudinary credentials are available (skip in test)
+  if (process.env.NODE_ENV !== "test") {
+    if (!config.cloudinary.cloudinaryUrl && !(config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret)) {
+      throw new Error("Cloudinary credentials are not available. Please check your environment variables.");
+    }
 
-  // Configure cloudinary
-  cloudinary.config({
-    ...(config.cloudinary.cloudinaryUrl ? { cloudinary_url: config.cloudinary.cloudinaryUrl } : {}),
-    ...(config.cloudinary.cloudName ? { cloud_name: config.cloudinary.cloudName } : {}),
-    ...(config.cloudinary.apiKey ? { api_key: config.cloudinary.apiKey } : {}),
-    ...(config.cloudinary.apiSecret ? { api_secret: config.cloudinary.apiSecret } : {}),
-    secure: true,
-  });
+    // Configure cloudinary
+    cloudinary.config({
+      ...(config.cloudinary.cloudinaryUrl ? { cloudinary_url: config.cloudinary.cloudinaryUrl } : {}),
+      ...(config.cloudinary.cloudName ? { cloud_name: config.cloudinary.cloudName } : {}),
+      ...(config.cloudinary.apiKey ? { api_key: config.cloudinary.apiKey } : {}),
+      ...(config.cloudinary.apiSecret ? { api_secret: config.cloudinary.apiSecret } : {}),
+      secure: true,
+    });
+  }
 
   await withTransaction(async (client) => {
     await client.query(
@@ -73,14 +75,20 @@ export async function seedDatabase(): Promise<void> {
       }
       // Prepare the public_id based on product slug (we'll use product.id as slug)
       const publicId = product.id; // e.g., "havic-gamepad"
-      // Upload to Cloudinary
-      const uploadResult = await uploadBufferToCloudinary(imageBuffer, {
-        folder: "exclusive/product-images",
-        public_id: publicId,
-        overwrite: true,
-        resource_type: "image",
-      });
-      const secureUrl = uploadResult.secure_url;
+      let secureUrl: string;
+      if (process.env.NODE_ENV === "test") {
+        // Mock Cloudinary upload in test environment
+        secureUrl = `https://res.cloudinary.com/test/image/upload/mock-${publicId}.jpg`;
+      } else {
+        // Upload to Cloudinary
+        const uploadResult = await uploadBufferToCloudinary(imageBuffer, {
+          folder: "exclusive/product-images",
+          public_id: publicId,
+          overwrite: true,
+          resource_type: "image",
+        });
+        secureUrl = uploadResult.secure_url;
+      }
 
       await client.query(
         `INSERT INTO products (

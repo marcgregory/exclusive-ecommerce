@@ -1,7 +1,22 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closePool, query } from "./db.js";
 import { migrate } from "./migrate.js";
 import { seedDatabase } from "./seed-db.js";
+
+vi.mock("./image-storage.js", async () => {
+  const actual = await vi.importActual("./image-storage.js");
+  return {
+    ...actual,
+    uploadBufferToCloudinary: vi.fn().mockResolvedValue({
+      secure_url: "http://localhost/image.jpg",
+      width: 800,
+      height: 600,
+      bytes: 1000,
+      public_id: "test/public_id",
+    }),
+  };
+});
+
 import {
   addCartItem,
   addWishlistProduct,
@@ -25,6 +40,7 @@ import {
   listAdminOrders,
   listContactMessages,
   listCoupons,
+  listCategories,
   listProductVariants,
   listProducts,
   saveProductVariants,
@@ -45,6 +61,8 @@ beforeAll(async () => {
     throw new Error("TEST_DATABASE_URL is required for PostgreSQL persistence tests");
   }
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+  // Ensure we use local image storage for tests to avoid needing Cloudinary credentials
+  process.env.IMAGE_STORAGE_PROVIDER = "local";
   await migrate();
   return async () => {
     await closePool();
@@ -110,14 +128,48 @@ describe("PostgreSQL persistence", () => {
   });
 
   it("rejects cart quantities above available variant stock", async () => {
-    await query("UPDATE product_variants SET stock = 2 WHERE product_id = $1 AND color = $2 AND size = $3", ["rgb-cooler", "#111111", ""]);
+    // Create a product with a single variant
+    const category = (await listCategories()).find(c => c.slug === "electronics");
+    const productName = `Test Product ${Date.now()}`;
+    const product = await createProduct({
+      name: productName,
+      category: category.id,
+      description: "Test product",
+      price: 10,
+      originalPrice: 15,
+      discountPercent: 0,
+      rating: 0,
+      reviewCount: 0,
+      stockStatus: "In Stock",
+      colors: ["#ff0000"],
+      sizes: ["M"],
+      isNew: false,
+      flags: [],
+    });
 
-    await expect(addCartItem("demo-user", { productId: "rgb-cooler", quantity: 3, selectedColor: "#111111", selectedSize: "" })).rejects.toThrow("Only 2 RGB Liquid CPU Cooler items are available");
+    // Create a variant for the product with stock 2
+    await saveProductVariants(product.id, [
+      {
+        sku: "TEST-SKU",
+        color: "#ff0000",
+        size: "M",
+        stock: 2,
+      },
+    ]);
 
-    const added = await addCartItem("demo-user", { productId: "rgb-cooler", quantity: 2, selectedColor: "#111111", selectedSize: "" });
-    const item = added.items.find((entry) => entry.productId === "rgb-cooler");
+    // Attempt to add 3 items -> should fail
+    await expect(
+      addCartItem("demo-user", { productId: product.id, quantity: 3, selectedColor: "#ff0000", selectedSize: "M" })
+    ).rejects.toThrow(`Only 2 ${productName} items are available`);
 
-    await expect(updateCartItem("demo-user", item!.id, 3)).rejects.toThrow("Only 2 RGB Liquid CPU Cooler items are available");
+    // Add 2 items -> should succeed
+    const added = await addCartItem("demo-user", { productId: product.id, quantity: 2, selectedColor: "#ff0000", selectedSize: "M" });
+    const item = added.items.find((entry) => entry.productId === product.id);
+
+    // Attempt to increase quantity to 3 -> should fail
+    await expect(
+      updateCartItem("demo-user", item!.id, 3)
+    ).rejects.toThrow(`Only 2 ${productName} items are available`);
   });
 
   it("adds, lists, and removes wishlist products", async () => {

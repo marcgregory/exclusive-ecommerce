@@ -80,7 +80,7 @@ export function createSessionOptions(
     store: config.isProduction ? new PostgreSqlSessionStore() : undefined,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: config.isProduction ? "none" : "lax",
       secure: config.isProduction,
       maxAge: DEFAULT_SESSION_TTL_MS,
     },

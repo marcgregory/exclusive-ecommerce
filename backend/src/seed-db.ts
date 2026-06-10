@@ -1,6 +1,7 @@
+import { config as dotenvConfig } from "dotenv";
 import { closePool, query, withTransaction } from "./db.js";
 import { createInitialStore } from "./seed.js";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 import { loadRuntimeConfig } from "./config.js";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -9,7 +10,29 @@ import { uploadBufferToCloudinary, detectImageType } from "./image-storage.js";
 
 export async function seedDatabase(): Promise<void> {
   const state = createInitialStore();
+  const __filename = fileURLToPath(import.meta.url);
+  const backendDir = resolve(__filename, "..", "..");
+  const dotenvResult = dotenvConfig({ path: resolve(backendDir, ".env.production") });
+  console.log(`Loaded env from: .env.production`);
+  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
   const config = loadRuntimeConfig();
+  console.log(
+    `Cloudinary config:`,
+    JSON.stringify(
+      {
+        cloudinaryUrl: config.cloudinary.cloudinaryUrl ? "[SET]" : "[NOT SET]",
+        cloudName: config.cloudinary.cloudName ? "[SET]" : "[NOT SET]",
+        apiKey: config.cloudinary.apiKey ? "[SET]" : "[NOT SET]",
+        apiSecret: config.cloudinary.apiSecret ? "[SET]" : "[NOT SET]",
+      },
+      null,
+      2
+    )
+  );
+  // Check if Cloudinary credentials are available
+  if (!config.cloudinary.cloudinaryUrl && !(config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret)) {
+    throw new Error("Cloudinary credentials are not available. Please check your environment variables.");
+  }
 
   // Configure cloudinary
   cloudinary.config({

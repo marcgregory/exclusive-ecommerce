@@ -13,7 +13,7 @@ Successfully migrated authentication and profile management from direct `api()` 
 Added three new mutations:
 - **`register`** - POST `/api/auth/register` - User registration
 - **`login`** - POST `/api/auth/login` - User authentication  
-- **`updateProfile`** - PATCH `/api/me` - Profile updates
+- **`updateProfile`** - PATCH `/api/auth/me` - Profile updates
 
 All mutations:
 - Invalidate appropriate cache tags (Session, Cart, Wishlist)

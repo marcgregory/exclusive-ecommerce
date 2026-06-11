@@ -428,10 +428,9 @@ const getCurrentUser = (req: AuthedRequest, res: express.Response) =>
   res.json({ user: publicUser(req.user) });
 
 app.get('/api/auth/me', requireUser, getCurrentUser);
-app.get('/api/me', requireUser, getCurrentUser);
 
 app.patch(
-  '/api/me',
+  '/api/auth/me',
   requireUser,
   asyncRoute(async (req, res) => {
     const updates = await validateProfileInput(req.body, req.user, findUserByEmail);

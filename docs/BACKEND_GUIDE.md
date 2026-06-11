@@ -25,8 +25,8 @@ cd backend
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
-- `GET /api/me`
-- `PATCH /api/me`
+- `GET /api/auth/me`
+- `PATCH /api/auth/me`
 
 ### Products and Categories
 

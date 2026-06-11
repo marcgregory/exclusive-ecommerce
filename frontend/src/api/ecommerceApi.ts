@@ -238,7 +238,7 @@ export const ecommerceApi = createApi({
       invalidatesTags: ['Session', 'Cart', 'Wishlist'],
     }),
     updateProfile: builder.mutation<AuthResponse, UpdateProfileInput>({
-      query: (body) => ({ url: '/api/me', method: 'PATCH', body }),
+      query: (body) => ({ url: '/api/auth/me', method: 'PATCH', body }),
       invalidatesTags: ['Session'],
     }),
     getAdminOrders: builder.query<AdminOrdersResponse, AdminOrdersFilter | undefined>({

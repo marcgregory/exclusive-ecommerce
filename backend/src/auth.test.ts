@@ -1174,7 +1174,7 @@ describe('auth endpoints', () => {
     });
   });
 
-  describe('GET /api/me', () => {
+  describe('GET /api/auth/me', () => {
     it('returns current user when authenticated', async () => {
       const agent = request.agent(testApp);
 
@@ -1182,9 +1182,11 @@ describe('auth endpoints', () => {
         email: 'getme@example.com',
         password: 'password123',
         confirmPassword: 'password123',
+        firstName: 'Get',
+        lastName: 'Me',
       });
 
-      const meRes = await agent.get('/api/me');
+      const meRes = await agent.get('/api/auth/me');
 
       expect(meRes.status).toBe(200);
       expect(meRes.body.user).toMatchObject({
@@ -1193,26 +1195,8 @@ describe('auth endpoints', () => {
       });
     });
 
-    it('returns current user from auth session endpoint when authenticated', async () => {
-      const agent = request.agent(testApp);
-
-      await agent.post('/api/auth/register').send({
-        email: 'getauthme@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-      });
-
-      const meRes = await agent.get('/api/auth/me');
-
-      expect(meRes.status).toBe(200);
-      expect(meRes.body.user).toMatchObject({
-        email: 'getauthme@example.com',
-        role: 'customer',
-      });
-    });
-
     it('returns 401 when not authenticated', async () => {
-      const res = await request(testApp).get('/api/me');
+      const res = await request(testApp).get('/api/auth/me');
 
       expect(res.status).toBe(401);
       expect(res.body).toMatchObject({
@@ -1221,7 +1205,7 @@ describe('auth endpoints', () => {
     });
   });
 
-  describe('PATCH /api/me', () => {
+  describe('PATCH /api/auth/me', () => {
     it('updates user profile when authenticated', async () => {
       const agent = request.agent(testApp);
 
@@ -1233,7 +1217,7 @@ describe('auth endpoints', () => {
       });
 
       const patchRes = await agent
-        .patch('/api/me')
+        .patch('/api/auth/me')
         .send({ firstName: 'Updated', lastName: 'Name' });
 
       expect(patchRes.status).toBe(200);
@@ -1245,7 +1229,7 @@ describe('auth endpoints', () => {
     });
 
     it('returns 401 when not authenticated', async () => {
-      const res = await request(testApp).patch('/api/me').send({ firstName: 'Updated' });
+      const res = await request(testApp).patch('/api/auth/me').send({ firstName: 'Updated' });
 
       expect(res.status).toBe(401);
     });
@@ -1259,7 +1243,7 @@ describe('auth endpoints', () => {
         confirmPassword: 'password123',
       });
 
-      const patchRes = await agent.patch('/api/me').send({
+      const patchRes = await agent.patch('/api/auth/me').send({
         newPassword: 'newpassword123',
         confirmPassword: 'newpassword123',
       });
@@ -1279,7 +1263,7 @@ describe('auth endpoints', () => {
         confirmPassword: 'password123',
       });
 
-      const patchRes = await agent.patch('/api/me').send({
+      const patchRes = await agent.patch('/api/auth/me').send({
         currentPassword: 'password123',
         newPassword: 'newpassword456',
         confirmPassword: 'newpassword456',
@@ -1316,7 +1300,9 @@ describe('auth endpoints', () => {
         confirmPassword: 'password456',
       });
 
-      const patchRes = await agent2.patch('/api/me').send({ email: 'user1duplicate@example.com' });
+      const patchRes = await agent2
+        .patch('/api/auth/me')
+        .send({ email: 'user1duplicate@example.com' });
 
       expect(patchRes.status).toBe(409);
       expect(patchRes.body).toMatchObject({

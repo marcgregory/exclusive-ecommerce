@@ -3988,3 +3988,52 @@ button {
   width: 24px;
   height: 24px;
 }
+
+.google-btn {
+  width: 100%;
+  height: 56px;
+  min-height: 56px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 4px;
+  background: #FFFFFF;
+  border: 1px solid #DADCE0;
+  color: #202124;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: normal;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.google-btn svg,
+.google-btn img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.google-btn span {
+  display: block;
+  line-height: normal;
+}
+
+.google-btn:hover {
+  background: #F8F9FA;
+  border-color: #C6C6C6;
+}
+
+.google-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(219, 68, 68, 0.14);
+}

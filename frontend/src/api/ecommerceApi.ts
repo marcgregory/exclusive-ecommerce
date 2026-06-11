@@ -94,7 +94,7 @@ type LoginInput = {
 };
 
 type GoogleAuthInput = {
-  credential: string;
+  code: string;
 };
 
 type UpdateProfileInput = {

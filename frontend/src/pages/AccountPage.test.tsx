@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AccountPage } from './AccountPage';
 import type { Order, PublicUser } from '../types';
 
@@ -84,8 +85,25 @@ function renderPage(overrides: Partial<Parameters<typeof AccountPage>[0]> = {}) 
     ...overrides,
   };
 
-  const view = render(<AccountPage {...props} />);
-  return { ...props, ...view };
+  const view = render(
+    <GoogleOAuthProvider clientId="test">
+      <AccountPage {...props} />
+    </GoogleOAuthProvider>
+  );
+
+  const customRerender = (newOverrides: Partial<Parameters<typeof AccountPage>[0]> = {}) => {
+    const newProps = {
+      ...props,
+      ...newOverrides,
+    };
+    view.rerender(
+      <GoogleOAuthProvider clientId="test">
+        <AccountPage {...newProps} />
+      </GoogleOAuthProvider>
+    );
+  };
+
+  return { ...props, ...view, rerender: customRerender };
 }
 
 describe('AccountPage', () => {
@@ -119,8 +137,8 @@ describe('AccountPage', () => {
     expect(screen.getByLabelText(/Name/i)).toBeDefined();
     expect(screen.getByLabelText(/Email or Phone Number/i)).toBeDefined();
     expect(screen.getByLabelText(/Password/i)).toBeDefined();
-    expect(screen.queryByRole('button', { name: /Sign up with Google/i })).toBeNull();
-    expect(container.querySelector('.google-signin-render__button')).toBeDefined();
+    expect(screen.getByRole('button', { name: /Sign up with Google/i })).toBeDefined();
+    expect(container.querySelector('.google-signin-render__button')).toBeNull();
   });
 
   it('renders the authenticated profile', async () => {
@@ -163,14 +181,12 @@ describe('AccountPage', () => {
       error: { data: { message: 'Orders unavailable' } },
       refetch: vi.fn(),
     });
-    rerender(
-      <AccountPage
-        userState={{ data: user, loading: false, error: '' }}
-        onAuthChanged={vi.fn()}
-        onUserRefresh={vi.fn().mockResolvedValue(undefined)}
-        navigate={vi.fn()}
-      />
-    );
+    rerender({
+      userState: { data: user, loading: false, error: '' },
+      onAuthChanged: vi.fn(),
+      onUserRefresh: vi.fn().mockResolvedValue(undefined),
+      navigate: vi.fn(),
+    });
 
     expect(screen.getByText(/Orders unavailable/i)).toBeDefined();
   });
@@ -325,15 +341,13 @@ describe('AccountPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: /Log in to Exclusive/i })).toBeDefined();
 
-    page.rerender(
-      <AccountPage
-        userState={page.userState}
-        onAuthChanged={page.onAuthChanged}
-        onUserRefresh={page.onUserRefresh}
-        navigate={page.navigate}
-        authModeQuery="register"
-      />
-    );
+    page.rerender({
+      userState: page.userState,
+      onAuthChanged: page.onAuthChanged,
+      onUserRefresh: page.onUserRefresh,
+      navigate: page.navigate,
+      authModeQuery: 'register',
+    });
 
     expect(screen.getByRole('heading', { level: 1, name: /Create an account/i })).toBeDefined();
     expect(screen.getByLabelText(/Name/i)).toBeDefined();

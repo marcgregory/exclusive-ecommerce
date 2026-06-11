@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { AccountPage } from './AccountPage';
 import { CheckoutPage } from './CheckoutPage';
 import { OrderPage } from './OrderPage';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import type { Cart, Navigate, Order, PublicUser } from '../types';
 
 const apiMocks = vi.hoisted(() => ({
@@ -151,12 +152,14 @@ function TestCheckoutOrderFlow() {
         <OrderPage authStatus="authenticated" id={route.split('/').pop()} navigate={navigate} />
       ) : null}
       {route === '/account' ? (
-        <AccountPage
-          userState={{ data: user, loading: false, error: '' }}
-          onAuthChanged={vi.fn()}
-          onUserRefresh={vi.fn().mockResolvedValue(undefined)}
-          navigate={navigate}
-        />
+        <GoogleOAuthProvider clientId="test">
+          <AccountPage
+            userState={{ data: user, loading: false, error: '' }}
+            onAuthChanged={vi.fn()}
+            onUserRefresh={vi.fn().mockResolvedValue(undefined)}
+            navigate={navigate}
+          />
+        </GoogleOAuthProvider>
       ) : null}
     </>
   );

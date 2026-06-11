@@ -341,7 +341,41 @@ app.post(
   '/api/auth/google',
   authLimiter,
   asyncRoute(async (req, res) => {
-    const profile = await verifyGoogleCredential(req.body?.credential, config.googleClientId);
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ message: 'Authorization code is required' });
+    }
+
+    if (!config.googleClientId || !config.googleClientSecret) {
+      return res.status(503).json({ message: 'Google sign-in is not configured' });
+    }
+
+    // Exchange the code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code,
+        client_id: config.googleClientId,
+        client_secret: config.googleClientSecret,
+        redirect_uri: 'postmessage',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to exchange authorization code for tokens');
+    }
+
+    const tokenData = await tokenResponse.json() as { id_token: string };
+    const idToken = tokenData.id_token;
+    if (!idToken) {
+      throw new Error('ID token not found in token response');
+    }
+
+    // Verify the ID token
+    const profile = await verifyGoogleCredential(idToken, config.googleClientId);
     let user = await findUserByGoogleSub(profile.googleSub);
 
     if (!user) {

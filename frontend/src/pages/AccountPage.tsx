@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import { getRtkErrorMessage } from '../lib/rtkErrors';
 import type { AsyncState, Navigate, PublicUser } from '../types';
 import { OrderSkeleton } from '../components/skeletons/OrderSkeleton';
 import { AccountPageSkeleton } from '../components/skeletons/AccountPageSkeleton';
+import { useGoogleLogin } from '@react-oauth/google';
 
 type AccountPageProps = {
   userState: AsyncState<PublicUser | null>;
@@ -56,38 +57,6 @@ type ProfileForm = z.output<typeof profileSchema>;
 const signupSideImage = 'https://www.figma.com/api/mcp/asset/d608e25b-65c2-421f-96da-b54acb84e61f';
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-type GoogleCredentialResponse = {
-  credential?: string;
-};
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (options: {
-            callback: (response: GoogleCredentialResponse) => void;
-            client_id: string;
-            auto_select?: boolean;
-          }) => void;
-          renderButton: (
-            element: HTMLElement,
-            options: {
-              logo_alignment?: 'left' | 'center';
-              shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-              size?: 'large' | 'medium' | 'small';
-              text?: 'signup_with' | 'signin_with' | 'continue_with' | 'signin';
-              theme?: 'outline' | 'filled_blue' | 'filled_black';
-              type?: 'standard' | 'icon';
-              width?: number;
-            }
-          ) => void;
-        };
-      };
-    };
-  }
-}
-
 function formatOrderDate(value: string) {
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(
     new Date(value)
@@ -96,6 +65,29 @@ function formatOrderDate(value: string) {
 
 function formatOrderStatus(value: string) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Pending';
+}
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 18 18">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.87 2.69-6.62z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.96 10.71A5.41 5.41 0 0 1 3.68 9c0-.59.1-1.17.28-1.71V4.96H.96A9.02 9.02 0 0 0 0 9c0 1.45.35 2.82.96 4.04l3-2.33z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.17 6.66 3.58 9 3.58z"
+      />
+    </svg>
+  );
 }
 
 export function AccountPage({
@@ -125,7 +117,6 @@ export function AccountPage({
     setAuthMode(newMode);
     navigate(`/account?mode=${newMode}`);
   }, [authMode, navigate]);
-  const googleButtonId = useId();
   const {
     data: ordersData,
     isLoading: ordersLoading,
@@ -138,6 +129,20 @@ export function AccountPage({
   const [login, loginState] = useLoginMutation();
   const [googleAuth] = useGoogleAuthMutation();
   const [updateProfile, updateProfileState] = useUpdateProfileMutation();
+  const googleLogin = useGoogleLogin({
+    flow: 'auth-code',
+    onSuccess: async (codeResponse) => {
+      try {
+        const result = await googleAuth({ code: codeResponse.code }).unwrap();
+        onAuthChanged(result.user);
+      } catch {
+        console.error('Google login failed');
+      }
+    },
+    onError: () => {
+      console.error('Google login failed');
+    },
+  });
 
   const orders = ordersData?.orders ?? [];
   const ordersErrorMessage = ordersError ? getRtkErrorMessage(ordersError) : '';
@@ -156,196 +161,6 @@ export function AccountPage({
   const profileForm = useForm<ProfileFormInput, unknown, ProfileForm>({
     resolver: zodResolver(profileSchema),
   });
-
-  // Refs to track script load state
-  const googleScriptLoadedRef = useRef(false);
-  const googleScriptErrorRef = useRef(false);
-  const googleButtonReadyRef = useRef(false);
-  const googleButtonRef = useRef<HTMLDivElement | null>(null);
-  const googleInitRetryCountRef = useRef(0);
-  const googleInitTimeoutRef = useRef<number | null>(null);
-  const [googleInitState, setGoogleInitState] = useState<'idle' | 'loading' | 'ready' | 'error'>(
-    'idle'
-  );
-
-  // Initialize Google button
-  const initializeGoogleButton = useCallback(() => {
-    if (!window.google || !googleButtonRef.current) {
-      // Should not happen if called after load, but guard.
-      return;
-    }
-    // Check if the buttonRef is still in the DOM
-    if (!document.body.contains(googleButtonRef.current)) {
-      return;
-    }
-    googleButtonRef.current.replaceChildren();
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      auto_select: false,
-      callback: async (response) => {
-        if (!response.credential) {
-          setAuthStatusIsError(true);
-          setAuthStatus('Google did not return a sign-in credential.');
-          return;
-        }
-        try {
-          setAuthStatus('');
-          setAuthStatusIsError(false);
-          const result = await googleAuth({ credential: response.credential }).unwrap();
-          onAuthChanged(result.user);
-          setAuthStatus('Signed in with Google.');
-        } catch (error) {
-          setAuthStatusIsError(true);
-          setAuthStatus(getRtkErrorMessage(error));
-        }
-      },
-    });
-    // Render button with options based on current authMode
-    window.google.accounts.id.renderButton(googleButtonRef.current, {
-      logo_alignment: 'left',
-      shape: 'rectangular',
-      size: 'large',
-      text: authMode === 'login' ? 'signin_with' : 'signup_with',
-      theme: 'outline',
-      type: 'standard',
-      width: 370,
-    });
-  }, [authMode, googleClientId, onAuthChanged, googleAuth]);
-
-  const attemptGoogleButtonInit = useCallback(() => {
-    // Don't proceed if we have an error state or no client ID
-    if (googleScriptErrorRef.current || !googleClientId) {
-      return;
-    }
-
-    // Check if both script is loaded AND button is ready
-    if (googleScriptLoadedRef.current && googleButtonReadyRef.current) {
-      initializeGoogleButton();
-      setGoogleInitState('ready');
-      googleInitRetryCountRef.current = 0;
-      return;
-    }
-
-    // If we've exceeded max retries, show error
-    if (googleInitRetryCountRef.current >= 5) {
-      setGoogleInitState('error');
-      return;
-    }
-
-    // Otherwise, schedule a retry with exponential backoff
-    googleInitRetryCountRef.current++;
-    const delay = Math.min(100 * Math.pow(2, googleInitRetryCountRef.current - 1), 1500); // 100, 200, 400, 800, 1500 ms
-
-    if (googleInitTimeoutRef.current) {
-      clearTimeout(googleInitTimeoutRef.current);
-    }
-
-    googleInitTimeoutRef.current = setTimeout(() => {
-      attemptGoogleButtonInit();
-    }, delay);
-  }, [googleClientId, initializeGoogleButton]);
-
-  const handleGoogleScriptLoad = useCallback(() => {
-    googleScriptLoadedRef.current = true;
-    googleScriptErrorRef.current = false;
-    setGoogleInitState('loading');
-    attemptGoogleButtonInit();
-  }, [attemptGoogleButtonInit]);
-
-  const handleGoogleScriptError = useCallback(() => {
-    googleScriptErrorRef.current = true;
-    googleScriptLoadedRef.current = false;
-    setGoogleInitState('error');
-  }, []);
-
-  const googleButtonRefCallback = useCallback(
-    (node: HTMLDivElement | null) => {
-      googleButtonRef.current = node;
-      if (node) {
-        googleButtonReadyRef.current = true;
-        attemptGoogleButtonInit();
-      } else {
-        googleButtonReadyRef.current = false;
-      }
-    },
-    [attemptGoogleButtonInit]
-  );
-
-  // Load Google Identity Services script.
-  useEffect(() => {
-    if (userState.data || !googleClientId) {
-      googleScriptLoadedRef.current = false;
-      googleScriptErrorRef.current = false;
-      googleButtonReadyRef.current = false;
-      setGoogleInitState('idle');
-
-      if (googleInitTimeoutRef.current) {
-        clearTimeout(googleInitTimeoutRef.current);
-        googleInitTimeoutRef.current = null;
-      }
-      googleInitRetryCountRef.current = 0;
-
-      return;
-    }
-
-    googleScriptLoadedRef.current = false;
-    googleScriptErrorRef.current = false;
-    setGoogleInitState('idle');
-
-    if (googleInitTimeoutRef.current) {
-      clearTimeout(googleInitTimeoutRef.current);
-      googleInitTimeoutRef.current = null;
-    }
-    googleInitRetryCountRef.current = 0;
-
-    const scriptId = 'google-identity-services';
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-    if (script) {
-      if (window.google?.accounts?.id) {
-        handleGoogleScriptLoad();
-        return;
-      }
-      script.onload = handleGoogleScriptLoad;
-      script.onerror = handleGoogleScriptError;
-      return;
-    }
-
-    script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = handleGoogleScriptLoad;
-    script.onerror = handleGoogleScriptError;
-    document.head.appendChild(script);
-
-    return () => {
-      if (script) {
-        script.onload = null;
-        script.onerror = null;
-      }
-      if (googleInitTimeoutRef.current) {
-        clearTimeout(googleInitTimeoutRef.current);
-        googleInitTimeoutRef.current = null;
-      }
-    };
-  }, [userState.data, googleClientId, handleGoogleScriptLoad, handleGoogleScriptError]);
-
-  // Re-initialize button when authMode changes (if script loaded)
-  useEffect(() => {
-    if (userState.data || !googleClientId) {
-      return;
-    }
-    // Reset initialization state when authMode changes
-    googleInitRetryCountRef.current = 0;
-    if (googleInitTimeoutRef.current) {
-      clearTimeout(googleInitTimeoutRef.current);
-      googleInitTimeoutRef.current = null;
-    }
-    // Re-attempt initialization with new authMode
-    attemptGoogleButtonInit();
-  }, [authMode, attemptGoogleButtonInit]);
 
   const submitAuth = authForm.handleSubmit(async (payload) => {
     try {
@@ -479,24 +294,10 @@ export function AccountPage({
                   : 'Create Account'}
             </Button>
             {googleClientId && (
-              <div
-                aria-label={authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}
-                className="google-signin-render"
-              >
-                <div
-                  className="google-signin-render__button"
-                  id={googleButtonId}
-                  ref={googleButtonRefCallback}
-                />
-                {googleInitState === 'loading' && (
-                  <p className="google-signin-note">Loading Google sign-in...</p>
-                )}
-                {googleInitState === 'error' && (
-                  <p className="google-signin-note google-signin-note--error">
-                    Google sign-in is unavailable right now.
-                  </p>
-                )}
-              </div>
+              <button type="button" className="google-btn" onClick={() => googleLogin()}>
+                <GoogleIcon />
+                <span>{authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
+              </button>
             )}
             {!googleClientId && (
               <p className="signup-help">Google sign-in needs VITE_GOOGLE_CLIENT_ID.</p>

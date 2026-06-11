@@ -40,10 +40,23 @@ import { ProductDetailsPage } from './pages/ProductDetailsPage';
 import { WishlistPage } from './pages/WishlistPage';
 import type { AsyncState, AuthStatus, Cart, Category, Product, PublicUser } from './types';
 import './styles.css';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const emptyCart: Cart = { items: [], subtotal: 0, discount: 0, shipping: 0, total: 0 };
 
 function App() {
+  // Set Google Sign-In client ID meta tag
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  if (clientId) {
+    let meta = document.querySelector('meta[name="google-signin-client_id"]') as HTMLMetaElement;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'google-signin-client_id';
+      document.head.appendChild(meta);
+    }
+    meta.content = clientId;
+  }
+
   useClientErrorReporting();
   const dispatch = useDispatch<AppDispatch>();
   const { path, query, navigate } = useRoute();
@@ -340,7 +353,9 @@ function App() {
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
     <Provider store={store}>
-      <App />
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <App />
+      </GoogleOAuthProvider>
     </Provider>
   </ErrorBoundary>
 );

@@ -254,8 +254,7 @@ function WishlistProductCard({
   actionIcon,
 }: WishlistProductCardProps) {
   const isOutOfStock = product.stockStatus === 'Out of Stock';
-  const actionLabel =
-    actionIcon === 'trash' ? `Remove ${product.name}` : `View ${product.name}`;
+  const actionLabel = actionIcon === 'trash' ? `Remove ${product.name}` : `View ${product.name}`;
 
   return (
     <article className="wishlist-card">

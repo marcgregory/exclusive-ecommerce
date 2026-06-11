@@ -68,6 +68,7 @@ declare global {
           initialize: (options: {
             callback: (response: GoogleCredentialResponse) => void;
             client_id: string;
+            auto_select?: boolean;
           }) => void;
           renderButton: (
             element: HTMLElement,
@@ -135,7 +136,7 @@ export function AccountPage({
   });
   const [register, registerState] = useRegisterMutation();
   const [login, loginState] = useLoginMutation();
-  const [googleAuth, googleAuthState] = useGoogleAuthMutation();
+  const [googleAuth] = useGoogleAuthMutation();
   const [updateProfile, updateProfileState] = useUpdateProfileMutation();
 
   const orders = ordersData?.orders ?? [];
@@ -163,7 +164,9 @@ export function AccountPage({
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleInitRetryCountRef = useRef(0);
   const googleInitTimeoutRef = useRef<number | null>(null);
-  const [googleInitState, setGoogleInitState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [googleInitState, setGoogleInitState] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    'idle'
+  );
 
   // Initialize Google button
   const initializeGoogleButton = useCallback(() => {
@@ -178,6 +181,7 @@ export function AccountPage({
     googleButtonRef.current.replaceChildren();
     window.google.accounts.id.initialize({
       client_id: googleClientId,
+      auto_select: false,
       callback: async (response) => {
         if (!response.credential) {
           setAuthStatusIsError(true);
@@ -239,7 +243,6 @@ export function AccountPage({
     googleInitTimeoutRef.current = setTimeout(() => {
       attemptGoogleButtonInit();
     }, delay);
-
   }, [googleClientId, initializeGoogleButton]);
 
   const handleGoogleScriptLoad = useCallback(() => {
@@ -255,15 +258,18 @@ export function AccountPage({
     setGoogleInitState('error');
   }, []);
 
-  const googleButtonRefCallback = useCallback((node: HTMLDivElement | null) => {
-    googleButtonRef.current = node;
-    if (node) {
-      googleButtonReadyRef.current = true;
-      attemptGoogleButtonInit();
-    } else {
-      googleButtonReadyRef.current = false;
-    }
-  }, [attemptGoogleButtonInit]);
+  const googleButtonRefCallback = useCallback(
+    (node: HTMLDivElement | null) => {
+      googleButtonRef.current = node;
+      if (node) {
+        googleButtonReadyRef.current = true;
+        attemptGoogleButtonInit();
+      } else {
+        googleButtonReadyRef.current = false;
+      }
+    },
+    [attemptGoogleButtonInit]
+  );
 
   // Load Google Identity Services script.
   useEffect(() => {
@@ -418,9 +424,7 @@ export function AccountPage({
             <h1 id="signup-title">
               {authMode === 'login' ? 'Log in to Exclusive' : 'Create an account'}
             </h1>
-            <p>
-              {authMode === 'login' ? 'Enter your details below' : 'Enter your details below'}
-            </p>
+            <p>{authMode === 'login' ? 'Enter your details below' : 'Enter your details below'}</p>
           </div>
           <form className="signup-form" onSubmit={submitAuth}>
             {authMode === 'register' && (
@@ -498,13 +502,8 @@ export function AccountPage({
               <p className="signup-help">Google sign-in needs VITE_GOOGLE_CLIENT_ID.</p>
             )}
             <div className="signup-switch">
-              <span>
-                {authMode === 'login' ? 'Need an account?' : 'Already have account?'}
-              </span>
-              <button
-                type="button"
-                onClick={toggleAuthMode}
-              >
+              <span>{authMode === 'login' ? 'Need an account?' : 'Already have account?'}</span>
+              <button type="button" onClick={toggleAuthMode}>
                 {authMode === 'login' ? 'Sign up' : 'Log in'}
               </button>
             </div>

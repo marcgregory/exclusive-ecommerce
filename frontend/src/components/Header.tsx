@@ -81,9 +81,7 @@ export function Header({
                 {label}
               </button>
             ))}
-            {!user && (
-              <button onClick={() => navigate('/account?mode=register')}>Sign Up</button>
-            )}
+            {!user && <button onClick={() => navigate('/account?mode=register')}>Sign Up</button>}
             {user?.role === 'admin' && (
               <>
                 <button

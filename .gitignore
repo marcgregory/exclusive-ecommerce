@@ -11,3 +11,5 @@ backend/uploads/
 uploads/
 backend/src/data/store.json
 npm-debug.log*
+
+.vercel

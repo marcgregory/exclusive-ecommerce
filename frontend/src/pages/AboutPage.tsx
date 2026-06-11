@@ -65,15 +65,15 @@ export function AboutPage() {
           <div>
             <h1>Our Story</h1>
             <p>
-              Launched in 2015, Exclusive is South Asia's premier online shopping marketplace with an
-              active presence in Bangladesh. Supported by a wide range of tailored marketing, data,
-              and service solutions, Exclusive has thousands of sellers and brands and serves
+              Launched in 2015, Exclusive is South Asia's premier online shopping marketplace with
+              an active presence in Bangladesh. Supported by a wide range of tailored marketing,
+              data, and service solutions, Exclusive has thousands of sellers and brands and serves
               millions of customers across the region.
             </p>
             <p>
               Exclusive has more than 1 million products to offer, growing at a very fast pace.
-              Exclusive offers a diverse assortment in categories ranging from consumer electronics to
-              lifestyle essentials.
+              Exclusive offers a diverse assortment in categories ranging from consumer electronics
+              to lifestyle essentials.
             </p>
           </div>
           <div className="story-image">

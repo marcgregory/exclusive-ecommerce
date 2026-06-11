@@ -266,6 +266,7 @@ function App() {
           onAuthChanged={handleAuthChanged}
           onUserRefresh={loadUser}
           navigate={navigate}
+          authModeQuery={query.get('mode')}
         />
       );
     if (path === '/about') return <AboutPage />;
@@ -278,6 +279,7 @@ function App() {
           onAdd={onAdd}
           refreshCart={refreshCart}
           refreshWishlist={refreshWishlist}
+          recommendedProducts={products.data}
         />
       );
     if (catalogError) return catalogErrorView;
@@ -297,6 +299,7 @@ function App() {
     );
   }, [
     path,
+    query,
     products,
     categories,
     userState,

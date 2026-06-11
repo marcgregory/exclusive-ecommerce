@@ -113,13 +113,14 @@ describe('AccountPage', () => {
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
 
-    renderPage({ userState: { data: null, loading: false, error: '' } });
+    const { container } = renderPage({ userState: { data: null, loading: false, error: '' } });
 
     expect(screen.getByRole('heading', { level: 1, name: /Create an account/i })).toBeDefined();
     expect(screen.getByLabelText(/Name/i)).toBeDefined();
     expect(screen.getByLabelText(/Email or Phone Number/i)).toBeDefined();
     expect(screen.getByLabelText(/Password/i)).toBeDefined();
-    expect(screen.getByRole('button', { name: /Sign up with Google/i })).toBeDefined();
+    expect(screen.queryByRole('button', { name: /Sign up with Google/i })).toBeNull();
+    expect(container.querySelector('.google-signin-render__button')).toBeDefined();
   });
 
   it('renders the authenticated profile', async () => {
@@ -304,6 +305,38 @@ describe('AccountPage', () => {
     );
     expect(onAuthChanged).toHaveBeenCalledWith(user);
     expect(await screen.findByText(/Signed in/i)).toBeDefined();
+  });
+
+  it('switches back to the signup form when the route mode changes to register', () => {
+    apiMocks.getOrders.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
+    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+
+    const page = renderPage({
+      userState: { data: null, loading: false, error: '' },
+      authModeQuery: 'login',
+    });
+
+    expect(screen.getByRole('heading', { level: 1, name: /Log in to Exclusive/i })).toBeDefined();
+
+    page.rerender(
+      <AccountPage
+        userState={page.userState}
+        onAuthChanged={page.onAuthChanged}
+        onUserRefresh={page.onUserRefresh}
+        navigate={page.navigate}
+        authModeQuery="register"
+      />
+    );
+
+    expect(screen.getByRole('heading', { level: 1, name: /Create an account/i })).toBeDefined();
+    expect(screen.getByLabelText(/Name/i)).toBeDefined();
   });
 
   it('handles registration successfully', async () => {

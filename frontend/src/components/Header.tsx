@@ -1,4 +1,16 @@
-import { ChevronDown, Heart, LogOut, Menu, Search, ShoppingCart, User, X } from 'lucide-react';
+import {
+  ChevronDown,
+  Heart,
+  LogOut,
+  Menu,
+  Search,
+  ShoppingBag,
+  ShoppingCart,
+  Star,
+  User,
+  X,
+  XCircle,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { Navigate, PublicUser } from '../types';
 
@@ -22,6 +34,7 @@ export function Header({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [adminOpen, setAdminOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -34,8 +47,7 @@ export function Header({
     ['/', 'Home'],
     ['/contact', 'Contact'],
     ['/about', 'About'],
-    ['/account', user ? 'Account' : 'Sign Up'],
-  ];
+  ] as const;
   const adminLinks = [
     ['/admin/products', 'Products'],
     ['/admin/categories', 'Categories'],
@@ -45,8 +57,16 @@ export function Header({
 
   const logout = async () => {
     setOpen(false);
+    setAccountOpen(false);
     await onLogout();
   };
+
+  const accountMenuItems = [
+    { label: 'Manage My Account', href: '/account', icon: User },
+    { label: 'My Order', href: '/account#orders', icon: ShoppingBag },
+    { label: 'My Cancellations', href: '/account#cancellations', icon: XCircle },
+    { label: 'My Reviews', href: '/account#reviews', icon: Star },
+  ] as const;
 
   return (
     <>
@@ -61,6 +81,9 @@ export function Header({
                 {label}
               </button>
             ))}
+            {!user && (
+              <button onClick={() => navigate('/account?mode=register')}>Sign Up</button>
+            )}
             {user?.role === 'admin' && (
               <>
                 <button
@@ -103,39 +126,64 @@ export function Header({
                 <Search size={20} />
               </button>
             </form>
-            <button
-              className="icon-button badge-button"
-              onClick={() => navigate('/wishlist')}
-              aria-label="Wishlist"
-            >
-              <Heart size={22} />
-              {wishlistCount > 0 && <span>{wishlistCount}</span>}
-            </button>
-            <button
-              className="icon-button badge-button"
-              onClick={() => navigate('/cart')}
-              aria-label="Cart"
-            >
-              <ShoppingCart size={22} />
-              {cartCount > 0 && <span>{cartCount}</span>}
-            </button>
-            <button
-              className="icon-button"
-              onClick={() => navigate('/account')}
-              aria-label="Account"
-            >
-              <User size={22} />
-            </button>
-            {user && (
-              <button
-                className="icon-button"
-                onClick={logout}
-                disabled={logoutSaving}
-                aria-label="Log out"
-              >
-                <LogOut size={21} />
-              </button>
-            )}
+            {user ? (
+              <>
+                <button
+                  className="icon-button badge-button"
+                  onClick={() => navigate('/wishlist')}
+                  aria-label="Wishlist"
+                >
+                  <Heart size={22} />
+                  {wishlistCount > 0 && <span>{wishlistCount}</span>}
+                </button>
+                <button
+                  className="icon-button badge-button"
+                  onClick={() => navigate('/cart')}
+                  aria-label="Cart"
+                >
+                  <ShoppingCart size={22} />
+                  {cartCount > 0 && <span>{cartCount}</span>}
+                </button>
+                <div className="account-dropdown">
+                  <button
+                    className="icon-button account-trigger"
+                    onClick={() => setAccountOpen((current) => !current)}
+                    aria-expanded={accountOpen}
+                    aria-haspopup="menu"
+                    aria-label="Account menu"
+                  >
+                    <User size={20} />
+                  </button>
+                  {accountOpen && (
+                    <div className="account-dropdown__menu" role="menu">
+                      {accountMenuItems.map(({ label, href, icon: Icon }) => (
+                        <button
+                          key={label}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setAccountOpen(false);
+                            navigate(href);
+                          }}
+                        >
+                          <Icon size={22} />
+                          <span>{label}</span>
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={logout}
+                        disabled={logoutSaving}
+                      >
+                        <LogOut size={22} />
+                        <span>{logoutSaving ? 'Logging out...' : 'Logout'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : null}
             <button
               className="icon-button mobile-menu"
               onClick={() => setOpen(true)}
@@ -182,27 +230,29 @@ export function Header({
               ))}
             </>
           )}
-          <button
-            onClick={() => {
-              setOpen(false);
-              navigate('/cart');
-            }}
-          >
-            Cart
-          </button>
-          <button
-            onClick={() => {
-              setOpen(false);
-              navigate('/account');
-            }}
-          >
-            Account
-          </button>
-          {user && (
-            <button onClick={logout} disabled={logoutSaving}>
-              Log Out
-            </button>
-          )}
+          {user ? (
+            <>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate('/cart');
+                }}
+              >
+                Cart
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate('/account');
+                }}
+              >
+                Account
+              </button>
+              <button onClick={logout} disabled={logoutSaving}>
+                Log Out
+              </button>
+            </>
+          ) : null}
         </div>
       )}
     </>

@@ -292,9 +292,7 @@ describe('WishlistPage', () => {
     renderPage();
 
     await screen.findByText('Wishlist Product');
-    const moveButton = screen
-      .getAllByRole('button', { name: /Out of stock/i })
-      .find((button) => button.className.includes('button--primary'));
+    const moveButton = screen.getByRole('button', { name: /Out of stock/i });
 
     expect(moveButton).toBeDefined();
     expect((moveButton as HTMLButtonElement).disabled).toBe(true);

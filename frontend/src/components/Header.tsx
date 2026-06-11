@@ -124,6 +124,15 @@ export function Header({
                 <Search size={20} />
               </button>
             </form>
+            {/* Wishlist (Heart) - always visible */}
+            <button
+              className="icon-button badge-button"
+              onClick={() => navigate('/wishlist')}
+              aria-label="Wishlist"
+            >
+              <Heart size={22} />
+              {wishlistCount > 0 && <span>{wishlistCount}</span>}
+            </button>
             <button
               className="icon-button badge-button"
               onClick={() => navigate('/cart')}
@@ -134,14 +143,6 @@ export function Header({
             </button>
             {user ? (
               <>
-                <button
-                  className="icon-button badge-button"
-                  onClick={() => navigate('/wishlist')}
-                  aria-label="Wishlist"
-                >
-                  <Heart size={22} />
-                  {wishlistCount > 0 && <span>{wishlistCount}</span>}
-                </button>
                 <div className="account-dropdown">
                   <button
                     className="icon-button account-trigger"

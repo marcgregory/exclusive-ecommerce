@@ -85,7 +85,6 @@ export function Header({
             ))}
             {authStatus === 'unauthenticated' && (
               <>
-                <button onClick={() => navigate('/login')}>Login</button>
                 <button onClick={() => navigate('/signup')}>Sign Up</button>
               </>
             )}
@@ -238,14 +237,6 @@ export function Header({
           )}
           {authStatus === 'unauthenticated' && (
             <>
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  navigate('/login');
-                }}
-              >
-                Login
-              </button>
               <button
                 onClick={() => {
                   setOpen(false);

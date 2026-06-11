@@ -16,6 +16,7 @@ const apiMocks = vi.hoisted(() => ({
   register: vi.fn(),
   login: vi.fn(),
   updateProfile: vi.fn(),
+  googleAuth: vi.fn(),
 }));
 
 vi.mock('../api/client', () => ({
@@ -58,6 +59,7 @@ vi.mock('../api/ecommerceApi', () => ({
   useRegisterMutation: () => apiMocks.register(),
   useLoginMutation: () => apiMocks.login(),
   useUpdateProfileMutation: () => apiMocks.updateProfile(),
+  useGoogleAuthMutation: () => apiMocks.googleAuth(),
 }));
 import { api } from '../api/client';
 
@@ -193,6 +195,7 @@ describe('checkout to order history flow', () => {
     apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.googleAuth.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
 
     apiMocks.createOrder.mockImplementation((payload: MockCreateOrderInput) => ({
       unwrap: async () => {

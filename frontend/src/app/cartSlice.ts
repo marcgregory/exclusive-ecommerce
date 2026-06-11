@@ -17,10 +17,7 @@ type AddLocalCartItemInput = {
   stock?: number;
 };
 
-type LocalCartState = Cart & {
-  isDrawerOpen: boolean;
-  message: string;
-};
+type LocalCartState = Cart;
 
 const emptyState: LocalCartState = {
   items: [],
@@ -28,8 +25,6 @@ const emptyState: LocalCartState = {
   discount: 0,
   shipping: 0,
   total: 0,
-  isDrawerOpen: false,
-  message: '',
 };
 
 function normalizeOptions(options: Record<string, string> = {}) {
@@ -166,8 +161,6 @@ export const cartSlice = createSlice({
         } as CartItem);
       }
 
-      state.isDrawerOpen = true;
-      state.message = `${product.name} added to cart`;
       recalculate(state);
     },
     updateQuantity: (state, action: PayloadAction<{ id: string; quantity: number }>) => {
@@ -182,30 +175,12 @@ export const cartSlice = createSlice({
     },
     clearCart: (state) => {
       state.items = [];
-      state.message = 'Cart cleared';
       recalculate(state);
-    },
-    openCartDrawer: (state) => {
-      state.isDrawerOpen = true;
-    },
-    closeCartDrawer: (state) => {
-      state.isDrawerOpen = false;
-    },
-    clearCartMessage: (state) => {
-      state.message = '';
     },
   },
 });
 
-export const {
-  addItem,
-  updateQuantity,
-  removeItem,
-  clearCart,
-  openCartDrawer,
-  closeCartDrawer,
-  clearCartMessage,
-} = cartSlice.actions;
+export const { addItem, updateQuantity, removeItem, clearCart } = cartSlice.actions;
 
 export function persistCart(cart: Cart) {
   if (typeof window === 'undefined') return;

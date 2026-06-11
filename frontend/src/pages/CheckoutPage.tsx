@@ -281,11 +281,11 @@ export function CheckoutPage({
     }
   };
 
-  if (authStatus === 'checking' || cartLoading) {
+  if (authStatus === 'loading' || cartLoading) {
     return <CheckoutSkeleton />;
   }
 
-  if (authStatus === 'guest') {
+  if (authStatus === 'unauthenticated') {
     return (
       <main className="container page">
         <Breadcrumbs items={['Account', 'My Account', 'Product', 'View Cart', 'Checkout']} />

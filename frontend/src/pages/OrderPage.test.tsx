@@ -93,7 +93,7 @@ describe('OrderPage', () => {
       isLoading: false,
       refetch: vi.fn(),
     });
-    renderPage({ authStatus: 'guest', navigate });
+    renderPage({ authStatus: 'unauthenticated', navigate });
 
     expect(screen.getByText(/Sign in to view this order/i)).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: /Sign In or Register/i }));

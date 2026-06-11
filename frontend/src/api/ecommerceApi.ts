@@ -170,7 +170,7 @@ export const ecommerceApi = createApi({
       providesTags: ['Catalog'],
     }),
     getMe: builder.query<MeResponse, void>({
-      query: () => '/api/me',
+      query: () => '/api/auth/me',
       providesTags: ['Session'],
     }),
     getCart: builder.query<CartResponse, string | undefined>({

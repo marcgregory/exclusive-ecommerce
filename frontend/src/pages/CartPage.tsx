@@ -59,7 +59,7 @@ export function CartPage({
     onRemoveItem?.(id);
   };
 
-  if (authStatus === 'guest' && !cart.items.length) {
+  if (authStatus === 'unauthenticated' && !cart.items.length) {
     return (
       <main className="container page">
         <Breadcrumbs items={['Home', 'Cart']} />
@@ -74,7 +74,7 @@ export function CartPage({
   }
 
   // Show skeleton while auth or cart data is loading.
-  if (authStatus === 'checking' || cartLoading) {
+  if (authStatus === 'loading' || cartLoading) {
     return <CartSkeleton />;
   }
 

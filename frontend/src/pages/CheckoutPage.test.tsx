@@ -97,7 +97,7 @@ describe('CheckoutPage', () => {
   it('shows loading state while checking out', () => {
     render(
       <CheckoutPage
-        authStatus="checking"
+        authStatus="loading"
         cart={cart}
         cartLoading={false}
         cartError=""
@@ -119,7 +119,7 @@ describe('CheckoutPage', () => {
     const navigate = vi.fn();
     render(
       <CheckoutPage
-        authStatus="guest"
+        authStatus="unauthenticated"
         cart={cart}
         cartLoading={false}
         cartError=""

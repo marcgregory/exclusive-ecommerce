@@ -107,12 +107,17 @@ export function WishlistPage({
         }
       }
 
+      // Add to cart via Redux (optimistic update)
+      await onAdd(product, 1, selection.selectedColor, selection.selectedSize);
+
+      // Also add to cart via API to persist on backend
       await addCartItem({
         productId: product.id,
         quantity: 1,
-        selectedColor: selection?.selectedColor ?? '',
-        selectedSize: selection?.selectedSize ?? '',
+        selectedColor: selection.selectedColor ?? '',
+        selectedSize: selection.selectedSize ?? '',
       }).unwrap();
+
       await deleteWishlistProduct(product.id).unwrap();
       setProducts((current) => current.filter((entry) => entry.id !== product.id));
       await Promise.all([refreshCart(), refreshWishlist()]);
@@ -123,7 +128,7 @@ export function WishlistPage({
     }
   };
 
-  if (authStatus === 'guest') {
+  if (authStatus === 'unauthenticated') {
     return (
       <main className="container page">
         <Breadcrumbs items={['Home', 'Wishlist']} />
@@ -138,7 +143,7 @@ export function WishlistPage({
   }
 
   // Show skeleton while auth or wishlist data is loading.
-  if (authStatus === 'checking' || wishlistQuery.isLoading || wishlistQuery.isFetching) {
+  if (authStatus === 'loading' || wishlistQuery.isLoading || wishlistQuery.isFetching) {
     return <WishlistSkeleton count={wishlistSkeletonCount} />;
   }
 

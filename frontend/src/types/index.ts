@@ -115,7 +115,7 @@ export type PublicUser = {
 };
 
 export type Navigate = (href: string) => void;
-export type AuthStatus = 'checking' | 'authenticated' | 'guest';
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 export type AddToCart = (
   productOrId: Product | string,

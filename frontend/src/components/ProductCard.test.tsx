@@ -86,7 +86,7 @@ describe('ProductCard', () => {
     await user.click(titleButton!);
 
     expect(onWishlist).toHaveBeenCalledWith('p1');
-    expect(onAdd).toHaveBeenCalledWith('p1', 1, '', '');
+    expect(onAdd).toHaveBeenCalledWith(productWithoutOptions, 1, '', '');
     expect(navigate).toHaveBeenCalledTimes(2);
     expect(navigate).toHaveBeenNthCalledWith(1, '/product/p1');
     expect(navigate).toHaveBeenNthCalledWith(2, '/product/p1');
@@ -106,7 +106,7 @@ describe('ProductCard', () => {
     expect(navigate).toHaveBeenCalledWith('/product/p1');
   });
 
-  it('quick adds the first valid in-stock variant when variant data is available', async () => {
+  it('requires shoppers to select an in-stock variant before adding to cart (with variant data)', async () => {
     const onAdd = vi.fn();
     const navigate = vi.fn();
     const variants: ProductVariant[] = [
@@ -125,10 +125,10 @@ describe('ProductCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Add To Cart/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Choose Options/i }));
 
-    expect(onAdd).toHaveBeenCalledWith('p1', 1, 'blue', 'M');
-    expect(navigate).not.toHaveBeenCalled();
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith('/product/p1');
   });
 
   it('disables the add to cart button when out of stock', () => {

@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { asyncRoute, requireAdmin, requireUser } from './middleware.js';
+import { asyncRoute, requireAdmin, requireUser, type AuthedRequest } from './middleware.js';
 import {
   addCartItem,
   addWishlistProduct,
@@ -424,7 +424,11 @@ app.post('/api/auth/logout', (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
 });
 
-app.get('/api/me', requireUser, (req, res) => res.json({ user: publicUser(req.user) }));
+const getCurrentUser = (req: AuthedRequest, res: express.Response) =>
+  res.json({ user: publicUser(req.user) });
+
+app.get('/api/auth/me', requireUser, getCurrentUser);
+app.get('/api/me', requireUser, getCurrentUser);
 
 app.patch(
   '/api/me',

@@ -107,7 +107,7 @@ describe('WishlistPage', () => {
   });
 
   it('shows loading state while auth is checking', () => {
-    renderPage({ authStatus: 'checking' });
+    renderPage({ authStatus: 'loading' });
 
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(/Wishlist/i);
     expect(screen.getByTestId('product-grid-skeleton')).toBeDefined();
@@ -122,7 +122,7 @@ describe('WishlistPage', () => {
 
   it('renders guest state with a sign in prompt', async () => {
     const navigate = vi.fn();
-    renderPage({ authStatus: 'guest', navigate });
+    renderPage({ authStatus: 'unauthenticated', navigate });
 
     expect(screen.getByText(/Sign in to view your wishlist/i)).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: /Sign In or Register/i }));

@@ -34,11 +34,11 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
   const notFound = getRtkStatus(error) === 404;
   const errorMessage = error ? getRtkErrorMessage(error) : '';
 
-  if (authStatus === 'checking' || isLoading) {
+  if (authStatus === 'loading' || isLoading) {
     return <OrderDetailSkeleton />;
   }
 
-  if (authStatus === 'guest') {
+  if (authStatus === 'unauthenticated') {
     return (
       <main className="container page">
         <Breadcrumbs items={['Home', 'Orders']} />

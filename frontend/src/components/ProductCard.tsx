@@ -23,7 +23,6 @@ type ProductCardProps = {
 
 export function ProductCard({
   product,
-  variants,
   onAdd,
   onWishlist,
   navigate,

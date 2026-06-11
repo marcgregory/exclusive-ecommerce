@@ -1193,6 +1193,24 @@ describe('auth endpoints', () => {
       });
     });
 
+    it('returns current user from auth session endpoint when authenticated', async () => {
+      const agent = request.agent(testApp);
+
+      await agent.post('/api/auth/register').send({
+        email: 'getauthme@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+      });
+
+      const meRes = await agent.get('/api/auth/me');
+
+      expect(meRes.status).toBe(200);
+      expect(meRes.body.user).toMatchObject({
+        email: 'getauthme@example.com',
+        role: 'customer',
+      });
+    });
+
     it('returns 401 when not authenticated', async () => {
       const res = await request(testApp).get('/api/me');
 

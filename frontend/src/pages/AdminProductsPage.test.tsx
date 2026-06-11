@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -59,6 +59,12 @@ const variants = [
 
 let serverProducts: Product[] = [product];
 let variantErrorStatus: number | null = null;
+
+beforeEach(() => {
+  serverProducts = [product];
+  variantErrorStatus = null;
+  vi.mocked(globalThis.fetch).mockClear();
+});
 
 globalThis.fetch = vi.fn(async (url: string | URL | Request, options?: RequestInit) => {
   let urlStr: string;
@@ -269,13 +275,6 @@ describe('AdminProductsPage', () => {
     serverProducts = [product];
     variantErrorStatus = null;
     vi.spyOn(window, 'confirm').mockReturnValue(true);
-  });
-
-  afterEach(() => {
-    serverProducts = [product];
-    variantErrorStatus = null;
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('does not load admin products for non-admin users', () => {

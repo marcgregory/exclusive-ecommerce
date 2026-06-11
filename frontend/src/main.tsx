@@ -14,11 +14,10 @@ import {
 import { store, type AppDispatch } from './app/store';
 import { addItem, clearCart, removeItem, updateQuantity } from './app/cartSlice';
 import { useAppSelector } from './app/hooks';
-import { CartDrawer } from './components/CartDrawer';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ErrorState } from './components/StateViews';
+import { ErrorState, LoadingState } from './components/StateViews';
 import { TopHeader } from './components/TopHeader';
 import { getRtkErrorMessage, getRtkStatus } from './lib/rtkErrors';
 import { useRoute } from './lib/router';
@@ -43,6 +42,17 @@ import { WishlistPage } from './pages/WishlistPage';
 import type { AsyncState, AuthStatus, Cart, Category, Product, PublicUser } from './types';
 import './styles.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+
+function AuthCheckLoadingPage() {
+  return (
+    <main className="container page">
+      <LoadingState
+        title="Checking your session"
+        message="Please wait while we verify your account."
+      />
+    </main>
+  );
+}
 
 function App() {
   // Set Google Sign-In client ID meta tag
@@ -99,10 +109,10 @@ function App() {
   };
 
   const authStatus: AuthStatus = userState.loading
-    ? 'checking'
+    ? 'loading'
     : userState.data
       ? 'authenticated'
-      : 'guest';
+      : 'unauthenticated';
 
   useEffect(() => {
     if (authStatus === 'authenticated' && ['/login', '/signup', '/register'].includes(path)) {
@@ -320,10 +330,12 @@ function App() {
         />
       );
     if (path === '/login') {
+      if (authStatus === 'loading') return <AuthCheckLoadingPage />;
       if (authStatus === 'authenticated') return homeOrCatalogState();
       return <AuthPage mode="login" onAuthChanged={handleAuthChanged} navigate={navigate} />;
     }
     if (path === '/signup' || path === '/register') {
+      if (authStatus === 'loading') return <AuthCheckLoadingPage />;
       if (authStatus === 'authenticated') return homeOrCatalogState();
       return <AuthPage mode="register" onAuthChanged={handleAuthChanged} navigate={navigate} />;
     }
@@ -378,7 +390,6 @@ function App() {
         logoutSaving={logoutState.isLoading}
       />
       {page}
-      <CartDrawer navigate={navigate} />
       <button className="back-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
         ↑
       </button>

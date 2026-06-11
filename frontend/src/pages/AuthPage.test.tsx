@@ -97,13 +97,14 @@ describe('AuthPage', () => {
 
   it('handles login successfully', async () => {
     const onAuthChanged = vi.fn();
+    const navigate = vi.fn();
     const unwrapFn = vi.fn().mockResolvedValue({ user });
     const mockLogin = vi.fn().mockReturnValue({ unwrap: unwrapFn });
 
     apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.login.mockReturnValue([mockLogin, { isLoading: false, error: undefined }]);
 
-    renderPage('login', { onAuthChanged });
+    renderPage('login', { onAuthChanged, navigate });
 
     await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'jane@example.com');
     await userEvent.type(screen.getByLabelText(/Password/i), 'password123');
@@ -118,18 +119,19 @@ describe('AuthPage', () => {
       )
     );
     expect(onAuthChanged).toHaveBeenCalledWith(user);
-    expect(await screen.findByText(/Signed in/i)).toBeDefined();
+    expect(navigate).toHaveBeenCalledWith('/');
   });
 
   it('handles registration successfully', async () => {
     const onAuthChanged = vi.fn();
+    const navigate = vi.fn();
     const unwrapFn = vi.fn().mockResolvedValue({ user });
     const mockRegister = vi.fn().mockReturnValue({ unwrap: unwrapFn });
 
     apiMocks.register.mockReturnValue([mockRegister, { isLoading: false, error: undefined }]);
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
 
-    renderPage('register', { onAuthChanged });
+    renderPage('register', { onAuthChanged, navigate });
 
     await userEvent.type(screen.getByLabelText(/Name/i), 'Jane');
     await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'jane@example.com');
@@ -147,7 +149,7 @@ describe('AuthPage', () => {
       })
     );
     expect(onAuthChanged).toHaveBeenCalledWith(user);
-    expect(await screen.findByText(/Account created/i)).toBeDefined();
+    expect(navigate).toHaveBeenCalledWith('/');
   });
 
   it('handles login error', async () => {

@@ -75,13 +75,20 @@ export function AuthPage({ mode, onAuthChanged, navigate }: AuthPageProps) {
     flow: 'auth-code',
     onSuccess: async (codeResponse) => {
       try {
+        setAuthStatus('');
+        setAuthStatusIsError(false);
         const result = await googleAuth({ code: codeResponse.code }).unwrap();
         onAuthChanged(result.user);
-      } catch {
+        navigate('/');
+      } catch (error) {
+        setAuthStatusIsError(true);
+        setAuthStatus(getRtkErrorMessage(error));
         console.error('Google login failed');
       }
     },
     onError: () => {
+      setAuthStatusIsError(true);
+      setAuthStatus('Google sign-in was cancelled or failed.');
       console.error('Google login failed');
     },
   });
@@ -97,7 +104,7 @@ export function AuthPage({ mode, onAuthChanged, navigate }: AuthPageProps) {
         confirmPassword: isLogin ? payload.confirmPassword : payload.password,
       }).unwrap();
       onAuthChanged(result.user);
-      setAuthStatus(isLogin ? 'Signed in.' : 'Account created.');
+      navigate('/');
     } catch (error) {
       setAuthStatusIsError(true);
       setAuthStatus(getRtkErrorMessage(error));

@@ -58,6 +58,7 @@ import {
 } from './store.js';
 import { closePool, query } from './db.js';
 import {
+  httpError,
   validateLoginInput,
   validateProfileInput,
   validateRegisterInput,
@@ -97,6 +98,17 @@ const app = express();
 const shouldSkipRateLimit = () =>
   process.env.NODE_ENV === 'test' && process.env.DISABLE_RATE_LIMIT_BYPASS !== 'true';
 const allowedWebOrigins = new Set(config.webOrigins);
+
+type GoogleTokenResponse = {
+  id_token?: string;
+  error?: string;
+  error_description?: string;
+};
+
+function getGoogleTokenErrorMessage(tokenData: GoogleTokenResponse) {
+  const detail = tokenData.error_description || tokenData.error;
+  return detail ? `Google authorization failed: ${detail}` : 'Google authorization failed';
+}
 
 if (config.isProduction) app.set('trust proxy', 1);
 
@@ -350,28 +362,36 @@ app.post(
       return res.status(503).json({ message: 'Google sign-in is not configured' });
     }
 
-    // Exchange the code for tokens
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        code,
-        client_id: config.googleClientId,
-        client_secret: config.googleClientSecret,
-        redirect_uri: 'postmessage',
-      }),
-    });
-
-    if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange authorization code for tokens');
+    let tokenResponse: Response;
+    try {
+      tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          code,
+          client_id: config.googleClientId,
+          client_secret: config.googleClientSecret,
+          grant_type: 'authorization_code',
+          redirect_uri: 'postmessage',
+        }),
+      });
+    } catch {
+      throw httpError('Google authentication is temporarily unavailable', 503);
     }
 
-    const tokenData = await tokenResponse.json() as { id_token: string };
+    const tokenData = (await tokenResponse.json().catch(() => ({}))) as GoogleTokenResponse;
+    if (!tokenResponse.ok) {
+      throw httpError(
+        getGoogleTokenErrorMessage(tokenData),
+        tokenResponse.status >= 500 ? 502 : 401
+      );
+    }
+
     const idToken = tokenData.id_token;
     if (!idToken) {
-      throw new Error('ID token not found in token response');
+      throw httpError('Google authorization did not return an identity token', 502);
     }
 
     // Verify the ID token

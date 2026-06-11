@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { createRoot } from 'react-dom/client';
 import {
@@ -104,6 +104,12 @@ function App() {
       ? 'authenticated'
       : 'guest';
 
+  useEffect(() => {
+    if (authStatus === 'authenticated' && ['/login', '/signup', '/register'].includes(path)) {
+      navigate('/');
+    }
+  }, [authStatus, navigate, path]);
+
   const refreshCart = useCallback(
     async (coupon = '') => {
       if (coupon !== appliedCoupon) setAppliedCoupon(coupon);
@@ -203,6 +209,21 @@ function App() {
         />
       </main>
     );
+    const homeView = (
+      <HomePage
+        products={products.data}
+        categories={categories.data}
+        navigate={navigate}
+        onAdd={onAdd}
+        onWishlist={onWishlist}
+        wishlistProductIds={wishlistProductIds}
+      />
+    );
+    const homeOrCatalogState = () => {
+      if (catalogError) return catalogErrorView;
+      if (products.loading || categories.loading) return <HomeSkeleton />;
+      return homeView;
+    };
 
     if (path.startsWith('/category/')) {
       return (
@@ -298,10 +319,14 @@ function App() {
           navigate={navigate}
         />
       );
-    if (path === '/login')
+    if (path === '/login') {
+      if (authStatus === 'authenticated') return homeOrCatalogState();
       return <AuthPage mode="login" onAuthChanged={handleAuthChanged} navigate={navigate} />;
-    if (path === '/signup' || path === '/register')
+    }
+    if (path === '/signup' || path === '/register') {
+      if (authStatus === 'authenticated') return homeOrCatalogState();
       return <AuthPage mode="register" onAuthChanged={handleAuthChanged} navigate={navigate} />;
+    }
     if (path === '/about') return <AboutPage />;
     if (path === '/contact') return <ContactPage />;
     if (path === '/wishlist')
@@ -320,16 +345,7 @@ function App() {
     if (products.loading || categories.loading) {
       return <HomeSkeleton />;
     }
-    return (
-      <HomePage
-        products={products.data}
-        categories={categories.data}
-        navigate={navigate}
-        onAdd={onAdd}
-        onWishlist={onWishlist}
-        wishlistProductIds={wishlistProductIds}
-      />
-    );
+    return homeView;
   }, [
     path,
     query,

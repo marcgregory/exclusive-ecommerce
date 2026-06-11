@@ -96,6 +96,7 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
     cloudinary,
     databaseUrl,
     googleClientId,
+    googleClientSecret,
     imageStorageProvider,
     isProduction,
     nodeEnv,

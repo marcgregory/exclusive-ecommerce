@@ -61,6 +61,20 @@ describe('runtime config', () => {
     });
   });
 
+  it('exposes Google OAuth credentials when configured', () => {
+    expect(
+      loadRuntimeConfig({
+        NODE_ENV: 'development',
+        DATABASE_URL: 'postgres://example/dev',
+        GOOGLE_CLIENT_ID: 'google-client-id',
+        GOOGLE_CLIENT_SECRET: 'google-client-secret',
+      } as NodeJS.ProcessEnv)
+    ).toMatchObject({
+      googleClientId: 'google-client-id',
+      googleClientSecret: 'google-client-secret',
+    });
+  });
+
   it('validates Cloudinary image storage configuration only when selected', () => {
     expect(
       loadRuntimeConfig({
@@ -169,6 +183,7 @@ describe('health, readiness, and error metadata', () => {
 
   afterEach(() => {
     vi.doUnmock('./db.js');
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     process.env = { ...originalEnv };
   });
@@ -272,6 +287,42 @@ describe('health, readiness, and error metadata', () => {
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('"errorMessage":"database down"')
     );
+  });
+
+  it('surfaces Google token exchange failures with a client-safe message', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'google-client-id';
+    process.env.GOOGLE_CLIENT_SECRET = 'google-client-secret';
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        error: 'invalid_grant',
+        error_description: 'Bad Request',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { default: app } = await import('./index.js');
+
+    const res = await request(app)
+      .post('/api/auth/google')
+      .set('x-request-id', 'req-google-1')
+      .send({ code: 'bad-code' });
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({
+      message: 'Google authorization failed: Bad Request',
+      requestId: 'req-google-1',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://oauth2.googleapis.com/token',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(URLSearchParams),
+      })
+    );
+    const requestBody = fetchMock.mock.calls[0][1].body as URLSearchParams;
+    expect(requestBody.get('grant_type')).toBe('authorization_code');
+    expect(requestBody.get('redirect_uri')).toBe('postmessage');
   });
 
   it('adds requestId to client error responses', async () => {

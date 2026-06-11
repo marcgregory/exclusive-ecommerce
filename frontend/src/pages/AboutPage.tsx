@@ -1,6 +1,58 @@
-import { ShoppingBag, User } from 'lucide-react';
+import {
+  BadgeDollarSign,
+  DollarSign,
+  Instagram,
+  Linkedin,
+  ShoppingBag,
+  Store,
+  Twitter,
+} from 'lucide-react';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ServiceBadges } from '../components/ServiceBadges';
+
+const storyImage = '/assets/about/story-shoppers.png';
+
+const stats = [
+  {
+    icon: Store,
+    value: '10.5k',
+    label: 'Sellers active our site',
+  },
+  {
+    icon: DollarSign,
+    value: '33k',
+    label: 'Monthly Product Sale',
+    featured: true,
+  },
+  {
+    icon: ShoppingBag,
+    value: '45.5k',
+    label: 'Customers active in our site',
+  },
+  {
+    icon: BadgeDollarSign,
+    value: '25k',
+    label: 'Annual gross sale in our site',
+  },
+];
+
+const teamMembers = [
+  {
+    name: 'Tom Cruise',
+    role: 'Founder & Chairman',
+    image: '/assets/about/team-founder.png',
+  },
+  {
+    name: 'Emma Watson',
+    role: 'Managing Director',
+    image: '/assets/about/team-director.png',
+  },
+  {
+    name: 'Will Smith',
+    role: 'Product Designer',
+    image: '/assets/about/team-designer.png',
+  },
+];
 
 export function AboutPage() {
   return (
@@ -13,42 +65,45 @@ export function AboutPage() {
           <div>
             <h1>Our Story</h1>
             <p>
-              Launched in 2015, Exclusive is South Asia's premier online shopping marketplace with
-              an active presence in Bangladesh.
+              Launched in 2015, Exclusive is South Asia's premier online shopping marketplace with an
+              active presence in Bangladesh. Supported by a wide range of tailored marketing, data,
+              and service solutions, Exclusive has thousands of sellers and brands and serves
+              millions of customers across the region.
             </p>
             <p>
-              Exclusive offers a diverse assortment in categories ranging from consumer electronics
-              to lifestyle essentials.
+              Exclusive has more than 1 million products to offer, growing at a very fast pace.
+              Exclusive offers a diverse assortment in categories ranging from consumer electronics to
+              lifestyle essentials.
             </p>
           </div>
           <div className="story-image">
-            <ShoppingBag size={120} />
+            <img src={storyImage} alt="Two shoppers smiling with colorful shopping bags" />
           </div>
         </div>
       </section>
       <section className="container stats">
-        <div>
-          <strong>10.5k</strong>
-          <span>Sellers active our site</span>
-        </div>
-        <div>
-          <strong>33k</strong>
-          <span>Monthly product sale</span>
-        </div>
-        <div>
-          <strong>45.5k</strong>
-          <span>Customers active in our site</span>
-        </div>
-        <div>
-          <strong>25k</strong>
-          <span>Annual gross sale</span>
-        </div>
+        {stats.map(({ icon: Icon, value, label, featured }) => (
+          <article className={featured ? 'is-featured' : undefined} key={label}>
+            <span className="stats-icon" aria-hidden="true">
+              <Icon />
+            </span>
+            <strong>{value}</strong>
+            <span>{label}</span>
+          </article>
+        ))}
       </section>
       <section className="container team">
-        <TeamCard name="Tom Cruise" role="Founder & Chairman" />
-        <TeamCard name="Emma Watson" role="Managing Director" />
-        <TeamCard name="Will Smith" role="Product Designer" />
+        {teamMembers.map((member) => (
+          <TeamCard key={member.name} {...member} />
+        ))}
       </section>
+      <div className="about-slider-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span className="is-active" />
+        <span />
+        <span />
+      </div>
       <div className="container">
         <ServiceBadges />
       </div>
@@ -59,16 +114,28 @@ export function AboutPage() {
 type TeamCardProps = {
   name: string;
   role: string;
+  image: string;
 };
 
-function TeamCard({ name, role }: TeamCardProps) {
+function TeamCard({ name, role, image }: TeamCardProps) {
   return (
     <article>
       <div className="team-photo">
-        <User size={110} />
+        <img src={image} alt={`${name}, ${role}`} />
       </div>
       <h3>{name}</h3>
       <p>{role}</p>
+      <div className="team-socials" aria-label={`${name} social links`}>
+        <button aria-label={`${name} on Twitter`} type="button">
+          <Twitter size={16} />
+        </button>
+        <button aria-label={`${name} on Instagram`} type="button">
+          <Instagram size={16} />
+        </button>
+        <button aria-label={`${name} on LinkedIn`} type="button">
+          <Linkedin size={16} />
+        </button>
+      </div>
     </article>
   );
 }

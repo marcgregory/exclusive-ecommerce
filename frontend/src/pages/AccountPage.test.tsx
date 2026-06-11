@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AccountPage } from './AccountPage';
 import type { Order, PublicUser } from '../types';
 
@@ -85,22 +84,14 @@ function renderPage(overrides: Partial<Parameters<typeof AccountPage>[0]> = {}) 
     ...overrides,
   };
 
-  const view = render(
-    <GoogleOAuthProvider clientId="test">
-      <AccountPage {...props} />
-    </GoogleOAuthProvider>
-  );
+  const view = render(<AccountPage {...props} />);
 
   const customRerender = (newOverrides: Partial<Parameters<typeof AccountPage>[0]> = {}) => {
     const newProps = {
       ...props,
       ...newOverrides,
     };
-    view.rerender(
-      <GoogleOAuthProvider clientId="test">
-        <AccountPage {...newProps} />
-      </GoogleOAuthProvider>
-    );
+    view.rerender(<AccountPage {...newProps} />);
   };
 
   return { ...props, ...view, rerender: customRerender };
@@ -120,7 +111,7 @@ describe('AccountPage', () => {
     cleanup();
   });
 
-  it('shows a guest sign-in state', () => {
+  it('shows a guest account prompt without auth form fields', () => {
     apiMocks.getOrders.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -131,14 +122,13 @@ describe('AccountPage', () => {
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
 
-    const { container } = renderPage({ userState: { data: null, loading: false, error: '' } });
+    renderPage({ userState: { data: null, loading: false, error: '' } });
 
-    expect(screen.getByRole('heading', { level: 1, name: /Create an account/i })).toBeDefined();
-    expect(screen.getByLabelText(/Name/i)).toBeDefined();
-    expect(screen.getByLabelText(/Email or Phone Number/i)).toBeDefined();
-    expect(screen.getByLabelText(/Password/i)).toBeDefined();
-    expect(screen.getByRole('button', { name: /Sign up with Google/i })).toBeDefined();
-    expect(container.querySelector('.google-signin-render__button')).toBeNull();
+    expect(screen.getByText(/Sign in to view your account/i)).toBeDefined();
+    expect(screen.queryByLabelText(/Email or Phone Number/i)).toBeNull();
+    expect(screen.queryByLabelText(/Password/i)).toBeNull();
+    expect(screen.getByRole('button', { name: /Login/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Create Account/i })).toBeDefined();
   });
 
   it('renders the authenticated profile', async () => {
@@ -286,180 +276,6 @@ describe('AccountPage', () => {
     expect(callArg).not.toHaveProperty('confirmPassword');
     expect(onAuthChanged).toHaveBeenCalledWith(updatedUser);
     expect(await screen.findByText(/Profile saved/i)).toBeDefined();
-  });
-
-  it('handles login successfully', async () => {
-    const onAuthChanged = vi.fn();
-    const unwrapFn = vi.fn().mockResolvedValue({ user });
-    const mockLogin = vi.fn().mockReturnValue({ unwrap: unwrapFn });
-
-    apiMocks.getOrders.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: vi.fn(),
-    });
-    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-    apiMocks.login.mockReturnValue([mockLogin, { isLoading: false, error: undefined }]);
-    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-
-    renderPage({ userState: { data: null, loading: false, error: '' }, onAuthChanged });
-
-    await userEvent.click(screen.getByRole('button', { name: /Log in/i }));
-    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'jane@example.com');
-    await userEvent.type(screen.getByLabelText(/Password/i), 'password123');
-
-    await userEvent.click(screen.getByRole('button', { name: /Log In/i }));
-
-    await waitFor(() =>
-      expect(mockLogin).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'jane@example.com',
-          password: 'password123',
-        })
-      )
-    );
-    expect(onAuthChanged).toHaveBeenCalledWith(user);
-    expect(await screen.findByText(/Signed in/i)).toBeDefined();
-  });
-
-  it('switches back to the signup form when the route mode changes to register', () => {
-    apiMocks.getOrders.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: vi.fn(),
-    });
-    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-
-    const page = renderPage({
-      userState: { data: null, loading: false, error: '' },
-      authModeQuery: 'login',
-    });
-
-    expect(screen.getByRole('heading', { level: 1, name: /Log in to Exclusive/i })).toBeDefined();
-
-    page.rerender({
-      userState: page.userState,
-      onAuthChanged: page.onAuthChanged,
-      onUserRefresh: page.onUserRefresh,
-      navigate: page.navigate,
-      authModeQuery: 'register',
-    });
-
-    expect(screen.getByRole('heading', { level: 1, name: /Create an account/i })).toBeDefined();
-    expect(screen.getByLabelText(/Name/i)).toBeDefined();
-  });
-
-  it('handles registration successfully', async () => {
-    const onAuthChanged = vi.fn();
-    const unwrapFn = vi.fn().mockResolvedValue({ user });
-    const mockRegister = vi.fn().mockReturnValue({ unwrap: unwrapFn });
-
-    apiMocks.getOrders.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: vi.fn(),
-    });
-    apiMocks.register.mockReturnValue([mockRegister, { isLoading: false, error: undefined }]);
-    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-
-    renderPage({ userState: { data: null, loading: false, error: '' }, onAuthChanged });
-
-    await userEvent.type(screen.getByLabelText(/Name/i), 'Jane');
-    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'jane@example.com');
-    await userEvent.type(screen.getByLabelText(/Password/i), 'password123');
-
-    await userEvent.click(screen.getByRole('button', { name: /Create Account/i }));
-
-    await waitFor(() =>
-      expect(mockRegister).toHaveBeenCalledWith({
-        firstName: 'Jane',
-        lastName: '',
-        email: 'jane@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
-        address: '',
-      })
-    );
-    expect(onAuthChanged).toHaveBeenCalledWith(user);
-    expect(await screen.findByText(/Account created/i)).toBeDefined();
-  });
-
-  it('handles login error', async () => {
-    const unwrapFn = vi.fn().mockRejectedValue({
-      data: { message: 'Invalid credentials' },
-      status: 401,
-    });
-    const mockLogin = vi.fn().mockReturnValue({ unwrap: unwrapFn });
-
-    apiMocks.getOrders.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: vi.fn(),
-    });
-    apiMocks.register.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-    apiMocks.login.mockReturnValue([mockLogin, { isLoading: false, error: undefined }]);
-    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-
-    renderPage({ userState: { data: null, loading: false, error: '' } });
-
-    await userEvent.click(screen.getByRole('button', { name: /Log in/i }));
-    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'wrong@example.com');
-    await userEvent.type(screen.getByLabelText(/Password/i), 'wrongpass');
-
-    await userEvent.click(screen.getByRole('button', { name: /Log In/i }));
-
-    await waitFor(() =>
-      expect(mockLogin).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'wrong@example.com',
-          password: 'wrongpass',
-        })
-      )
-    );
-    expect(await screen.findByText(/Invalid credentials/i)).toBeDefined();
-  });
-
-  it('handles registration error', async () => {
-    const unwrapFn = vi.fn().mockRejectedValue({
-      data: { message: 'Email already exists' },
-      status: 400,
-    });
-    const mockRegister = vi.fn().mockReturnValue({ unwrap: unwrapFn });
-
-    apiMocks.getOrders.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: vi.fn(),
-    });
-    apiMocks.register.mockReturnValue([mockRegister, { isLoading: false, error: undefined }]);
-    apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-    apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-
-    renderPage({ userState: { data: null, loading: false, error: '' } });
-
-    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'existing@example.com');
-    await userEvent.type(screen.getByLabelText(/Password/i), 'password123');
-
-    await userEvent.click(screen.getByRole('button', { name: /Create Account/i }));
-
-    await waitFor(() =>
-      expect(mockRegister).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'existing@example.com',
-          password: 'password123',
-          confirmPassword: 'password123',
-        })
-      )
-    );
-    expect(await screen.findByText(/Email already exists/i)).toBeDefined();
   });
 
   it('handles profile update error', async () => {

@@ -97,7 +97,7 @@ describe('OrderPage', () => {
 
     expect(screen.getByText(/Sign in to view this order/i)).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: /Sign In or Register/i }));
-    expect(navigate).toHaveBeenCalledWith('/account');
+    expect(navigate).toHaveBeenCalledWith('/login');
   });
 
   it('shows loading state', () => {

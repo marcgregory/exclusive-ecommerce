@@ -130,7 +130,7 @@ export function WishlistPage({
         <EmptyState
           title="Sign in to view your wishlist"
           message="Save products to your account and keep them ready for later."
-          action={{ label: 'Sign In or Register', onClick: () => navigate('/account') }}
+          action={{ label: 'Sign In or Register', onClick: () => navigate('/login') }}
           secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>

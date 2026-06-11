@@ -35,7 +35,7 @@ describe('Header', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
 
-    expect(navigate).toHaveBeenCalledWith('/account?mode=register');
+    expect(navigate).toHaveBeenCalledWith('/signup');
   });
 
   it('hides the signup nav link when signed in and opens the account dropdown', async () => {

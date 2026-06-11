@@ -127,7 +127,7 @@ describe('WishlistPage', () => {
     expect(screen.getByText(/Sign in to view your wishlist/i)).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: /Sign In or Register/i }));
 
-    expect(navigate).toHaveBeenCalledWith('/account');
+    expect(navigate).toHaveBeenCalledWith('/login');
     expect(mockedUseGetWishlistQuery).toHaveBeenCalledWith(undefined, { skip: true });
   });
 

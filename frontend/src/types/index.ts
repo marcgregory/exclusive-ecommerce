@@ -26,6 +26,8 @@ export type ProductVariant = {
   color: string;
   size: string;
   stock: number;
+  price?: number;
+  options?: Record<string, string>;
 };
 
 export type Category = {
@@ -52,6 +54,8 @@ export type CartItem = {
   quantity: number;
   selectedColor: string;
   selectedSize: string;
+  selectedOptions?: Record<string, string>;
+  unitPrice?: number;
   product: Product;
   lineTotal: number;
 };
@@ -114,10 +118,17 @@ export type Navigate = (href: string) => void;
 export type AuthStatus = 'checking' | 'authenticated' | 'guest';
 
 export type AddToCart = (
-  productId: string,
+  productOrId: Product | string,
   quantity?: number,
   selectedColor?: string,
-  selectedSize?: string
+  selectedSize?: string,
+  options?: {
+    selectedOptions?: Record<string, string>;
+    unitPrice?: number;
+    variantId?: string;
+    sku?: string;
+    stock?: number;
+  }
 ) => Promise<void>;
 
 export type AddToWishlist = (productId: string) => Promise<void>;

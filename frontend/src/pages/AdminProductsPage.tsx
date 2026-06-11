@@ -392,7 +392,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
         <EmptyState
           title="Admin access requires sign in"
           message="Sign in with an administrator account to manage products."
-          action={{ label: 'Sign In', onClick: () => navigate('/account') }}
+          action={{ label: 'Sign In', onClick: () => navigate('/login') }}
           secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>

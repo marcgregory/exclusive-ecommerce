@@ -1,7 +1,6 @@
 import { Heart, ShieldCheck, Truck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
-  useAddCartItemMutation,
   useAddWishlistProductMutation,
   useDeleteWishlistProductMutation,
   useGetProductDetailQuery,
@@ -11,6 +10,10 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
 import { ErrorState } from '../components/StateViews';
 import { ProductCard } from '../components/ProductCard';
+import {
+  getSelectorCartPayload,
+  ProductOptionsSelector,
+} from '../components/ProductOptionsSelector';
 import { ProductVisual } from '../components/ProductVisual';
 import { QuantityStepper } from '../components/QuantityStepper';
 import { SectionHeader } from '../components/SectionHeader';
@@ -42,13 +45,12 @@ export function ProductDetailsPage({
   wishlistProductIds,
 }: ProductDetailsPageProps) {
   const productQuery = useGetProductDetailQuery(id || '', { skip: !id });
-  const [addCartItem] = useAddCartItemMutation();
   const [addWishlistProduct] = useAddWishlistProductMutation();
   const [deleteWishlistProduct] = useDeleteWishlistProductMutation();
   const [quantity, setQuantity] = useState(1);
-  const [selectedColor, setSelectedColor] = useState('');
-  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [actionError, setActionError] = useState('');
+  const [showOptionValidation, setShowOptionValidation] = useState(false);
 
   // Debug logging for product images
   useEffect(() => {
@@ -94,87 +96,33 @@ export function ProductDetailsPage({
   const { product, related, variants = [] } = productData;
   const isInWishlist = wishlistProductIds.includes(product.id);
   const isOutOfStock = product.stockStatus === 'Out of Stock';
-  const requiresColor = product.colors.length > 0;
-  const requiresSize = product.sizes.length > 0;
-  const hasVariantStock = variants.length > 0;
-  const selectedVariant = variants.find(
-    (variant) => variant.color === (selectedColor || '') && variant.size === (selectedSize || '')
-  );
-  const hasRequiredSelections =
-    (!requiresColor || selectedColor) && (!requiresSize || selectedSize);
-  const hasInStockVariant =
-    !hasVariantStock || Boolean(selectedVariant && selectedVariant.stock > 0);
-  const canAddToCart = !isOutOfStock && hasRequiredSelections && hasInStockVariant;
-
-  const hasInStockCombo = (color: string, size: string) =>
-    !hasVariantStock ||
-    variants.some(
-      (variant) => variant.color === color && variant.size === size && variant.stock > 0
-    );
-
-  const colorDisabled = (color: string) => {
-    if (!hasVariantStock) return false;
-    if (selectedSize || !requiresSize) return !hasInStockCombo(color, selectedSize || '');
-    return !variants.some((variant) => variant.color === color && variant.stock > 0);
-  };
-
-  const sizeDisabled = (size: string) => {
-    if (!hasVariantStock) return false;
-    if (selectedColor || !requiresColor) return !hasInStockCombo(selectedColor || '', size);
-    return !variants.some((variant) => variant.size === size && variant.stock > 0);
-  };
-
-  const selectColor = (color: string) => {
-    setActionError('');
-    setSelectedColor(color);
-    if (selectedSize && !hasInStockCombo(color, selectedSize)) {
-      setSelectedSize('');
-    }
-  };
-
-  const selectSize = (size: string) => {
-    setActionError('');
-    setSelectedSize(size);
-    if (selectedColor && !hasInStockCombo(selectedColor, size)) {
-      setSelectedColor('');
-    }
-  };
-
-  const variantFeedback = (() => {
-    if (isOutOfStock) return 'This product is currently out of stock.';
-    if (!hasVariantStock) return product.stockStatus;
-    if (!hasRequiredSelections) {
-      if (requiresColor && requiresSize) return 'Choose a colour and size to check stock.';
-      if (requiresColor) return 'Choose a colour to check stock.';
-      if (requiresSize) return 'Choose a size to check stock.';
-    }
-    if (!selectedVariant || selectedVariant.stock <= 0)
-      return 'Selected combination is unavailable.';
-    const sku = selectedVariant.sku ? `SKU: ${selectedVariant.sku}` : 'SKU not assigned';
-    return `${sku} | ${selectedVariant.stock} in stock`;
-  })();
+  const selectorPayload = getSelectorCartPayload(product, variants, selectedOptions);
+  const canAddToCart = selectorPayload.isAvailable;
+  const displayPrice = selectorPayload.unitPrice;
 
   const addToCart = async () => {
     if (!canAddToCart) {
-      if (requiresColor && !selectedColor) {
-        setActionError('Please choose a color before adding to cart.');
-        return;
-      }
-      if (requiresSize && !selectedSize) {
-        setActionError('Please choose a size before adding to cart.');
-        return;
-      }
-      if (hasVariantStock) {
-        setActionError('Please choose an available in-stock variant before adding to cart.');
-        return;
-      }
+      setShowOptionValidation(true);
+      setActionError(
+        isOutOfStock
+          ? 'This product is currently out of stock.'
+          : 'Please choose every required in-stock option before adding to cart.'
+      );
+      return;
     }
     try {
       setActionError('');
-      await addCartItem({ productId: product.id, quantity, selectedColor, selectedSize }).unwrap();
+      setShowOptionValidation(false);
+      await onAdd(product, quantity, selectorPayload.selectedColor, selectorPayload.selectedSize, {
+        selectedOptions: selectorPayload.selectedOptions,
+        unitPrice: selectorPayload.unitPrice,
+        variantId: selectorPayload.variantId,
+        sku: selectorPayload.sku,
+        stock: selectorPayload.stock,
+      });
     } catch (error) {
       if (getRtkStatus(error) === 401) {
-        navigate('/account');
+        navigate('/login');
         return;
       }
       setActionError(getActionErrorMessage(error));
@@ -191,7 +139,7 @@ export function ProductDetailsPage({
       }
     } catch (error) {
       if (getRtkStatus(error) === 401) {
-        navigate('/account');
+        navigate('/login');
         return;
       }
       setActionError(getActionErrorMessage(error));
@@ -223,57 +171,23 @@ export function ProductDetailsPage({
               {isOutOfStock ? 'Out of stock' : product.stockStatus}
             </strong>
           </div>
-          <p className="detail-price">{formatMoney(product.price)}</p>
+          <p className="detail-price">{formatMoney(displayPrice)}</p>
           <p className="detail-copy">{product.description}</p>
           <hr />
-          {requiresColor && (
-            <div className="choice-row">
-              <span>Colours:</span>
-              {product.colors.map((color) => (
-                <button
-                  key={color}
-                  className={color === selectedColor ? 'swatch selected' : 'swatch'}
-                  style={{ background: color }}
-                  onClick={() => selectColor(color)}
-                  aria-label={`Color ${color}`}
-                  aria-pressed={color === selectedColor}
-                  disabled={colorDisabled(color)}
-                  title={
-                    colorDisabled(color) ? 'Unavailable with the selected size' : `Color ${color}`
-                  }
-                />
-              ))}
-            </div>
-          )}
-          {requiresSize && (
-            <div className="choice-row">
-              <span>Size:</span>
-              {product.sizes.map((entry) => (
-                <button
-                  key={entry}
-                  className={entry === selectedSize ? 'selected size' : 'size'}
-                  onClick={() => selectSize(entry)}
-                  disabled={sizeDisabled(entry)}
-                  title={
-                    sizeDisabled(entry) ? 'Unavailable with the selected colour' : `Size ${entry}`
-                  }
-                >
-                  {entry}
-                </button>
-              ))}
-            </div>
-          )}
-          <p
-            className={
-              canAddToCart ? 'variant-feedback variant-feedback--available' : 'variant-feedback'
-            }
-          >
-            {variantFeedback}
-          </p>
+          <ProductOptionsSelector
+            product={product}
+            variants={variants}
+            selectedOptions={selectedOptions}
+            onChange={(options) => {
+              setActionError('');
+              setSelectedOptions(options);
+            }}
+            showValidation={showOptionValidation}
+          />
           <div className="buy-row">
             <QuantityStepper value={quantity} onChange={setQuantity} />
             <Button onClick={addToCart} disabled={!canAddToCart}>
-              {isOutOfStock ? 'Out of stock' : 'Buy Now'}
+              {isOutOfStock ? 'Out of stock' : 'Add To Cart'}
             </Button>
             <button
               className="wishlist-square"

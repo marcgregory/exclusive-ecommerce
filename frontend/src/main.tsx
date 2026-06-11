@@ -3,10 +3,8 @@ import { Provider, useDispatch } from 'react-redux';
 import { createRoot } from 'react-dom/client';
 import {
   ecommerceApi,
-  useAddCartItemMutation,
   useAddWishlistProductMutation,
   useDeleteWishlistProductMutation,
-  useGetCartQuery,
   useGetCategoriesQuery,
   useGetMeQuery,
   useGetProductsQuery,
@@ -14,6 +12,9 @@ import {
   useLogoutMutation,
 } from './api/ecommerceApi';
 import { store, type AppDispatch } from './app/store';
+import { addItem, clearCart, removeItem, updateQuantity } from './app/cartSlice';
+import { useAppSelector } from './app/hooks';
+import { CartDrawer } from './components/CartDrawer';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -24,6 +25,7 @@ import { useRoute } from './lib/router';
 import { useClientErrorReporting } from './lib/useClientErrorReporting';
 import { AboutPage } from './pages/AboutPage';
 import { AccountPage } from './pages/AccountPage';
+import { AuthPage } from './pages/AuthPage';
 import { AdminCategoriesPage } from './pages/AdminCategoriesPage';
 import { AdminCouponsPage } from './pages/AdminCouponsPage';
 import { AdminOrderDetailPage } from './pages/AdminOrderDetailPage';
@@ -42,8 +44,6 @@ import type { AsyncState, AuthStatus, Cart, Category, Product, PublicUser } from
 import './styles.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-const emptyCart: Cart = { items: [], subtotal: 0, discount: 0, shipping: 0, total: 0 };
-
 function App() {
   // Set Google Sign-In client ID meta tag
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -61,14 +61,13 @@ function App() {
   const dispatch = useDispatch<AppDispatch>();
   const { path, query, navigate } = useRoute();
   const [appliedCoupon, setAppliedCoupon] = useState('');
+  const localCart = useAppSelector((state) => state.cart);
 
   const productsQuery = useGetProductsQuery();
   const categoriesQuery = useGetCategoriesQuery();
   const userQuery = useGetMeQuery();
   const user = userQuery.data?.user ?? null;
-  const cartQuery = useGetCartQuery(appliedCoupon || undefined, { skip: !user });
   const wishlistQuery = useGetWishlistQuery(undefined, { skip: !user });
-  const [addCartItem] = useAddCartItemMutation();
   const [addWishlistProduct] = useAddWishlistProductMutation();
   const [deleteWishlistProduct] = useDeleteWishlistProductMutation();
   const [logout, logoutState] = useLogoutMutation();
@@ -89,9 +88,9 @@ function App() {
     error: getRtkStatus(userQuery.error) === 401 ? '' : getRtkErrorMessage(userQuery.error),
   };
   const cart: AsyncState<Cart> = {
-    data: cartQuery.data?.cart ?? emptyCart,
-    loading: cartQuery.isLoading,
-    error: getRtkErrorMessage(cartQuery.error),
+    data: localCart,
+    loading: false,
+    error: '',
   };
   const wishlistCount: AsyncState<number> = {
     data: wishlistQuery.data?.products.length ?? 0,
@@ -108,11 +107,8 @@ function App() {
   const refreshCart = useCallback(
     async (coupon = '') => {
       if (coupon !== appliedCoupon) setAppliedCoupon(coupon);
-      await dispatch(
-        ecommerceApi.endpoints.getCart.initiate(coupon || undefined, { forceRefetch: true })
-      ).unwrap();
     },
-    [appliedCoupon, dispatch]
+    [appliedCoupon]
   );
 
   const refreshWishlist = useCallback(async () => {
@@ -131,14 +127,32 @@ function App() {
   const loadCategories = categoriesQuery.refetch;
 
   const onAdd = useCallback(
-    async (productId: string, quantity = 1, selectedColor = '', selectedSize = '') => {
-      if (!userState.data) {
-        navigate('/account');
-        return;
+    async (
+      productOrId: Product | string,
+      quantity = 1,
+      selectedColor = '',
+      selectedSize = '',
+      options = {}
+    ) => {
+      const product =
+        typeof productOrId === 'string'
+          ? products.data.find((entry) => entry.id === productOrId)
+          : productOrId;
+      if (!product) {
+        throw new Error('Product not found');
       }
-      await addCartItem({ productId, quantity, selectedColor, selectedSize }).unwrap();
+
+      dispatch(
+        addItem({
+          product,
+          quantity,
+          selectedColor,
+          selectedSize,
+          ...options,
+        })
+      );
     },
-    [addCartItem, navigate, userState.data]
+    [dispatch, products.data]
   );
 
   const wishlistProductIds = wishlistQuery.data?.products.map((p) => p.id) ?? [];
@@ -146,7 +160,7 @@ function App() {
   const onWishlist = useCallback(
     async (productId: string) => {
       if (!userState.data) {
-        navigate('/account');
+        navigate('/login');
         return;
       }
       if (wishlistProductIds.includes(productId)) {
@@ -249,7 +263,7 @@ function App() {
     if (path === '/cart')
       return (
         <CartPage
-          authStatus={authStatus}
+          authStatus="authenticated"
           cart={cart.data}
           cartLoading={cart.loading}
           cartError={cart.error}
@@ -257,6 +271,9 @@ function App() {
           refreshCart={refreshCart}
           appliedCoupon={appliedCoupon}
           onAppliedCouponChange={setAppliedCoupon}
+          onUpdateQuantity={(id, quantity) => dispatch(updateQuantity({ id, quantity }))}
+          onRemoveItem={(id) => dispatch(removeItem(id))}
+          onClearCart={() => dispatch(clearCart())}
         />
       );
     if (path === '/checkout')
@@ -279,9 +296,12 @@ function App() {
           onAuthChanged={handleAuthChanged}
           onUserRefresh={loadUser}
           navigate={navigate}
-          authModeQuery={query.get('mode')}
         />
       );
+    if (path === '/login')
+      return <AuthPage mode="login" onAuthChanged={handleAuthChanged} navigate={navigate} />;
+    if (path === '/signup' || path === '/register')
+      return <AuthPage mode="register" onAuthChanged={handleAuthChanged} navigate={navigate} />;
     if (path === '/about') return <AboutPage />;
     if (path === '/contact') return <ContactPage />;
     if (path === '/wishlist')
@@ -336,12 +356,13 @@ function App() {
       <Header
         navigate={navigate}
         user={userState.data}
-        cartCount={cart.data.items.reduce((sum, item) => sum + item.quantity, 0)}
+        cartCount={localCart.items.reduce((sum, item) => sum + item.quantity, 0)}
         wishlistCount={wishlistCount.data}
         onLogout={handleLogout}
         logoutSaving={logoutState.isLoading}
       />
       {page}
+      <CartDrawer navigate={navigate} />
       <button className="back-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
         ↑
       </button>

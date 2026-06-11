@@ -1,8 +1,10 @@
 import { Eye, Heart } from 'lucide-react';
 import { formatMoney } from '../lib/format';
-import { getQuickAddSelection, requiresVariantSelection } from '../lib/productVariants';
+import { requiresVariantSelection } from '../lib/productVariants';
 import { resolveProductImage } from '../lib/productUtils';
 import type { AddToCart, AddToWishlist, Navigate, Product, ProductVariant } from '../types';
+import { AddToCartButton } from './AddToCartButton';
+import { ChooseOptionsButton } from './ChooseOptionsButton';
 import { ProductVisual } from './ProductVisual';
 import { Stars } from './Stars';
 
@@ -66,20 +68,14 @@ export function ProductCard({
   }
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
-  const quickAddSelection = getQuickAddSelection(product, variants);
-  const shouldChooseOptions = requiresVariantSelection(product) && !quickAddSelection;
+  const shouldChooseOptions = requiresVariantSelection(product);
   const handleQuickAdd = () => {
     if (shouldChooseOptions) {
       navigate(`/product/${product.id}`);
       return;
     }
 
-    void onAdd(
-      product.id,
-      1,
-      quickAddSelection?.selectedColor ?? '',
-      quickAddSelection?.selectedSize ?? ''
-    );
+    void onAdd(product, 1, '', '');
   };
 
   return (
@@ -108,9 +104,15 @@ export function ProductCard({
           </button>
         </div>
         <ProductVisual src={resolveProductImage(product)} type={product.image} />
-        <button className="add-cart" onClick={handleQuickAdd} disabled={isOutOfStock}>
-          {isOutOfStock ? 'Out of stock' : shouldChooseOptions ? 'Choose Options' : 'Add To Cart'}
-        </button>
+        {shouldChooseOptions ? (
+          <ChooseOptionsButton onClick={handleQuickAdd} disabled={isOutOfStock}>
+            {isOutOfStock ? 'Out of stock' : 'Choose Options'}
+          </ChooseOptionsButton>
+        ) : (
+          <AddToCartButton onClick={handleQuickAdd} disabled={isOutOfStock}>
+            {isOutOfStock ? 'Out of stock' : 'Add To Cart'}
+          </AddToCartButton>
+        )}
       </div>
       <button className="product-card__title" onClick={() => navigate(`/product/${product.id}`)}>
         {product.name}

@@ -47,7 +47,7 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
           message="Order details are saved to your account."
           action={{
             label: 'Sign In or Register',
-            onClick: () => navigate('/account'),
+            onClick: () => navigate('/login'),
           }}
           secondaryAction={{
             label: 'Return To Shop',
@@ -67,7 +67,7 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
           message="We could not find that order for your account."
           action={{
             label: 'View Account',
-            onClick: () => navigate('/account'),
+            onClick: () => navigate('/login'),
           }}
           secondaryAction={{
             label: 'Return To Shop',
@@ -88,7 +88,7 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
           action={{ label: 'Try Again', onClick: () => refetch() }}
           secondaryAction={{
             label: 'View Account',
-            onClick: () => navigate('/account'),
+            onClick: () => navigate('/login'),
           }}
         />
       </main>

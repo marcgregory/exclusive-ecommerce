@@ -294,7 +294,7 @@ export function CheckoutPage({
           message="Create an account or sign in before placing an order."
           action={{
             label: 'Sign In or Register',
-            onClick: () => navigate('/account'),
+            onClick: () => navigate('/login'),
           }}
           secondaryAction={{
             label: 'Return To Shop',

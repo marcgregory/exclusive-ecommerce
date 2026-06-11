@@ -132,7 +132,7 @@ describe('CheckoutPage', () => {
 
     expect(screen.getByText(/Sign in to checkout/i)).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: /Sign In or Register/i }));
-    expect(navigate).toHaveBeenCalledWith('/account');
+    expect(navigate).toHaveBeenCalledWith('/login');
   });
 
   it('shows an error state when cartError exists', async () => {

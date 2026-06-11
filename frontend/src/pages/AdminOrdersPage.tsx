@@ -87,7 +87,7 @@ export function AdminOrdersPage({ userState, navigate }: AdminOrdersPageProps) {
         <EmptyState
           title="Admin access requires sign in"
           message="Sign in with an administrator account to review orders."
-          action={{ label: 'Sign In', onClick: () => navigate('/account') }}
+          action={{ label: 'Sign In', onClick: () => navigate('/login') }}
           secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>

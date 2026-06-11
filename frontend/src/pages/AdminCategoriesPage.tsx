@@ -183,7 +183,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
         <EmptyState
           title="Admin access requires sign in"
           message="Sign in with an administrator account to manage categories."
-          action={{ label: 'Sign In', onClick: () => navigate('/account') }}
+          action={{ label: 'Sign In', onClick: () => navigate('/login') }}
           secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>

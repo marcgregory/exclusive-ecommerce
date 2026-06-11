@@ -159,7 +159,7 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
         <EmptyState
           title="Admin access requires sign in"
           message="Sign in with an administrator account to manage coupons."
-          action={{ label: 'Sign In', onClick: () => navigate('/account') }}
+          action={{ label: 'Sign In', onClick: () => navigate('/login') }}
           secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>

@@ -81,7 +81,7 @@ export function Header({
                 {label}
               </button>
             ))}
-            {!user && <button onClick={() => navigate('/account?mode=register')}>Sign Up</button>}
+            {!user && <button onClick={() => navigate('/signup')}>Sign Up</button>}
             {user?.role === 'admin' && (
               <>
                 <button
@@ -124,6 +124,14 @@ export function Header({
                 <Search size={20} />
               </button>
             </form>
+            <button
+              className="icon-button badge-button"
+              onClick={() => navigate('/cart')}
+              aria-label="Cart"
+            >
+              <ShoppingCart size={22} />
+              {cartCount > 0 && <span>{cartCount}</span>}
+            </button>
             {user ? (
               <>
                 <button
@@ -133,14 +141,6 @@ export function Header({
                 >
                   <Heart size={22} />
                   {wishlistCount > 0 && <span>{wishlistCount}</span>}
-                </button>
-                <button
-                  className="icon-button badge-button"
-                  onClick={() => navigate('/cart')}
-                  aria-label="Cart"
-                >
-                  <ShoppingCart size={22} />
-                  {cartCount > 0 && <span>{cartCount}</span>}
                 </button>
                 <div className="account-dropdown">
                   <button
@@ -233,14 +233,6 @@ export function Header({
               <button
                 onClick={() => {
                   setOpen(false);
-                  navigate('/cart');
-                }}
-              >
-                Cart
-              </button>
-              <button
-                onClick={() => {
-                  setOpen(false);
                   navigate('/account');
                 }}
               >
@@ -251,6 +243,14 @@ export function Header({
               </button>
             </>
           ) : null}
+          <button
+            onClick={() => {
+              setOpen(false);
+              navigate('/cart');
+            }}
+          >
+            Cart
+          </button>
         </div>
       )}
     </>

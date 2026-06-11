@@ -1,10 +1,11 @@
-import { useGetOrderDetailQuery } from "../api/ecommerceApi";
-import { Breadcrumbs } from "../components/Breadcrumbs";
-import { Button } from "../components/Button";
-import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { formatMoney } from "../lib/format";
-import { getRtkErrorMessage, getRtkStatus } from "../lib/rtkErrors";
-import type { AuthStatus, Navigate } from "../types";
+import { useGetOrderDetailQuery } from '../api/ecommerceApi';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Button } from '../components/Button';
+import { EmptyState, ErrorState } from '../components/StateViews';
+import { formatMoney } from '../lib/format';
+import { getRtkErrorMessage, getRtkStatus } from '../lib/rtkErrors';
+import type { AuthStatus, Navigate } from '../types';
+import { OrderDetailSkeleton } from '../components/skeletons/OrderDetailSkeleton';
 
 type OrderPageProps = {
   authStatus: AuthStatus;
@@ -13,56 +14,44 @@ type OrderPageProps = {
 };
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   }).format(new Date(value));
 }
 
 function formatStatus(value: string) {
-  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "Pending";
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Pending';
 }
 
 export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
-  const {
-    data,
-    error,
-    isLoading,
-    refetch,
-  } = useGetOrderDetailQuery(id ?? "", {
-    skip: authStatus !== "authenticated" || !id,
+  const { data, error, isLoading, refetch } = useGetOrderDetailQuery(id ?? '', {
+    skip: authStatus !== 'authenticated' || !id,
   });
 
   const order = data?.order ?? null;
   const notFound = getRtkStatus(error) === 404;
-  const errorMessage = error ? getRtkErrorMessage(error) : "";
+  const errorMessage = error ? getRtkErrorMessage(error) : '';
 
-  if (authStatus === "checking" || isLoading) {
-    return (
-      <main className="container page">
-        <LoadingState
-          title="Loading order"
-          message="We are getting your order details."
-        />
-      </main>
-    );
+  if (authStatus === 'checking' || isLoading) {
+    return <OrderDetailSkeleton />;
   }
 
-  if (authStatus === "guest") {
+  if (authStatus === 'guest') {
     return (
       <main className="container page">
-        <Breadcrumbs items={["Home", "Orders"]} />
+        <Breadcrumbs items={['Home', 'Orders']} />
         <EmptyState
           title="Sign in to view this order"
           message="Order details are saved to your account."
           action={{
-            label: "Sign In or Register",
-            onClick: () => navigate("/account"),
+            label: 'Sign In or Register',
+            onClick: () => navigate('/account'),
           }}
           secondaryAction={{
-            label: "Return To Shop",
-            onClick: () => navigate("/"),
+            label: 'Return To Shop',
+            onClick: () => navigate('/'),
           }}
         />
       </main>
@@ -72,17 +61,17 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
   if (!id || notFound) {
     return (
       <main className="container page">
-        <Breadcrumbs items={["Home", "Orders"]} />
+        <Breadcrumbs items={['Home', 'Orders']} />
         <ErrorState
           title="Order not found"
           message="We could not find that order for your account."
           action={{
-            label: "View Account",
-            onClick: () => navigate("/account"),
+            label: 'View Account',
+            onClick: () => navigate('/account'),
           }}
           secondaryAction={{
-            label: "Return To Shop",
-            onClick: () => navigate("/"),
+            label: 'Return To Shop',
+            onClick: () => navigate('/'),
           }}
         />
       </main>
@@ -92,14 +81,14 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
   if (errorMessage || !order) {
     return (
       <main className="container page">
-        <Breadcrumbs items={["Home", "Orders"]} />
+        <Breadcrumbs items={['Home', 'Orders']} />
         <ErrorState
           title="We could not load this order"
           message={errorMessage}
-          action={{ label: "Try Again", onClick: () => refetch() }}
+          action={{ label: 'Try Again', onClick: () => refetch() }}
           secondaryAction={{
-            label: "View Account",
-            onClick: () => navigate("/account"),
+            label: 'View Account',
+            onClick: () => navigate('/account'),
           }}
         />
       </main>
@@ -108,16 +97,16 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
 
   return (
     <main className="container page">
-      <Breadcrumbs items={["Home", "My Account", "Orders", order.id]} />
+      <Breadcrumbs items={['Home', 'My Account', 'Orders', order.id]} />
       <section className="order-confirmation">
         <div>
           <p className="eyebrow">Order confirmed</p>
           <h1 className="page-title">Thanks for your purchase.</h1>
           <p>
-            Your order was placed on {formatDate(order.createdAt)} and is
-            currently {formatStatus(order.status)}.
+            Your order was placed on {formatDate(order.createdAt)} and is currently{' '}
+            {formatStatus(order.status)}.
           </p>
-          {order.status === "shipped" ? (
+          {order.status === 'shipped' ? (
             <p className="eyebrow">Payment received - thank you.</p>
           ) : null}
         </div>
@@ -138,8 +127,8 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
                 <strong>{item.name}</strong>
                 <span>
                   Qty {item.quantity}
-                  {item.selectedColor ? ` | ${item.selectedColor}` : ""}
-                  {item.selectedSize ? ` | Size ${item.selectedSize}` : ""}
+                  {item.selectedColor ? ` | ${item.selectedColor}` : ''}
+                  {item.selectedSize ? ` | Size ${item.selectedSize}` : ''}
                 </span>
               </div>
               <strong>{formatMoney(item.price * item.quantity)}</strong>
@@ -155,9 +144,7 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
           </p>
           <p>
             <span>Shipping:</span>
-            <strong>
-              {order.shipping ? formatMoney(order.shipping) : "Free"}
-            </strong>
+            <strong>{order.shipping ? formatMoney(order.shipping) : 'Free'}</strong>
           </p>
           <p>
             <span>Discount:</span>
@@ -185,9 +172,7 @@ export function OrderPage({ authStatus, id, navigate }: OrderPageProps) {
             <br />
             {order.billing.email}
           </address>
-          <Button onClick={() => navigate("/account")}>
-            View Order History
-          </Button>
+          <Button onClick={() => navigate('/account')}>View Order History</Button>
         </aside>
       </section>
     </main>

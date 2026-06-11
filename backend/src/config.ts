@@ -1,5 +1,5 @@
-export type PaymentProvider = "local" | "stripe";
-export type ImageStorageProvider = "local" | "cloudinary";
+export type PaymentProvider = 'local' | 'stripe';
+export type ImageStorageProvider = 'local' | 'cloudinary';
 
 export type CloudinaryConfig = {
   cloudinaryUrl?: string;
@@ -21,8 +21,8 @@ export type RuntimeConfig = {
   webOrigins: string[];
 };
 
-export const DEV_SESSION_SECRET = "exclusive-dev-secret";
-export const DEFAULT_WEB_ORIGIN = "http://127.0.0.1:5173";
+export const DEV_SESSION_SECRET = 'exclusive-dev-secret';
+export const DEFAULT_WEB_ORIGIN = 'http://127.0.0.1:5173';
 
 function requireValue(env: NodeJS.ProcessEnv, name: string) {
   const value = env[name];
@@ -40,7 +40,7 @@ function normalizeWebOrigin(origin: string) {
 
 function parseWebOrigins(value: string) {
   const origins = value
-    .split(",")
+    .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
     .map(normalizeWebOrigin);
@@ -49,18 +49,17 @@ function parseWebOrigins(value: string) {
 }
 
 export function loadRuntimeConfig(env = process.env): RuntimeConfig {
-  const nodeEnv = env.NODE_ENV || "development";
-  const isProduction = nodeEnv === "production";
-  const databaseUrl = requireValue(env, "DATABASE_URL");
+  const nodeEnv = env.NODE_ENV || 'development';
+  const isProduction = nodeEnv === 'production';
+  const databaseUrl = requireValue(env, 'DATABASE_URL');
   const webOriginValue = isProduction
-    ? env.WEB_ORIGINS || requireValue(env, "WEB_ORIGIN")
+    ? env.WEB_ORIGINS || requireValue(env, 'WEB_ORIGIN')
     : env.WEB_ORIGINS || env.WEB_ORIGIN || DEFAULT_WEB_ORIGIN;
   const webOrigins = parseWebOrigins(webOriginValue);
   const sessionSecret = env.SESSION_SECRET || DEV_SESSION_SECRET;
-  const paymentProvider: PaymentProvider =
-    env.PAYMENT_PROVIDER === "stripe" ? "stripe" : "local";
+  const paymentProvider: PaymentProvider = env.PAYMENT_PROVIDER === 'stripe' ? 'stripe' : 'local';
   const imageStorageProvider: ImageStorageProvider =
-    env.IMAGE_STORAGE_PROVIDER === "cloudinary" ? "cloudinary" : "local";
+    env.IMAGE_STORAGE_PROVIDER === 'cloudinary' ? 'cloudinary' : 'local';
   const cloudinary: CloudinaryConfig = {
     cloudinaryUrl: env.CLOUDINARY_URL,
     cloudName: env.CLOUDINARY_CLOUD_NAME,
@@ -70,26 +69,22 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
 
   if (
     isProduction &&
-    (!env.SESSION_SECRET ||
-      sessionSecret === DEV_SESSION_SECRET ||
-      sessionSecret.length < 32)
+    (!env.SESSION_SECRET || sessionSecret === DEV_SESSION_SECRET || sessionSecret.length < 32)
   ) {
-    throw new Error(
-      "SESSION_SECRET must be set to at least 32 characters in production",
-    );
+    throw new Error('SESSION_SECRET must be set to at least 32 characters in production');
   }
 
-  if (paymentProvider === "stripe" && !env.STRIPE_SECRET_KEY) {
-    throw new Error("STRIPE_SECRET_KEY is required when PAYMENT_PROVIDER=stripe");
+  if (paymentProvider === 'stripe' && !env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is required when PAYMENT_PROVIDER=stripe');
   }
 
   if (
-    imageStorageProvider === "cloudinary" &&
+    imageStorageProvider === 'cloudinary' &&
     !cloudinary.cloudinaryUrl &&
     (!cloudinary.cloudName || !cloudinary.apiKey || !cloudinary.apiSecret)
   ) {
     throw new Error(
-      "CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required when IMAGE_STORAGE_PROVIDER=cloudinary",
+      'CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required when IMAGE_STORAGE_PROVIDER=cloudinary'
     );
   }
 

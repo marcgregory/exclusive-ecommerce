@@ -1,15 +1,15 @@
-import { useState, type FormEvent } from "react";
-import { Edit3, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { useState, type FormEvent } from 'react';
+import { Edit3, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import {
   useCreateAdminCategoryMutation,
   useDeleteAdminCategoryMutation,
   useGetCategoriesQuery,
   useUpdateAdminCategoryMutation,
-} from "../api/ecommerceApi";
-import { Breadcrumbs } from "../components/Breadcrumbs";
-import { Button } from "../components/Button";
-import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getRtkErrorMessage } from "../lib/rtkErrors";
+} from '../api/ecommerceApi';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Button } from '../components/Button';
+import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
+import { getRtkErrorMessage } from '../lib/rtkErrors';
 import type {
   AdminCategoryInput,
   AdminCategoryResponse,
@@ -17,7 +17,7 @@ import type {
   Category,
   Navigate,
   PublicUser,
-} from "../types";
+} from '../types';
 
 type AdminCategoriesPageProps = {
   userState: AsyncState<PublicUser | null>;
@@ -34,24 +34,24 @@ type CategoryDraft = {
 };
 
 const emptyDraft: CategoryDraft = {
-  label: "",
-  slug: "",
-  icon: "",
-  children: "",
-  sortOrder: "0",
-  parentId: "",
+  label: '',
+  slug: '',
+  icon: '',
+  children: '',
+  sortOrder: '0',
+  parentId: '',
 };
 
 function slugify(value: string) {
   return value
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 }
 
 function textToList(value: string) {
   return value
-    .split(",")
+    .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -61,9 +61,9 @@ function categoryToDraft(category: Category): CategoryDraft {
     label: category.label,
     slug: category.slug,
     icon: category.icon,
-    children: (category.children || []).join(", "),
+    children: (category.children || []).join(', '),
     sortOrder: String(category.sortOrder ?? 0),
-    parentId: category.parentId || "",
+    parentId: category.parentId || '',
   };
 }
 
@@ -85,7 +85,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
     error: categoriesError,
     refetch: refetchCategories,
   } = useGetCategoriesQuery(undefined, {
-    skip: userState.data?.role !== "admin",
+    skip: userState.data?.role !== 'admin',
   });
 
   const [createAdminCategory, { isLoading: createSaving }] = useCreateAdminCategoryMutation();
@@ -95,34 +95,34 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [draft, setDraft] = useState<CategoryDraft>(emptyDraft);
   const [slugEdited, setSlugEdited] = useState(false);
-  const [deletingId, setDeletingId] = useState("");
-  const [formError, setFormError] = useState("");
-  const [formSuccess, setFormSuccess] = useState("");
+  const [deletingId, setDeletingId] = useState('');
+  const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
 
   const categoriesList = categoriesData?.categories ?? [];
-  const categoriesErrorMsg = categoriesError ? getRtkErrorMessage(categoriesError) : "";
+  const categoriesErrorMsg = categoriesError ? getRtkErrorMessage(categoriesError) : '';
   const saving = createSaving || updateSaving;
 
   const startCreate = () => {
     setEditingCategoryId(null);
     setDraft(emptyDraft);
     setSlugEdited(false);
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
   };
 
   const startEdit = (category: Category) => {
     setEditingCategoryId(category.id);
     setDraft(categoryToDraft(category));
     setSlugEdited(true);
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
   };
 
   const submitCategory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
     try {
       const payload = draftToPayload(draft);
       let data: AdminCategoryResponse;
@@ -134,7 +134,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
       setEditingCategoryId(data.category.id);
       setDraft(categoryToDraft(data.category));
       setSlugEdited(true);
-      setFormSuccess(editingCategoryId ? "Category updated." : "Category created.");
+      setFormSuccess(editingCategoryId ? 'Category updated.' : 'Category created.');
     } catch (error) {
       setFormError(getRtkErrorMessage(error));
     }
@@ -143,16 +143,16 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
   const deleteCategory = async (category: Category) => {
     if (!window.confirm(`Delete ${category.label}?`)) return;
     setDeletingId(category.id);
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
     try {
       await deleteAdminCategory(category.id).unwrap();
       if (editingCategoryId === category.id) startCreate();
-      setFormSuccess("Category deleted.");
+      setFormSuccess('Category deleted.');
     } catch (error) {
       setFormError(getRtkErrorMessage(error));
     } finally {
-      setDeletingId("");
+      setDeletingId('');
     }
   };
 
@@ -179,26 +179,26 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
   if (!userState.data) {
     return (
       <main className="container page">
-        <Breadcrumbs items={["Home", "Admin", "Categories"]} />
+        <Breadcrumbs items={['Home', 'Admin', 'Categories']} />
         <EmptyState
           title="Admin access requires sign in"
           message="Sign in with an administrator account to manage categories."
-          action={{ label: "Sign In", onClick: () => navigate("/account") }}
-          secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
+          action={{ label: 'Sign In', onClick: () => navigate('/account') }}
+          secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>
     );
   }
 
-  if (userState.data.role !== "admin") {
+  if (userState.data.role !== 'admin') {
     return (
       <main className="container page">
-        <Breadcrumbs items={["Home", "Admin", "Categories"]} />
+        <Breadcrumbs items={['Home', 'Admin', 'Categories']} />
         <ErrorState
           title="Admin access required"
           message="Category management is only available to administrators."
-          action={{ label: "View Account", onClick: () => navigate("/account") }}
-          secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
+          action={{ label: 'View Account', onClick: () => navigate('/account') }}
+          secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>
     );
@@ -206,25 +206,33 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
 
   return (
     <main className="container page admin-catalog-page">
-      <Breadcrumbs items={["Home", "Admin", "Categories"]} />
+      <Breadcrumbs items={['Home', 'Admin', 'Categories']} />
       <section className="admin-orders-hero">
         <div>
           <p className="eyebrow">Admin console</p>
           <h1 className="page-title">Category structure</h1>
-          <p>Maintain storefront category labels, URL slugs, icon keys, and child category lists.</p>
+          <p>
+            Maintain storefront category labels, URL slugs, icon keys, and child category lists.
+          </p>
         </div>
         <div className="admin-catalog-nav" aria-label="Admin sections">
-          <Button variant="ghost" onClick={() => navigate("/admin/products")}>Products</Button>
-          <Button onClick={() => navigate("/admin/categories")}>Categories</Button>
-          <Button variant="ghost" onClick={() => navigate("/admin/coupons")}>Coupons</Button>
-          <Button variant="ghost" onClick={() => navigate("/admin/orders")}>Orders</Button>
+          <Button variant="ghost" onClick={() => navigate('/admin/products')}>
+            Products
+          </Button>
+          <Button onClick={() => navigate('/admin/categories')}>Categories</Button>
+          <Button variant="ghost" onClick={() => navigate('/admin/coupons')}>
+            Coupons
+          </Button>
+          <Button variant="ghost" onClick={() => navigate('/admin/orders')}>
+            Orders
+          </Button>
         </div>
       </section>
 
       <section className="admin-orders-toolbar" aria-label="Category tools">
         <Button onClick={refetchCategories} disabled={categoriesLoading}>
           <RefreshCw size={16} />
-          {categoriesLoading ? "Refreshing" : "Refresh"}
+          {categoriesLoading ? 'Refreshing' : 'Refresh'}
         </Button>
         <Button onClick={startCreate}>
           <Plus size={16} />
@@ -233,9 +241,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
         <span className="admin-catalog-count">{categoriesList.length} categories</span>
       </section>
 
-      {categoriesErrorMsg && (
-        <p className="form-status form-status--error">{categoriesErrorMsg}</p>
-      )}
+      {categoriesErrorMsg && <p className="form-status form-status--error">{categoriesErrorMsg}</p>}
       {formError && <p className="form-status form-status--error">{formError}</p>}
       {formSuccess && <p className="form-status form-status--success">{formSuccess}</p>}
 
@@ -252,8 +258,10 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
               </div>
               <div className="admin-catalog-row__meta">
                 <span>{category.slug}</span>
-                <span>{category.icon || "No icon"}</span>
-                <span>{category.children?.length ? category.children.join(", ") : "No children"}</span>
+                <span>{category.icon || 'No icon'}</span>
+                <span>
+                  {category.children?.length ? category.children.join(', ') : 'No children'}
+                </span>
               </div>
               <div className="admin-catalog-row__actions">
                 <Button variant="ghost" onClick={() => startEdit(category)}>
@@ -266,7 +274,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
                   disabled={deletingId === category.id}
                 >
                   <Trash2 size={16} />
-                  {deletingId === category.id ? "Deleting" : "Delete"}
+                  {deletingId === category.id ? 'Deleting' : 'Delete'}
                 </Button>
               </div>
             </article>
@@ -276,8 +284,8 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
         <aside className="admin-catalog-form-card">
           <div className="admin-catalog-form-card__header">
             <div>
-              <p className="eyebrow">{editingCategoryId ? "Edit category" : "Create category"}</p>
-              <h2>{editingCategoryId || "New category"}</h2>
+              <p className="eyebrow">{editingCategoryId ? 'Edit category' : 'Create category'}</p>
+              <h2>{editingCategoryId || 'New category'}</h2>
             </div>
             {editingCategoryId && (
               <Button variant="ghost" onClick={startCreate}>
@@ -289,7 +297,11 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
           <form className="admin-catalog-form" onSubmit={submitCategory}>
             <label>
               Label
-              <input value={draft.label} onChange={(event) => updateLabel(event.target.value)} required />
+              <input
+                value={draft.label}
+                onChange={(event) => updateLabel(event.target.value)}
+                required
+              />
             </label>
             <label>
               Slug
@@ -297,26 +309,41 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
                 value={draft.slug}
                 onChange={(event) => {
                   setSlugEdited(true);
-                  updateDraft("slug", event.target.value);
+                  updateDraft('slug', event.target.value);
                 }}
                 required
               />
             </label>
             <label>
               Icon key
-              <input value={draft.icon} onChange={(event) => updateDraft("icon", event.target.value)} placeholder="phone, fashion, game" />
+              <input
+                value={draft.icon}
+                onChange={(event) => updateDraft('icon', event.target.value)}
+                placeholder="phone, fashion, game"
+              />
             </label>
             <label>
               Sort order
-              <input type="number" value={draft.sortOrder} onChange={(event) => updateDraft("sortOrder", event.target.value)} />
+              <input
+                type="number"
+                value={draft.sortOrder}
+                onChange={(event) => updateDraft('sortOrder', event.target.value)}
+              />
             </label>
             <label className="admin-catalog-form__wide">
               Children
-              <input value={draft.children} onChange={(event) => updateDraft("children", event.target.value)} placeholder="phones, cameras" />
+              <input
+                value={draft.children}
+                onChange={(event) => updateDraft('children', event.target.value)}
+                placeholder="phones, cameras"
+              />
             </label>
             <label className="admin-catalog-form__wide">
               Parent
-              <select value={draft.parentId} onChange={(event) => updateDraft("parentId", event.target.value)}>
+              <select
+                value={draft.parentId}
+                onChange={(event) => updateDraft('parentId', event.target.value)}
+              >
                 <option value="">No parent</option>
                 {categoriesList
                   .filter((category) => category.id !== editingCategoryId)
@@ -330,7 +357,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
             <div className="admin-catalog-form__actions">
               <Button type="submit" disabled={saving}>
                 <Save size={16} />
-                {saving ? "Saving" : editingCategoryId ? "Update Category" : "Create Category"}
+                {saving ? 'Saving' : editingCategoryId ? 'Update Category' : 'Create Category'}
               </Button>
             </div>
           </form>

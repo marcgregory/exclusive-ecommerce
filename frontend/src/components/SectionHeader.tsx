@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { CarouselControls } from "./CarouselControls";
+import type { ReactNode } from 'react';
+import { CarouselControls } from './CarouselControls';
 
 type SectionHeaderProps = {
   kicker: string;
@@ -16,22 +16,20 @@ export function SectionHeader({
   action,
   controls = false,
   onLeftScroll,
-  onRightScroll
+  onRightScroll,
 }: SectionHeaderProps) {
   return (
     <div className="section-header">
       <div>
-        <div className="kicker"><span />{kicker}</div>
+        <div className="kicker">
+          <span />
+          {kicker}
+        </div>
         <h2>{title}</h2>
       </div>
       <div className="section-header__actions">
         {action}
-        {controls && (
-          <CarouselControls
-            onLeftClick={onLeftScroll}
-            onRightClick={onRightScroll}
-          />
-        )}
+        {controls && <CarouselControls onLeftClick={onLeftScroll} onRightClick={onRightScroll} />}
       </div>
     </div>
   );

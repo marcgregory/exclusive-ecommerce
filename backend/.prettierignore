@@ -1,0 +1,6 @@
+# Ignore artifacts:
+dist
+node_modules
+
+# Ignore TypeScript config (if you want to format it, remove this line)
+tsconfig.json

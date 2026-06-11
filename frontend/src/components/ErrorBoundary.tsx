@@ -1,6 +1,6 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
-import { ErrorState } from "./StateViews";
-import { reportClientError } from "../lib/monitoring";
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { ErrorState } from './StateViews';
+import { reportClientError } from '../lib/monitoring';
 
 type ErrorBoundaryProps = {
   children: ReactNode;
@@ -10,10 +10,7 @@ type ErrorBoundaryState = {
   hasError: boolean;
 };
 
-export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(): ErrorBoundaryState {
@@ -23,7 +20,7 @@ export class ErrorBoundary extends Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     reportClientError(error, {
       componentStack: errorInfo.componentStack || undefined,
-      source: "react.error_boundary",
+      source: 'react.error_boundary',
     });
   }
 
@@ -35,7 +32,7 @@ export class ErrorBoundary extends Component<
             title="We hit an unexpected issue"
             message="Refresh the page to keep shopping. Our team can use the error report to investigate."
             action={{
-              label: "Refresh Page",
+              label: 'Refresh Page',
               onClick: () => window.location.reload(),
             }}
           />

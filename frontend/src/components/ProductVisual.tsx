@@ -1,6 +1,5 @@
-import { API_BASE } from "../api/client";
-import { useState } from "react";
-import { isImageUrl, imageSrc, resolveProductImage } from "../lib/productUtils";
+import { useState } from 'react';
+import { isImageUrl, imageSrc } from '../lib/productUtils';
 
 type ProductVisualProps = {
   type?: string;
@@ -9,7 +8,7 @@ type ProductVisualProps = {
   alt?: string;
 };
 
-export function ProductVisual({ type, src, large = false, alt = "" }: ProductVisualProps) {
+export function ProductVisual({ type, src, large = false, alt = '' }: ProductVisualProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -26,7 +25,9 @@ export function ProductVisual({ type, src, large = false, alt = "" }: ProductVis
 
   if (activeSrc) {
     return (
-      <div className={`product-visual product-visual--uploaded ${large ? "product-visual--large" : ""}`}>
+      <div
+        className={`product-visual product-visual--uploaded ${large ? 'product-visual--large' : ''}`}
+      >
         {/* Skeleton loader */}
         {isLoading && !hasError && (
           <div className="product-visual__skeleton">
@@ -40,7 +41,7 @@ export function ProductVisual({ type, src, large = false, alt = "" }: ProductVis
           loading="lazy"
           onError={handleImageError}
           onLoad={handleImageLoad}
-          className={`product-visual__image ${hasError ? "product-visual--image--error" : ""}`}
+          className={`product-visual__image ${hasError ? 'product-visual--image--error' : ''}`}
         />
         {/* Fallback content when image fails to load */}
         {hasError && (
@@ -53,9 +54,5 @@ export function ProductVisual({ type, src, large = false, alt = "" }: ProductVis
     );
   }
 
-  return (
-    <div className="product-visual__empty">
-      No image
-    </div>
-  );
+  return <div className="product-visual__empty">No image</div>;
 }

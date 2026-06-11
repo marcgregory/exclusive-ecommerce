@@ -1,4 +1,4 @@
-declare module "pg" {
+declare module 'pg' {
   export type QueryResultRow = Record<string, unknown>;
 
   export type PoolConfig = {
@@ -11,13 +11,19 @@ declare module "pg" {
   };
 
   export type PoolClient = {
-    query<T extends QueryResultRow = QueryResultRow>(sql: string, values?: unknown[]): Promise<QueryResult<T>>;
+    query<T extends QueryResultRow = QueryResultRow>(
+      sql: string,
+      values?: unknown[]
+    ): Promise<QueryResult<T>>;
     release(): void;
   };
 
   export class Pool {
     constructor(config?: PoolConfig);
-    query<T extends QueryResultRow = QueryResultRow>(sql: string, values?: unknown[]): Promise<QueryResult<T>>;
+    query<T extends QueryResultRow = QueryResultRow>(
+      sql: string,
+      values?: unknown[]
+    ): Promise<QueryResult<T>>;
     connect(): Promise<PoolClient>;
     end(): Promise<void>;
   }

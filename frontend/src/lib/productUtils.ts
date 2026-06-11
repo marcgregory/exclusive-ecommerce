@@ -1,14 +1,17 @@
-import { API_BASE } from "../api/client";
-import type { Product } from "../types";
+import { API_BASE } from '../api/client';
+import type { Product } from '../types';
 
 export function isImageUrl(value: string | undefined) {
   if (!value) return false;
-  return value.startsWith("/uploads/") || value.startsWith("/assets/") || /^https?:\/\//i.test(value);
+  return (
+    value.startsWith('/uploads/') || value.startsWith('/assets/') || /^https?:\/\//i.test(value)
+  );
 }
 
 export function imageSrc(value: string) {
-  if (!value) return "";
-  if (/^https?:\/\//i.test(value) || value.startsWith("/assets/") || value.startsWith("/uploads/")) return value;
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value) || value.startsWith('/assets/') || value.startsWith('/uploads/'))
+    return value;
   return `${API_BASE}${value}`;
 }
 

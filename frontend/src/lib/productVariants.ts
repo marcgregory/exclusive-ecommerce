@@ -1,4 +1,4 @@
-import type { Product, ProductVariant } from "../types";
+import type { Product, ProductVariant } from '../types';
 
 export function requiresVariantSelection(product: Product) {
   return product.colors.length > 0 || product.sizes.length > 0;
@@ -15,7 +15,7 @@ export function findFirstInStockVariant(product: Product, variants: ProductVaria
 
 export function getQuickAddSelection(product: Product, variants?: ProductVariant[]) {
   if (!requiresVariantSelection(product)) {
-    return { selectedColor: "", selectedSize: "" };
+    return { selectedColor: '', selectedSize: '' };
   }
 
   const variant = findFirstInStockVariant(product, variants);
@@ -23,6 +23,6 @@ export function getQuickAddSelection(product: Product, variants?: ProductVariant
 
   return {
     selectedColor: variant.color,
-    selectedSize: variant.size
+    selectedSize: variant.size,
   };
 }

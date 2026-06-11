@@ -1,16 +1,16 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { Edit3, Plus, RefreshCw, Save, Tag, Trash2, X } from "lucide-react";
+import { useMemo, useState, type FormEvent } from 'react';
+import { Edit3, Plus, RefreshCw, Save, Tag, Trash2, X } from 'lucide-react';
 import {
   useCreateAdminCouponMutation,
   useDeleteAdminCouponMutation,
   useGetAdminCouponsQuery,
   useUpdateAdminCouponMutation,
-} from "../api/ecommerceApi";
-import { Breadcrumbs } from "../components/Breadcrumbs";
-import { Button } from "../components/Button";
-import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getRtkErrorMessage } from "../lib/rtkErrors";
-import { formatMoney } from "../lib/format";
+} from '../api/ecommerceApi';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Button } from '../components/Button';
+import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
+import { getRtkErrorMessage } from '../lib/rtkErrors';
+import { formatMoney } from '../lib/format';
 import type {
   AdminCouponInput,
   AdminCouponResponse,
@@ -18,7 +18,7 @@ import type {
   Coupon,
   Navigate,
   PublicUser,
-} from "../types";
+} from '../types';
 
 type AdminCouponsPageProps = {
   userState: AsyncState<PublicUser | null>;
@@ -27,15 +27,15 @@ type AdminCouponsPageProps = {
 
 type CouponDraft = {
   code: string;
-  type: Coupon["type"];
+  type: Coupon['type'];
   amount: string;
   active: boolean;
 };
 
 const emptyDraft: CouponDraft = {
-  code: "",
-  type: "percent",
-  amount: "0",
+  code: '',
+  type: 'percent',
+  amount: '0',
   active: true,
 };
 
@@ -58,7 +58,7 @@ function draftToPayload(draft: CouponDraft): AdminCouponInput {
 }
 
 function formatCouponValue(coupon: Coupon) {
-  return coupon.type === "percent" ? `${coupon.amount}% off` : `${formatMoney(coupon.amount)} off`;
+  return coupon.type === 'percent' ? `${coupon.amount}% off` : `${formatMoney(coupon.amount)} off`;
 }
 
 export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps) {
@@ -68,7 +68,7 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
     error: couponsError,
     refetch: refetchCoupons,
   } = useGetAdminCouponsQuery(undefined, {
-    skip: userState.data?.role !== "admin",
+    skip: userState.data?.role !== 'admin',
   });
 
   const [createAdminCoupon, { isLoading: createSaving }] = useCreateAdminCouponMutation();
@@ -77,12 +77,12 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
 
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [draft, setDraft] = useState<CouponDraft>(emptyDraft);
-  const [deletingCode, setDeletingCode] = useState("");
-  const [formError, setFormError] = useState("");
-  const [formSuccess, setFormSuccess] = useState("");
+  const [deletingCode, setDeletingCode] = useState('');
+  const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
 
   const couponsList = couponsData?.coupons ?? [];
-  const couponsErrorMsg = couponsError ? getRtkErrorMessage(couponsError) : "";
+  const couponsErrorMsg = couponsError ? getRtkErrorMessage(couponsError) : '';
   const saving = createSaving || updateSaving;
 
   const couponStats = useMemo(() => {
@@ -93,21 +93,21 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
   const startCreate = () => {
     setEditingCode(null);
     setDraft(emptyDraft);
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
   };
 
   const startEdit = (coupon: Coupon) => {
     setEditingCode(coupon.code);
     setDraft(couponToDraft(coupon));
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
   };
 
   const submitCoupon = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
     try {
       const payload = draftToPayload(draft);
       let data: AdminCouponResponse;
@@ -118,7 +118,7 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
       }
       setEditingCode(data.coupon.code);
       setDraft(couponToDraft(data.coupon));
-      setFormSuccess(editingCode ? "Coupon updated." : "Coupon created.");
+      setFormSuccess(editingCode ? 'Coupon updated.' : 'Coupon created.');
     } catch (error) {
       setFormError(getRtkErrorMessage(error));
     }
@@ -127,16 +127,16 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
   const deleteCoupon = async (coupon: Coupon) => {
     if (!window.confirm(`Delete ${coupon.code}?`)) return;
     setDeletingCode(coupon.code);
-    setFormError("");
-    setFormSuccess("");
+    setFormError('');
+    setFormSuccess('');
     try {
       await deleteAdminCoupon(coupon.code).unwrap();
       if (editingCode === coupon.code) startCreate();
-      setFormSuccess("Coupon deleted.");
+      setFormSuccess('Coupon deleted.');
     } catch (error) {
       setFormError(getRtkErrorMessage(error));
     } finally {
-      setDeletingCode("");
+      setDeletingCode('');
     }
   };
 
@@ -155,26 +155,26 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
   if (!userState.data) {
     return (
       <main className="container page">
-        <Breadcrumbs items={["Home", "Admin", "Coupons"]} />
+        <Breadcrumbs items={['Home', 'Admin', 'Coupons']} />
         <EmptyState
           title="Admin access requires sign in"
           message="Sign in with an administrator account to manage coupons."
-          action={{ label: "Sign In", onClick: () => navigate("/account") }}
-          secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
+          action={{ label: 'Sign In', onClick: () => navigate('/account') }}
+          secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>
     );
   }
 
-  if (userState.data.role !== "admin") {
+  if (userState.data.role !== 'admin') {
     return (
       <main className="container page">
-        <Breadcrumbs items={["Home", "Admin", "Coupons"]} />
+        <Breadcrumbs items={['Home', 'Admin', 'Coupons']} />
         <ErrorState
           title="Admin access required"
           message="Coupon management is only available to administrators."
-          action={{ label: "View Account", onClick: () => navigate("/account") }}
-          secondaryAction={{ label: "Return To Shop", onClick: () => navigate("/") }}
+          action={{ label: 'View Account', onClick: () => navigate('/account') }}
+          secondaryAction={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>
     );
@@ -182,25 +182,34 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
 
   return (
     <main className="container page admin-catalog-page">
-      <Breadcrumbs items={["Home", "Admin", "Coupons"]} />
+      <Breadcrumbs items={['Home', 'Admin', 'Coupons']} />
       <section className="admin-orders-hero">
         <div>
           <p className="eyebrow">Admin console</p>
           <h1 className="page-title">Coupon management</h1>
-          <p>Create checkout discounts, retire expired codes, and keep active promotions visible to the catalog team.</p>
+          <p>
+            Create checkout discounts, retire expired codes, and keep active promotions visible to
+            the catalog team.
+          </p>
         </div>
         <div className="admin-catalog-nav" aria-label="Admin sections">
-          <Button variant="ghost" onClick={() => navigate("/admin/products")}>Products</Button>
-          <Button variant="ghost" onClick={() => navigate("/admin/categories")}>Categories</Button>
-          <Button onClick={() => navigate("/admin/coupons")}>Coupons</Button>
-          <Button variant="ghost" onClick={() => navigate("/admin/orders")}>Orders</Button>
+          <Button variant="ghost" onClick={() => navigate('/admin/products')}>
+            Products
+          </Button>
+          <Button variant="ghost" onClick={() => navigate('/admin/categories')}>
+            Categories
+          </Button>
+          <Button onClick={() => navigate('/admin/coupons')}>Coupons</Button>
+          <Button variant="ghost" onClick={() => navigate('/admin/orders')}>
+            Orders
+          </Button>
         </div>
       </section>
 
       <section className="admin-orders-toolbar" aria-label="Coupon tools">
         <Button onClick={refetchCoupons} disabled={couponsLoading}>
           <RefreshCw size={16} />
-          {couponsLoading ? "Refreshing" : "Refresh"}
+          {couponsLoading ? 'Refreshing' : 'Refresh'}
         </Button>
         <Button onClick={startCreate}>
           <Plus size={16} />
@@ -211,9 +220,7 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
         <span className="admin-catalog-count">{couponStats.inactive} inactive</span>
       </section>
 
-      {couponsErrorMsg && (
-        <p className="form-status form-status--error">{couponsErrorMsg}</p>
-      )}
+      {couponsErrorMsg && <p className="form-status form-status--error">{couponsErrorMsg}</p>}
       {formError && <p className="form-status form-status--error">{formError}</p>}
       {formSuccess && <p className="form-status form-status--success">{formSuccess}</p>}
 
@@ -226,13 +233,17 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
             <article className="admin-catalog-row admin-coupon-row" key={coupon.code}>
               <div className="admin-catalog-row__main">
                 <strong>{coupon.code}</strong>
-                <span>{coupon.active ? "Active at checkout" : "Inactive"}</span>
+                <span>{coupon.active ? 'Active at checkout' : 'Inactive'}</span>
               </div>
               <div className="admin-catalog-row__meta">
-                <span>{coupon.type === "percent" ? "Percent" : "Fixed"}</span>
+                <span>{coupon.type === 'percent' ? 'Percent' : 'Fixed'}</span>
                 <strong>{formatCouponValue(coupon)}</strong>
-                <span className={coupon.active ? "admin-status-pill--active" : "admin-status-pill--inactive"}>
-                  {coupon.active ? "Active" : "Inactive"}
+                <span
+                  className={
+                    coupon.active ? 'admin-status-pill--active' : 'admin-status-pill--inactive'
+                  }
+                >
+                  {coupon.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
               <div className="admin-catalog-row__actions">
@@ -246,7 +257,7 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
                   disabled={deletingCode === coupon.code}
                 >
                   <Trash2 size={16} />
-                  {deletingCode === coupon.code ? "Deleting" : "Delete"}
+                  {deletingCode === coupon.code ? 'Deleting' : 'Delete'}
                 </Button>
               </div>
             </article>
@@ -256,8 +267,8 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
         <aside className="admin-catalog-form-card">
           <div className="admin-catalog-form-card__header">
             <div>
-              <p className="eyebrow">{editingCode ? "Edit coupon" : "Create coupon"}</p>
-              <h2>{editingCode || "New coupon"}</h2>
+              <p className="eyebrow">{editingCode ? 'Edit coupon' : 'Create coupon'}</p>
+              <h2>{editingCode || 'New coupon'}</h2>
             </div>
             {editingCode && (
               <Button variant="ghost" onClick={startCreate}>
@@ -271,7 +282,7 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
               Code
               <input
                 value={draft.code}
-                onChange={(event) => updateDraft("code", event.target.value.toUpperCase())}
+                onChange={(event) => updateDraft('code', event.target.value.toUpperCase())}
                 placeholder="SAVE20"
                 disabled={Boolean(editingCode)}
                 required
@@ -279,7 +290,10 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
             </label>
             <label>
               Discount type
-              <select value={draft.type} onChange={(event) => updateDraft("type", event.target.value as Coupon["type"])}>
+              <select
+                value={draft.type}
+                onChange={(event) => updateDraft('type', event.target.value as Coupon['type'])}
+              >
                 <option value="percent">Percent</option>
                 <option value="fixed">Fixed amount</option>
               </select>
@@ -289,20 +303,24 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
               <input
                 type="number"
                 min="0"
-                max={draft.type === "percent" ? 100 : undefined}
-                step={draft.type === "percent" ? 1 : 0.01}
+                max={draft.type === 'percent' ? 100 : undefined}
+                step={draft.type === 'percent' ? 1 : 0.01}
                 value={draft.amount}
-                onChange={(event) => updateDraft("amount", event.target.value)}
+                onChange={(event) => updateDraft('amount', event.target.value)}
               />
             </label>
             <label className="admin-catalog-check">
-              <input type="checkbox" checked={draft.active} onChange={(event) => updateDraft("active", event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={draft.active}
+                onChange={(event) => updateDraft('active', event.target.checked)}
+              />
               Active at checkout
             </label>
             <div className="admin-catalog-form__actions">
               <Button type="submit" disabled={saving}>
                 {editingCode ? <Save size={16} /> : <Tag size={16} />}
-                {saving ? "Saving" : editingCode ? "Update Coupon" : "Create Coupon"}
+                {saving ? 'Saving' : editingCode ? 'Update Coupon' : 'Create Coupon'}
               </Button>
             </div>
           </form>

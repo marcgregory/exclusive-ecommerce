@@ -1,4 +1,4 @@
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus } from 'lucide-react';
 
 type QuantityStepperProps = {
   value: number;
@@ -14,10 +14,10 @@ export function QuantityStepper({
   onChange,
   max,
   disabled = false,
-  decrementLabel = "Decrease quantity",
-  incrementLabel = "Increase quantity"
+  decrementLabel = 'Decrease quantity',
+  incrementLabel = 'Increase quantity',
 }: QuantityStepperProps) {
-  const hasReachedMax = typeof max === "number" && value >= max;
+  const hasReachedMax = typeof max === 'number' && value >= max;
 
   return (
     <div className="quantity">

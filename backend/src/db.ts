@@ -1,17 +1,12 @@
-import "dotenv/config";
-import {
-  Pool,
-  type PoolClient,
-  type PoolConfig,
-  type QueryResultRow,
-} from "pg";
+import 'dotenv/config';
+import { Pool, type PoolClient, type PoolConfig, type QueryResultRow } from 'pg';
 
 let pool: Pool | undefined;
 
 export function getDatabaseUrl(): string {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error("DATABASE_URL is required for PostgreSQL persistence");
+    throw new Error('DATABASE_URL is required for PostgreSQL persistence');
   }
   return connectionString;
 }
@@ -26,26 +21,24 @@ export function getPool(): Pool {
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
   sql: string,
-  values: unknown[] = [],
+  values: unknown[] = []
 ) {
   return getPool().query<T>(sql, values);
 }
 
-export async function withTransaction<T>(
-  callback: (client: PoolClient) => Promise<T>,
-): Promise<T> {
+export async function withTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const client = await getPool().connect();
     let shouldRetry = false;
     try {
-      await client.query("BEGIN");
+      await client.query('BEGIN');
       const result = await callback(client);
-      await client.query("COMMIT");
+      await client.query('COMMIT');
       return result;
     } catch (error: any) {
-      await client.query("ROLLBACK");
-      if (attempt < maxAttempts && error && error.code === "40P01") {
+      await client.query('ROLLBACK');
+      if (attempt < maxAttempts && error && error.code === '40P01') {
         const backoff = attempt * 50;
         await new Promise((r) => setTimeout(r, backoff));
         shouldRetry = true;
@@ -57,7 +50,7 @@ export async function withTransaction<T>(
     }
     if (shouldRetry) continue;
   }
-  throw new Error("Transaction failed after retries");
+  throw new Error('Transaction failed after retries');
 }
 
 export async function closePool(): Promise<void> {

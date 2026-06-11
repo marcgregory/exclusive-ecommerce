@@ -8,8 +8,8 @@ import {
   ShoppingBag,
   ShoppingBasket,
   Sparkles,
-  type LucideIcon
-} from "lucide-react";
+  type LucideIcon,
+} from 'lucide-react';
 
 export const iconMap: Record<string, LucideIcon> = {
   Dress: Sparkles,
@@ -20,7 +20,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Dumbbell: ShieldCheck,
   Gamepad2: CreditCard,
   ShoppingBasket,
-  Sparkles
+  Sparkles,
 };
 
 export const fallbackCategoryIcon = ShoppingBag;

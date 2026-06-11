@@ -38,12 +38,12 @@ export type ProductVariant = {
 
 export type Coupon = {
   code: string;
-  type: "percent" | "fixed";
+  type: 'percent' | 'fixed';
   amount: number;
   active: boolean;
 };
 
-export type UserRole = "customer" | "admin";
+export type UserRole = 'customer' | 'admin';
 
 export type User = {
   id: string;
@@ -52,6 +52,7 @@ export type User = {
   email: string;
   address: string;
   passwordHash: string;
+  googleSub: string;
   role: UserRole;
 };
 

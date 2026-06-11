@@ -1,7 +1,7 @@
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
-import { describe, expect, it, beforeAll, beforeEach, afterAll, vi } from "vitest";
-import request from "supertest";
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { describe, expect, it, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import request from 'supertest';
 import {
   DEV_SESSION_SECRET,
   getSessionSecret,
@@ -9,22 +9,22 @@ import {
   validateLoginInput,
   validateProfileInput,
   validateRegisterInput,
-} from "./auth.js";
-import type { User } from "./types.js";
-import { closePool, query } from "./db.js";
-import { migrate } from "./migrate.js";
-import { seedDatabase } from "./seed-db.js";
+} from './auth.js';
+import type { User } from './types.js';
+import { closePool, query } from './db.js';
+import { migrate } from './migrate.js';
+import { seedDatabase } from './seed-db.js';
 
-vi.mock("./image-storage.js", async () => {
-  const actual = await vi.importActual("./image-storage.js");
+vi.mock('./image-storage.js', async () => {
+  const actual = await vi.importActual('./image-storage.js');
   return {
     ...actual,
     uploadBufferToCloudinary: vi.fn().mockResolvedValue({
-      secure_url: "http://localhost/image.jpg",
+      secure_url: 'http://localhost/image.jpg',
       width: 800,
       height: 600,
       bytes: 1000,
-      public_id: "test/public_id",
+      public_id: 'test/public_id',
     }),
   };
 });
@@ -32,147 +32,141 @@ vi.mock("./image-storage.js", async () => {
 let testApp: any;
 
 const user = async (overrides: Partial<User> = {}): Promise<User> => ({
-  id: "user-1",
-  firstName: "Ada",
-  lastName: "Lovelace",
-  email: "ada@example.com",
-  address: "London",
-  passwordHash: await bcrypt.hash("oldpassword", 10),
-  role: "customer",
+  id: 'user-1',
+  firstName: 'Ada',
+  lastName: 'Lovelace',
+  email: 'ada@example.com',
+  address: 'London',
+  passwordHash: await bcrypt.hash('oldpassword', 10),
+  role: 'customer',
   ...overrides,
 });
 
-describe("auth validation", () => {
-  it("normalizes email input", () => {
-    expect(normalizeEmail(" ADA@Example.COM ")).toBe("ada@example.com");
+describe('auth validation', () => {
+  it('normalizes email input', () => {
+    expect(normalizeEmail(' ADA@Example.COM ')).toBe('ada@example.com');
   });
 
-  it("validates registration email, password length, and confirmation", () => {
+  it('validates registration email, password length, and confirmation', () => {
     expect(() =>
       validateRegisterInput({
-        email: "bad",
-        password: "password1",
-        confirmPassword: "password1",
-      }),
-    ).toThrow("valid email");
+        email: 'bad',
+        password: 'password1',
+        confirmPassword: 'password1',
+      })
+    ).toThrow('valid email');
     expect(() =>
       validateRegisterInput({
-        email: "ada@example.com",
-        password: "short",
-        confirmPassword: "short",
-      }),
-    ).toThrow("at least 8");
+        email: 'ada@example.com',
+        password: 'short',
+        confirmPassword: 'short',
+      })
+    ).toThrow('at least 8');
     expect(() =>
       validateRegisterInput({
-        email: "ada@example.com",
-        password: "password1",
-        confirmPassword: "password2",
-      }),
-    ).toThrow("does not match");
+        email: 'ada@example.com',
+        password: 'password1',
+        confirmPassword: 'password2',
+      })
+    ).toThrow('does not match');
 
     expect(
       validateRegisterInput({
-        email: " ADA@Example.COM ",
-        password: "password1",
-        confirmPassword: "password1",
-      }),
+        email: ' ADA@Example.COM ',
+        password: 'password1',
+        confirmPassword: 'password1',
+      })
     ).toMatchObject({
-      email: "ada@example.com",
+      email: 'ada@example.com',
     });
   });
 
-  it("validates login email shape and required password", () => {
-    expect(() =>
-      validateLoginInput({ email: "ada@example.com", password: "" }),
-    ).toThrow("required");
-    expect(() =>
-      validateLoginInput({ email: "bad", password: "password1" }),
-    ).toThrow("valid email");
-    expect(
-      validateLoginInput({ email: " ADA@Example.COM ", password: "password1" }),
-    ).toEqual({
-      email: "ada@example.com",
-      password: "password1",
+  it('validates login email shape and required password', () => {
+    expect(() => validateLoginInput({ email: 'ada@example.com', password: '' })).toThrow(
+      'required'
+    );
+    expect(() => validateLoginInput({ email: 'bad', password: 'password1' })).toThrow(
+      'valid email'
+    );
+    expect(validateLoginInput({ email: ' ADA@Example.COM ', password: 'password1' })).toEqual({
+      email: 'ada@example.com',
+      password: 'password1',
     });
   });
 
-  it("rejects duplicate profile emails owned by another user", async () => {
+  it('rejects duplicate profile emails owned by another user', async () => {
+    const current = await user();
+
+    await expect(
+      validateProfileInput({ email: 'grace@example.com' }, current, async () => ({
+        ...(await user()),
+        id: 'user-2',
+        email: 'grace@example.com',
+      }))
+    ).rejects.toThrow('Email already registered');
+  });
+
+  it('preserves unspecified profile fields and validates password changes', async () => {
     const current = await user();
 
     await expect(
       validateProfileInput(
-        { email: "grace@example.com" },
+        { newPassword: 'newpassword', confirmPassword: 'newpassword' },
         current,
-        async () => ({
-          ...(await user()),
-          id: "user-2",
-          email: "grace@example.com",
-        }),
-      ),
-    ).rejects.toThrow("Email already registered");
-  });
-
-  it("preserves unspecified profile fields and validates password changes", async () => {
-    const current = await user();
-
-    await expect(
-      validateProfileInput(
-        { newPassword: "newpassword", confirmPassword: "newpassword" },
-        current,
-        async () => undefined,
-      ),
-    ).rejects.toThrow("Current password");
+        async () => undefined
+      )
+    ).rejects.toThrow('Current password');
     await expect(
       validateProfileInput(
         {
-          currentPassword: "wrongpass",
-          newPassword: "newpassword",
-          confirmPassword: "newpassword",
+          currentPassword: 'wrongpass',
+          newPassword: 'newpassword',
+          confirmPassword: 'newpassword',
         },
         current,
-        async () => undefined,
-      ),
-    ).rejects.toThrow("incorrect");
+        async () => undefined
+      )
+    ).rejects.toThrow('incorrect');
     await expect(
       validateProfileInput(
         {
-          currentPassword: "oldpassword",
-          newPassword: "newpass1",
-          confirmPassword: "newpass2",
+          currentPassword: 'oldpassword',
+          newPassword: 'newpass1',
+          confirmPassword: 'newpass2',
         },
         current,
-        async () => undefined,
-      ),
-    ).rejects.toThrow("does not match");
+        async () => undefined
+      )
+    ).rejects.toThrow('does not match');
 
     const updates = await validateProfileInput(
-      { address: "New address" },
+      { address: 'New address' },
       current,
-      async () => undefined,
+      async () => undefined
     );
-    expect(updates).toEqual({ address: "New address" });
+    expect(updates).toEqual({ address: 'New address' });
   });
 
-  it("requires stronger session secrets in production", () => {
-    expect(
-      getSessionSecret({ NODE_ENV: "development" } as NodeJS.ProcessEnv),
-    ).toBe(DEV_SESSION_SECRET);
+  it('requires stronger session secrets in production', () => {
+    expect(getSessionSecret({ NODE_ENV: 'development' } as NodeJS.ProcessEnv)).toBe(
+      DEV_SESSION_SECRET
+    );
     expect(() =>
       getSessionSecret({
-        NODE_ENV: "production",
-        SESSION_SECRET: "short",
-      } as NodeJS.ProcessEnv),
-    ).toThrow("SESSION_SECRET");
+        NODE_ENV: 'production',
+        SESSION_SECRET: 'short',
+      } as NodeJS.ProcessEnv)
+    ).toThrow('SESSION_SECRET');
     expect(
       getSessionSecret({
-        NODE_ENV: "production",
-        SESSION_SECRET: "a".repeat(32),
-      } as NodeJS.ProcessEnv),
-    ).toBe("a".repeat(32));
+        NODE_ENV: 'production',
+        SESSION_SECRET: 'a'.repeat(32),
+      } as NodeJS.ProcessEnv)
+    ).toBe('a'.repeat(32));
   });
 });
 
-describe("auth endpoints", () => {
+describe('auth endpoints', () => {
   function restoreEnv(name: string, value: string | undefined) {
     if (value === undefined) {
       delete process.env[name];
@@ -183,14 +177,14 @@ describe("auth endpoints", () => {
 
   beforeAll(async () => {
     if (!process.env.TEST_DATABASE_URL) {
-      throw new Error("TEST_DATABASE_URL is required for auth endpoint tests");
+      throw new Error('TEST_DATABASE_URL is required for auth endpoint tests');
     }
-    process.env.NODE_ENV = "test";
+    process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
     // Ensure we use local image storage for tests to avoid needing Cloudinary credentials
-    process.env.IMAGE_STORAGE_PROVIDER = "local";
+    process.env.IMAGE_STORAGE_PROVIDER = 'local';
     await migrate();
-    const { default: app } = await import("./index.js");
+    const { default: app } = await import('./index.js');
     testApp = app;
     return async () => {
       await closePool();
@@ -205,212 +199,208 @@ describe("auth endpoints", () => {
     await closePool();
   });
 
-  describe("POST /api/auth/register", () => {
-    it("creates a new user and returns 201 with user data", async () => {
-      const res = await request(testApp).post("/api/auth/register").send({
-        email: "newuser@example.com",
-        password: "password123",
-        confirmPassword: "password123",
-        firstName: "New",
-        lastName: "User",
+  describe('POST /api/auth/register', () => {
+    it('creates a new user and returns 201 with user data', async () => {
+      const res = await request(testApp).post('/api/auth/register').send({
+        email: 'newuser@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+        firstName: 'New',
+        lastName: 'User',
       });
 
       expect(res.status).toBe(201);
       expect(res.body.user).toMatchObject({
-        email: "newuser@example.com",
-        firstName: "New",
+        email: 'newuser@example.com',
+        firstName: 'New',
       });
       expect(res.body.user.id).toBeDefined();
-      expect(res.headers["set-cookie"]).toBeDefined();
+      expect(res.headers['set-cookie']).toBeDefined();
     });
 
-    it("rejects duplicate email with 409", async () => {
-      await request(testApp).post("/api/auth/register").send({
-        email: "newuser@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+    it('rejects duplicate email with 409', async () => {
+      await request(testApp).post('/api/auth/register').send({
+        email: 'newuser@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
-      const res = await request(testApp).post("/api/auth/register").send({
-        email: "newuser@example.com",
-        password: "password456",
-        confirmPassword: "password456",
+      const res = await request(testApp).post('/api/auth/register').send({
+        email: 'newuser@example.com',
+        password: 'password456',
+        confirmPassword: 'password456',
       });
 
       expect(res.status).toBe(409);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("already registered"),
+        message: expect.stringContaining('already registered'),
       });
     });
 
-    it("rejects invalid email with 400", async () => {
-      const res = await request(testApp).post("/api/auth/register").send({
-        email: "bad",
-        password: "password123",
-        confirmPassword: "password123",
+    it('rejects invalid email with 400', async () => {
+      const res = await request(testApp).post('/api/auth/register').send({
+        email: 'bad',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("valid email"),
+        message: expect.stringContaining('valid email'),
       });
     });
 
-    it("rejects short password with 400", async () => {
-      const res = await request(testApp).post("/api/auth/register").send({
-        email: "user@example.com",
-        password: "short",
-        confirmPassword: "short",
+    it('rejects short password with 400', async () => {
+      const res = await request(testApp).post('/api/auth/register').send({
+        email: 'user@example.com',
+        password: 'short',
+        confirmPassword: 'short',
       });
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("at least 8"),
+        message: expect.stringContaining('at least 8'),
       });
     });
 
-    it("rejects mismatched passwords with 400", async () => {
-      const res = await request(testApp).post("/api/auth/register").send({
-        email: "user@example.com",
-        password: "password123",
-        confirmPassword: "password456",
+    it('rejects mismatched passwords with 400', async () => {
+      const res = await request(testApp).post('/api/auth/register').send({
+        email: 'user@example.com',
+        password: 'password123',
+        confirmPassword: 'password456',
       });
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("does not match"),
+        message: expect.stringContaining('does not match'),
       });
     });
 
-    it("sets session cookie on successful registration", async () => {
-      const res = await request(testApp).post("/api/auth/register").send({
-        email: "cookie@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+    it('sets session cookie on successful registration', async () => {
+      const res = await request(testApp).post('/api/auth/register').send({
+        email: 'cookie@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
       expect(res.status).toBe(201);
-      const setCookie = res.headers["set-cookie"];
-      const cookies = Array.isArray(setCookie)
-        ? setCookie
-        : setCookie
-          ? [setCookie]
-          : [];
-      expect(cookies).toContainEqual(expect.stringContaining("exclusive.sid"));
+      const setCookie = res.headers['set-cookie'];
+      const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+      expect(cookies).toContainEqual(expect.stringContaining('exclusive.sid'));
     });
   });
 
-  describe("POST /api/auth/login", () => {
-    it("authenticates user and sets session cookie", async () => {
+  describe('POST /api/auth/login', () => {
+    it('authenticates user and sets session cookie', async () => {
       // Create a user first so we know the password
-      await request(testApp).post("/api/auth/register").send({
-        email: "testlogin@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await request(testApp).post('/api/auth/register').send({
+        email: 'testlogin@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
       const res = await request(testApp)
-        .post("/api/auth/login")
-        .send({ email: "testlogin@example.com", password: "password123" });
+        .post('/api/auth/login')
+        .send({ email: 'testlogin@example.com', password: 'password123' });
 
       expect(res.status).toBe(200);
-      expect(res.body.user).toMatchObject({ email: "testlogin@example.com" });
-      expect(res.headers["set-cookie"]).toBeDefined();
+      expect(res.body.user).toMatchObject({ email: 'testlogin@example.com' });
+      expect(res.headers['set-cookie']).toBeDefined();
     });
 
-    it("rejects invalid email with 401", async () => {
+    it('rejects invalid email with 401', async () => {
       const res = await request(testApp)
-        .post("/api/auth/login")
-        .send({ email: "wrong@example.com", password: "password" });
+        .post('/api/auth/login')
+        .send({ email: 'wrong@example.com', password: 'password' });
 
       expect(res.status).toBe(401);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("Invalid"),
+        message: expect.stringContaining('Invalid'),
       });
     });
 
-    it("rejects wrong password with 401", async () => {
+    it('rejects wrong password with 401', async () => {
       // Create a user first
-      await request(testApp).post("/api/auth/register").send({
-        email: "wrongpass@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await request(testApp).post('/api/auth/register').send({
+        email: 'wrongpass@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
       const res = await request(testApp)
-        .post("/api/auth/login")
-        .send({ email: "wrongpass@example.com", password: "wrongpassword" });
+        .post('/api/auth/login')
+        .send({ email: 'wrongpass@example.com', password: 'wrongpassword' });
 
       expect(res.status).toBe(401);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("Invalid"),
+        message: expect.stringContaining('Invalid'),
       });
     });
 
-    it("rejects missing email or password with 400", async () => {
+    it('rejects missing email or password with 400', async () => {
       const res = await request(testApp)
-        .post("/api/auth/login")
-        .send({ email: "", password: "password" });
+        .post('/api/auth/login')
+        .send({ email: '', password: 'password' });
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("required"),
+        message: expect.stringContaining('required'),
       });
     });
 
-    it("normalizes email case for login", async () => {
+    it('normalizes email case for login', async () => {
       // Create a user first
-      await request(testApp).post("/api/auth/register").send({
-        email: "casetest@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await request(testApp).post('/api/auth/register').send({
+        email: 'casetest@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
       const res = await request(testApp)
-        .post("/api/auth/login")
-        .send({ email: "CASETEST@EXAMPLE.COM", password: "password123" });
+        .post('/api/auth/login')
+        .send({ email: 'CASETEST@EXAMPLE.COM', password: 'password123' });
 
       expect(res.status).toBe(200);
-      expect(res.body.user.email).toBe("casetest@example.com");
+      expect(res.body.user.email).toBe('casetest@example.com');
     });
   });
 
-  describe("POST /api/auth/logout", () => {
-    it("destroys session and returns ok", async () => {
+  describe('POST /api/auth/logout', () => {
+    it('destroys session and returns ok', async () => {
       const agent = request.agent(testApp);
 
       // Register first
-      await agent.post("/api/auth/register").send({
-        email: "logout@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await agent.post('/api/auth/register').send({
+        email: 'logout@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
       // Logout
-      const logoutRes = await agent.post("/api/auth/logout");
+      const logoutRes = await agent.post('/api/auth/logout');
 
       expect(logoutRes.status).toBe(200);
       expect(logoutRes.body).toMatchObject({ ok: true });
     });
 
-    it("logs out unauthenticated user without error", async () => {
-      const res = await request(testApp).post("/api/auth/logout");
+    it('logs out unauthenticated user without error', async () => {
+      const res = await request(testApp).post('/api/auth/logout');
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ ok: true });
     });
   });
 
-  describe("catalog endpoints", () => {
-    it("returns product variants on product detail for customer stock selection", async () => {
-      const res = await request(testApp).get("/api/products/havic-gamepad");
+  describe('catalog endpoints', () => {
+    it('returns product variants on product detail for customer stock selection', async () => {
+      const res = await request(testApp).get('/api/products/havic-gamepad');
 
       expect(res.status).toBe(200);
-      expect(res.body.product).toMatchObject({ id: "havic-gamepad" });
+      expect(res.body.product).toMatchObject({ id: 'havic-gamepad' });
       expect(res.body.related).toEqual(expect.any(Array));
       expect(res.body.variants.length).toBeGreaterThan(0);
       expect(res.body.variants[0]).toMatchObject({
-        productId: "havic-gamepad",
+        productId: 'havic-gamepad',
         color: expect.any(String),
         size: expect.any(String),
         stock: expect.any(Number),
@@ -418,95 +408,91 @@ describe("auth endpoints", () => {
     });
   });
 
-  describe("POST /api/payments", () => {
+  describe('POST /api/payments', () => {
     const billing = {
-      firstName: "Payment",
-      streetAddress: "123 Maple Drive",
-      townCity: "Townsville",
-      phone: "555-0123",
-      email: "payment@example.com",
+      firstName: 'Payment',
+      streetAddress: '123 Maple Drive',
+      townCity: 'Townsville',
+      phone: '555-0123',
+      email: 'payment@example.com',
     };
 
-    async function createOrderForAgent(
-      agent: ReturnType<typeof request.agent>,
-    ) {
-      await agent.post("/api/auth/register").send({
+    async function createOrderForAgent(agent: ReturnType<typeof request.agent>) {
+      await agent.post('/api/auth/register').send({
         email: `payment-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-        password: "password123",
-        confirmPassword: "password123",
+        password: 'password123',
+        confirmPassword: 'password123',
       });
-      await agent.post("/api/cart/items").send({
-        productId: "havic-gamepad",
+      await agent.post('/api/cart/items').send({
+        productId: 'havic-gamepad',
         quantity: 1,
-        selectedColor: "#db4444",
-        selectedSize: "M",
+        selectedColor: '#db4444',
+        selectedSize: 'M',
       });
-      const orderRes = await agent.post("/api/orders").send({
+      const orderRes = await agent.post('/api/orders').send({
         billing,
-        paymentMethod: "bank",
+        paymentMethod: 'bank',
       });
       expect(orderRes.status).toBe(201);
       return orderRes.body.order;
     }
 
     function stripeSignature(payload: string, secret: string) {
-      const timestamp = "1780000000";
+      const timestamp = '1780000000';
       const signature = crypto
-        .createHmac("sha256", secret)
+        .createHmac('sha256', secret)
         .update(`${timestamp}.${payload}`)
-        .digest("hex");
+        .digest('hex');
       return `t=${timestamp},v1=${signature}`;
     }
 
-    it("requires authentication", async () => {
-      const res = await request(testApp)
-        .post("/api/payments")
-        .send({ orderId: "order-1" });
+    it('requires authentication', async () => {
+      const res = await request(testApp).post('/api/payments').send({ orderId: 'order-1' });
 
       expect(res.status).toBe(401);
     });
 
-    it("requires an orderId", async () => {
+    it('requires an orderId', async () => {
       const agent = request.agent(testApp);
-      await agent.post("/api/auth/register").send({
-        email: "missing-order-id@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await agent.post('/api/auth/register').send({
+        email: 'missing-order-id@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
-      const res = await agent.post("/api/payments").send({});
+      const res = await agent.post('/api/payments').send({});
 
       expect(res.status).toBe(400);
-      expect(res.body).toMatchObject({ message: "orderId is required" });
+      expect(res.body).toMatchObject({ message: 'orderId is required' });
     });
 
     it("marks the authenticated user's order shipped after local payment", async () => {
       const originalProvider = process.env.PAYMENT_PROVIDER;
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
-      process.env.PAYMENT_PROVIDER = "local";
+      process.env.PAYMENT_PROVIDER = 'local';
 
       try {
         const res = await agent
-          .post("/api/payments")
-          .send({ orderId: order.id, paymentMethod: "bank" });
+          .post('/api/payments')
+          .send({ orderId: order.id, paymentMethod: 'bank' });
 
         expect(res.status).toBe(201);
         expect(res.body.payment).toMatchObject({
-          status: "succeeded",
-          method: "bank",
-          provider: "local",
+          status: 'succeeded',
+          method: 'bank',
+          provider: 'local',
         });
         expect(res.body.order).toMatchObject({
           id: order.id,
-          status: "shipped",
+          status: 'shipped',
         });
       } finally {
-        restoreEnv("PAYMENT_PROVIDER", originalProvider);
+        restoreEnv('PAYMENT_PROVIDER', originalProvider);
       }
     });
 
-    it("creates a Stripe PaymentIntent and leaves the order processing until payment succeeds", async () => {
+    it('creates a Stripe PaymentIntent and leaves the order processing until payment succeeds', async () => {
       const originalProvider = process.env.PAYMENT_PROVIDER;
       const originalSecret = process.env.STRIPE_SECRET_KEY;
       const originalCurrency = process.env.STRIPE_CURRENCY;
@@ -518,99 +504,99 @@ describe("auth endpoints", () => {
         ok: true,
         status: 200,
         json: async () => ({
-          id: "pi_test_123",
-          status: "requires_payment_method",
-          client_secret: "pi_test_123_secret_456",
+          id: 'pi_test_123',
+          status: 'requires_payment_method',
+          client_secret: 'pi_test_123_secret_456',
         }),
       });
 
-      process.env.PAYMENT_PROVIDER = "stripe";
-      process.env.STRIPE_SECRET_KEY = "sk_test_123";
-      process.env.STRIPE_CURRENCY = "usd";
-      process.env.STRIPE_AMOUNT_MULTIPLIER = "100";
+      process.env.PAYMENT_PROVIDER = 'stripe';
+      process.env.STRIPE_SECRET_KEY = 'sk_test_123';
+      process.env.STRIPE_CURRENCY = 'usd';
+      process.env.STRIPE_AMOUNT_MULTIPLIER = '100';
       globalThis.fetch = fetchMock;
 
       try {
         const res = await agent
-          .post("/api/payments")
-          .send({ orderId: order.id, paymentMethod: "stripe" });
+          .post('/api/payments')
+          .send({ orderId: order.id, paymentMethod: 'stripe' });
 
         expect(res.status).toBe(201);
         expect(res.body.payment).toMatchObject({
-          id: "pi_test_123",
-          status: "requires_payment_method",
-          method: "stripe",
-          provider: "stripe",
-          clientSecret: "pi_test_123_secret_456",
+          id: 'pi_test_123',
+          status: 'requires_payment_method',
+          method: 'stripe',
+          provider: 'stripe',
+          clientSecret: 'pi_test_123_secret_456',
         });
         expect(res.body.order).toMatchObject({
           id: order.id,
-          status: "processing",
+          status: 'processing',
         });
         expect(fetchMock).toHaveBeenCalledWith(
-          "https://api.stripe.com/v1/payment_intents",
+          'https://api.stripe.com/v1/payment_intents',
           expect.objectContaining({
-            method: "POST",
+            method: 'POST',
             headers: expect.objectContaining({
-              Authorization: "Bearer sk_test_123",
-              "Content-Type": "application/x-www-form-urlencoded",
+              Authorization: 'Bearer sk_test_123',
+              'Content-Type': 'application/x-www-form-urlencoded',
             }),
-          }),
+          })
         );
         const body = fetchMock.mock.calls[0][1].body as URLSearchParams;
-        expect(body.get("amount")).toBe(String(order.total * 100));
-        expect(body.get("currency")).toBe("usd");
-        expect(body.get("automatic_payment_methods[enabled]")).toBe("true");
-        expect(body.get("metadata[orderId]")).toBe(order.id);
-        expect(body.get("metadata[paymentMethod]")).toBe("stripe");
+        expect(body.get('amount')).toBe(String(order.total * 100));
+        expect(body.get('currency')).toBe('usd');
+        expect(body.get('automatic_payment_methods[enabled]')).toBe('true');
+        expect(body.get('metadata[orderId]')).toBe(order.id);
+        expect(body.get('metadata[paymentMethod]')).toBe('stripe');
       } finally {
-        restoreEnv("PAYMENT_PROVIDER", originalProvider);
-        restoreEnv("STRIPE_SECRET_KEY", originalSecret);
-        restoreEnv("STRIPE_CURRENCY", originalCurrency);
-        restoreEnv("STRIPE_AMOUNT_MULTIPLIER", originalMultiplier);
+        restoreEnv('PAYMENT_PROVIDER', originalProvider);
+        restoreEnv('STRIPE_SECRET_KEY', originalSecret);
+        restoreEnv('STRIPE_CURRENCY', originalCurrency);
+        restoreEnv('STRIPE_AMOUNT_MULTIPLIER', originalMultiplier);
         globalThis.fetch = originalFetch;
       }
     });
 
-    it("reuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key", async () => {
+    it('reuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key', async () => {
       const agent = request.agent(testApp);
-      await agent.post("/api/auth/register").send({
-        email: "checkout-idempotency@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await agent.post('/api/auth/register').send({
+        email: 'checkout-idempotency@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
-      await agent.post("/api/cart/items").send({
-        productId: "havic-gamepad",
+      await agent.post('/api/cart/items').send({
+        productId: 'havic-gamepad',
         quantity: 1,
-        selectedColor: "#db4444",
-        selectedSize: "M",
+        selectedColor: '#db4444',
+        selectedSize: 'M',
       });
       const stockBefore = await query(
-        "SELECT stock FROM product_variants WHERE product_id = $1 AND color = $2 AND size = $3",
-        ["havic-gamepad", "#db4444", "M"],
+        'SELECT stock FROM product_variants WHERE product_id = $1 AND color = $2 AND size = $3',
+        ['havic-gamepad', '#db4444', 'M']
       );
 
-      const first = await agent.post("/api/orders").send({
+      const first = await agent.post('/api/orders').send({
         billing,
-        paymentMethod: "stripe",
-        idempotencyKey: "checkout-api-retry-1",
+        paymentMethod: 'stripe',
+        idempotencyKey: 'checkout-api-retry-1',
       });
-      await agent.post("/api/cart/items").send({
-        productId: "havic-gamepad",
+      await agent.post('/api/cart/items').send({
+        productId: 'havic-gamepad',
         quantity: 1,
-        selectedColor: "#db4444",
-        selectedSize: "M",
+        selectedColor: '#db4444',
+        selectedSize: 'M',
       });
-      const second = await agent.post("/api/orders").send({
+      const second = await agent.post('/api/orders').send({
         billing,
-        paymentMethod: "stripe",
-        idempotencyKey: "checkout-api-retry-1",
+        paymentMethod: 'stripe',
+        idempotencyKey: 'checkout-api-retry-1',
       });
-      const orders = await agent.get("/api/orders");
-      const cart = await agent.get("/api/cart");
+      const orders = await agent.get('/api/orders');
+      const cart = await agent.get('/api/cart');
       const stockAfter = await query(
-        "SELECT stock FROM product_variants WHERE product_id = $1 AND color = $2 AND size = $3",
-        ["havic-gamepad", "#db4444", "M"],
+        'SELECT stock FROM product_variants WHERE product_id = $1 AND color = $2 AND size = $3',
+        ['havic-gamepad', '#db4444', 'M']
       );
 
       expect(first.status).toBe(201);
@@ -621,33 +607,33 @@ describe("auth endpoints", () => {
       expect(Number(stockAfter.rows[0].stock)).toBe(Number(stockBefore.rows[0].stock) - 1);
     });
 
-    it("surfaces Stripe provider errors", async () => {
+    it('surfaces Stripe provider errors', async () => {
       const originalProvider = process.env.PAYMENT_PROVIDER;
       const originalSecret = process.env.STRIPE_SECRET_KEY;
       const originalFetch = globalThis.fetch;
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
 
-      process.env.PAYMENT_PROVIDER = "stripe";
-      process.env.STRIPE_SECRET_KEY = "sk_test_123";
+      process.env.PAYMENT_PROVIDER = 'stripe';
+      process.env.STRIPE_SECRET_KEY = 'sk_test_123';
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 402,
-        json: async () => ({ error: { message: "Your card was declined." } }),
+        json: async () => ({ error: { message: 'Your card was declined.' } }),
       });
 
       try {
         const res = await agent
-          .post("/api/payments")
-          .send({ orderId: order.id, paymentMethod: "stripe" });
+          .post('/api/payments')
+          .send({ orderId: order.id, paymentMethod: 'stripe' });
 
         expect(res.status).toBe(402);
         expect(res.body).toMatchObject({
-          message: "Your card was declined.",
+          message: 'Your card was declined.',
         });
       } finally {
-        restoreEnv("PAYMENT_PROVIDER", originalProvider);
-        restoreEnv("STRIPE_SECRET_KEY", originalSecret);
+        restoreEnv('PAYMENT_PROVIDER', originalProvider);
+        restoreEnv('STRIPE_SECRET_KEY', originalSecret);
         globalThis.fetch = originalFetch;
       }
     });
@@ -656,32 +642,32 @@ describe("auth endpoints", () => {
       const owner = request.agent(testApp);
       const otherUser = request.agent(testApp);
       const order = await createOrderForAgent(owner);
-      await otherUser.post("/api/auth/register").send({
-        email: "other-payment-user@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await otherUser.post('/api/auth/register').send({
+        email: 'other-payment-user@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
       const res = await otherUser
-        .post("/api/payments")
-        .send({ orderId: order.id, paymentMethod: "bank" });
+        .post('/api/payments')
+        .send({ orderId: order.id, paymentMethod: 'bank' });
 
       expect(res.status).toBe(404);
-      expect(res.body).toMatchObject({ message: "Order not found" });
+      expect(res.body).toMatchObject({ message: 'Order not found' });
     });
 
-    it("marks an order shipped from a verified Stripe payment_intent.succeeded webhook", async () => {
+    it('marks an order shipped from a verified Stripe payment_intent.succeeded webhook', async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      const webhookSecret = "whsec_test_123";
+      const webhookSecret = 'whsec_test_123';
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
       const payload = JSON.stringify({
-        id: "evt_test_1",
-        type: "payment_intent.succeeded",
+        id: 'evt_test_1',
+        type: 'payment_intent.succeeded',
         data: {
           object: {
-            id: "pi_test_123",
-            status: "succeeded",
+            id: 'pi_test_123',
+            status: 'succeeded',
             metadata: { orderId: order.id },
           },
         },
@@ -690,9 +676,9 @@ describe("auth endpoints", () => {
 
       try {
         const res = await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(payload, webhookSecret))
           .send(payload);
 
         expect(res.status).toBe(200);
@@ -700,25 +686,25 @@ describe("auth endpoints", () => {
         const orderRes = await agent.get(`/api/orders/${order.id}`);
         expect(orderRes.body.order).toMatchObject({
           id: order.id,
-          status: "shipped",
+          status: 'shipped',
         });
       } finally {
-        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+        restoreEnv('STRIPE_WEBHOOK_SECRET', originalSecret);
       }
     });
 
-    it("keeps failed Stripe orders visible by marking them cancelled", async () => {
+    it('keeps failed Stripe orders visible by marking them cancelled', async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      const webhookSecret = "whsec_test_123";
+      const webhookSecret = 'whsec_test_123';
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
       const payload = JSON.stringify({
-        id: "evt_test_2",
-        type: "payment_intent.payment_failed",
+        id: 'evt_test_2',
+        type: 'payment_intent.payment_failed',
         data: {
           object: {
-            id: "pi_test_123",
-            status: "requires_payment_method",
+            id: 'pi_test_123',
+            status: 'requires_payment_method',
             metadata: { orderId: order.id },
           },
         },
@@ -727,34 +713,34 @@ describe("auth endpoints", () => {
 
       try {
         const res = await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(payload, webhookSecret))
           .send(payload);
 
         expect(res.status).toBe(200);
         const orderRes = await agent.get(`/api/orders/${order.id}`);
         expect(orderRes.body.order).toMatchObject({
           id: order.id,
-          status: "cancelled",
+          status: 'cancelled',
         });
       } finally {
-        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+        restoreEnv('STRIPE_WEBHOOK_SECRET', originalSecret);
       }
     });
 
-    it("accepts duplicate Stripe webhook event IDs without reprocessing", async () => {
+    it('accepts duplicate Stripe webhook event IDs without reprocessing', async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      const webhookSecret = "whsec_test_123";
+      const webhookSecret = 'whsec_test_123';
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
       const payload = JSON.stringify({
-        id: "evt_duplicate_1",
-        type: "payment_intent.succeeded",
+        id: 'evt_duplicate_1',
+        type: 'payment_intent.succeeded',
         data: {
           object: {
-            id: "pi_duplicate_123",
-            status: "succeeded",
+            id: 'pi_duplicate_123',
+            status: 'succeeded',
             metadata: { orderId: order.id },
           },
         },
@@ -763,18 +749,18 @@ describe("auth endpoints", () => {
 
       try {
         const first = await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(payload, webhookSecret))
           .send(payload);
         const second = await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(payload, webhookSecret))
           .send(payload);
         const eventRows = await query(
-          "SELECT id, processing_status FROM stripe_webhook_events WHERE id = $1",
-          ["evt_duplicate_1"],
+          'SELECT id, processing_status FROM stripe_webhook_events WHERE id = $1',
+          ['evt_duplicate_1']
         );
         const orderRes = await agent.get(`/api/orders/${order.id}`);
 
@@ -783,51 +769,51 @@ describe("auth endpoints", () => {
         expect(second.body).toMatchObject({ received: true, duplicate: true });
         expect(eventRows.rows).toHaveLength(1);
         expect(eventRows.rows[0]).toMatchObject({
-          id: "evt_duplicate_1",
-          processing_status: "processed",
+          id: 'evt_duplicate_1',
+          processing_status: 'processed',
         });
-        expect(orderRes.body.order.status).toBe("shipped");
+        expect(orderRes.body.order.status).toBe('shipped');
       } finally {
-        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+        restoreEnv('STRIPE_WEBHOOK_SECRET', originalSecret);
       }
     });
 
-    it("does not downgrade shipped or delivered orders from later Stripe failure events", async () => {
+    it('does not downgrade shipped or delivered orders from later Stripe failure events', async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      const webhookSecret = "whsec_test_123";
+      const webhookSecret = 'whsec_test_123';
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
       process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
 
       const successPayload = JSON.stringify({
-        id: "evt_success_before_failure",
-        type: "payment_intent.succeeded",
+        id: 'evt_success_before_failure',
+        type: 'payment_intent.succeeded',
         data: {
           object: {
-            id: "pi_guarded_123",
-            status: "succeeded",
+            id: 'pi_guarded_123',
+            status: 'succeeded',
             metadata: { orderId: order.id },
           },
         },
       });
       const failedPayload = JSON.stringify({
-        id: "evt_failure_after_success",
-        type: "payment_intent.payment_failed",
+        id: 'evt_failure_after_success',
+        type: 'payment_intent.payment_failed',
         data: {
           object: {
-            id: "pi_guarded_123",
-            status: "requires_payment_method",
+            id: 'pi_guarded_123',
+            status: 'requires_payment_method',
             metadata: { orderId: order.id },
           },
         },
       });
       const deliveredFailurePayload = JSON.stringify({
-        id: "evt_failure_after_delivered",
-        type: "payment_intent.canceled",
+        id: 'evt_failure_after_delivered',
+        type: 'payment_intent.canceled',
         data: {
           object: {
-            id: "pi_guarded_123",
-            status: "canceled",
+            id: 'pi_guarded_123',
+            status: 'canceled',
             metadata: { orderId: order.id },
           },
         },
@@ -835,59 +821,54 @@ describe("auth endpoints", () => {
 
       try {
         await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(successPayload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(successPayload, webhookSecret))
           .send(successPayload);
         await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(failedPayload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(failedPayload, webhookSecret))
           .send(failedPayload);
         let orderRes = await agent.get(`/api/orders/${order.id}`);
-        expect(orderRes.body.order.status).toBe("shipped");
+        expect(orderRes.body.order.status).toBe('shipped');
 
-        await query("UPDATE orders SET status = 'delivered' WHERE id = $1", [
-          order.id,
-        ]);
+        await query("UPDATE orders SET status = 'delivered' WHERE id = $1", [order.id]);
         await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set(
-            "stripe-signature",
-            stripeSignature(deliveredFailurePayload, webhookSecret),
-          )
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(deliveredFailurePayload, webhookSecret))
           .send(deliveredFailurePayload);
         orderRes = await agent.get(`/api/orders/${order.id}`);
-        expect(orderRes.body.order.status).toBe("delivered");
+        expect(orderRes.body.order.status).toBe('delivered');
       } finally {
-        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+        restoreEnv('STRIPE_WEBHOOK_SECRET', originalSecret);
       }
     });
 
-    it("promotes a cancelled Stripe order when a later succeeded event arrives", async () => {
+    it('promotes a cancelled Stripe order when a later succeeded event arrives', async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      const webhookSecret = "whsec_test_123";
+      const webhookSecret = 'whsec_test_123';
       const agent = request.agent(testApp);
       const order = await createOrderForAgent(agent);
       const failedPayload = JSON.stringify({
-        id: "evt_failure_before_success",
-        type: "payment_intent.payment_failed",
+        id: 'evt_failure_before_success',
+        type: 'payment_intent.payment_failed',
         data: {
           object: {
-            id: "pi_late_success_123",
-            status: "requires_payment_method",
+            id: 'pi_late_success_123',
+            status: 'requires_payment_method',
             metadata: { orderId: order.id },
           },
         },
       });
       const successPayload = JSON.stringify({
-        id: "evt_late_success",
-        type: "payment_intent.succeeded",
+        id: 'evt_late_success',
+        type: 'payment_intent.succeeded',
         data: {
           object: {
-            id: "pi_late_success_123",
-            status: "succeeded",
+            id: 'pi_late_success_123',
+            status: 'succeeded',
             metadata: { orderId: order.id },
           },
         },
@@ -896,35 +877,35 @@ describe("auth endpoints", () => {
 
       try {
         await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(failedPayload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(failedPayload, webhookSecret))
           .send(failedPayload);
         let orderRes = await agent.get(`/api/orders/${order.id}`);
-        expect(orderRes.body.order.status).toBe("cancelled");
+        expect(orderRes.body.order.status).toBe('cancelled');
 
         await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(successPayload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(successPayload, webhookSecret))
           .send(successPayload);
         orderRes = await agent.get(`/api/orders/${order.id}`);
-        expect(orderRes.body.order.status).toBe("shipped");
+        expect(orderRes.body.order.status).toBe('shipped');
       } finally {
-        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+        restoreEnv('STRIPE_WEBHOOK_SECRET', originalSecret);
       }
     });
 
-    it("records Stripe events with missing order metadata and returns received", async () => {
+    it('records Stripe events with missing order metadata and returns received', async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      const webhookSecret = "whsec_test_123";
+      const webhookSecret = 'whsec_test_123';
       const payload = JSON.stringify({
-        id: "evt_missing_order_metadata",
-        type: "payment_intent.succeeded",
+        id: 'evt_missing_order_metadata',
+        type: 'payment_intent.succeeded',
         data: {
           object: {
-            id: "pi_missing_order_123",
-            status: "succeeded",
+            id: 'pi_missing_order_123',
+            status: 'succeeded',
             metadata: {},
           },
         },
@@ -933,103 +914,103 @@ describe("auth endpoints", () => {
 
       try {
         const res = await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", stripeSignature(payload, webhookSecret))
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', stripeSignature(payload, webhookSecret))
           .send(payload);
         const eventRows = await query(
           `SELECT id, event_type, payment_intent_id, order_id, processing_status
            FROM stripe_webhook_events
            WHERE id = $1`,
-          ["evt_missing_order_metadata"],
+          ['evt_missing_order_metadata']
         );
 
         expect(res.status).toBe(200);
         expect(res.body).toMatchObject({ received: true });
         expect(eventRows.rows).toHaveLength(1);
         expect(eventRows.rows[0]).toMatchObject({
-          id: "evt_missing_order_metadata",
-          event_type: "payment_intent.succeeded",
-          payment_intent_id: "pi_missing_order_123",
+          id: 'evt_missing_order_metadata',
+          event_type: 'payment_intent.succeeded',
+          payment_intent_id: 'pi_missing_order_123',
           order_id: null,
-          processing_status: "skipped",
+          processing_status: 'skipped',
         });
       } finally {
-        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+        restoreEnv('STRIPE_WEBHOOK_SECRET', originalSecret);
       }
     });
 
-    it("rejects Stripe webhooks with invalid signatures", async () => {
+    it('rejects Stripe webhooks with invalid signatures', async () => {
       const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
       const payload = JSON.stringify({
-        type: "payment_intent.succeeded",
-        data: { object: { metadata: { orderId: "order-1" } } },
+        type: 'payment_intent.succeeded',
+        data: { object: { metadata: { orderId: 'order-1' } } },
       });
-      process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_123";
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_123';
 
       try {
         const res = await request(testApp)
-          .post("/api/webhooks/stripe")
-          .set("Content-Type", "application/json")
-          .set("stripe-signature", "t=1780000000,v1=bad")
+          .post('/api/webhooks/stripe')
+          .set('Content-Type', 'application/json')
+          .set('stripe-signature', 't=1780000000,v1=bad')
           .send(payload);
 
         expect(res.status).toBe(400);
         expect(res.body).toMatchObject({
-          message: "Stripe signature verification failed",
+          message: 'Stripe signature verification failed',
         });
       } finally {
-        restoreEnv("STRIPE_WEBHOOK_SECRET", originalSecret);
+        restoreEnv('STRIPE_WEBHOOK_SECRET', originalSecret);
       }
     });
   });
 
-  describe("admin order detail endpoints", () => {
+  describe('admin order detail endpoints', () => {
     const billing = {
-      firstName: "Admin",
-      lastName: "Review",
-      streetAddress: "123 Maple Drive",
-      townCity: "Townsville",
-      phone: "555-0123",
-      email: "admin-order@example.com",
+      firstName: 'Admin',
+      lastName: 'Review',
+      streetAddress: '123 Maple Drive',
+      townCity: 'Townsville',
+      phone: '555-0123',
+      email: 'admin-order@example.com',
     };
 
-    async function createAdminAgent(email = `admin-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`) {
+    async function createAdminAgent(
+      email = `admin-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+    ) {
       const agent = request.agent(testApp);
-      const registerRes = await agent.post("/api/auth/register").send({
+      const registerRes = await agent.post('/api/auth/register').send({
         email,
-        password: "password123",
-        confirmPassword: "password123",
+        password: 'password123',
+        confirmPassword: 'password123',
       });
       expect(registerRes.status).toBe(201);
-      await query("UPDATE users SET role = 'admin' WHERE id = $1", [
-        registerRes.body.user.id,
-      ]);
+      await query("UPDATE users SET role = 'admin' WHERE id = $1", [registerRes.body.user.id]);
       return agent;
     }
 
     async function createCustomerOrder() {
       const agent = request.agent(testApp);
-      await agent.post("/api/auth/register").send({
+      await agent.post('/api/auth/register').send({
         email: `customer-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-        password: "password123",
-        confirmPassword: "password123",
+        password: 'password123',
+        confirmPassword: 'password123',
       });
-      await agent.post("/api/cart/items").send({
-        productId: "havic-gamepad",
+      await agent.post('/api/cart/items').send({
+        productId: 'havic-gamepad',
         quantity: 1,
-        selectedColor: "#db4444",
-        selectedSize: "M",
+        selectedColor: '#db4444',
+        selectedSize: 'M',
       });
-      const orderRes = await agent.post("/api/orders").send({
+      const orderRes = await agent.post('/api/orders').send({
         billing,
-        paymentMethod: "bank",
+        paymentMethod: 'bank',
       });
       expect(orderRes.status).toBe(201);
       return { agent, order: orderRes.body.order };
     }
 
-    it("lets admins fetch an order detail", async () => {
+    it('lets admins fetch an order detail', async () => {
       const admin = await createAdminAgent();
       const { order } = await createCustomerOrder();
 
@@ -1039,43 +1020,43 @@ describe("auth endpoints", () => {
       expect(res.body.order).toMatchObject({
         id: order.id,
         customerEmail: expect.any(String),
-        internalNote: "",
+        internalNote: '',
       });
     });
 
-    it("rejects non-admin reads and writes", async () => {
+    it('rejects non-admin reads and writes', async () => {
       const { agent, order } = await createCustomerOrder();
 
       const getRes = await agent.get(`/api/admin/orders/${order.id}`);
       const patchRes = await agent
         .patch(`/api/admin/orders/${order.id}`)
-        .send({ internalNote: "Private note" });
+        .send({ internalNote: 'Private note' });
 
       expect(getRes.status).toBe(403);
       expect(patchRes.status).toBe(403);
     });
 
-    it("lets admins patch status and internal note without leaking notes to customers", async () => {
+    it('lets admins patch status and internal note without leaking notes to customers', async () => {
       const admin = await createAdminAgent();
       const { agent: customer, order } = await createCustomerOrder();
 
       const res = await admin.patch(`/api/admin/orders/${order.id}`).send({
-        status: "delivered",
-        internalNote: "Customer confirmed delivery by phone.",
+        status: 'delivered',
+        internalNote: 'Customer confirmed delivery by phone.',
       });
       const customerRes = await customer.get(`/api/orders/${order.id}`);
 
       expect(res.status).toBe(200);
       expect(res.body.order).toMatchObject({
         id: order.id,
-        status: "delivered",
-        internalNote: "Customer confirmed delivery by phone.",
+        status: 'delivered',
+        internalNote: 'Customer confirmed delivery by phone.',
       });
       expect(customerRes.status).toBe(200);
-      expect(customerRes.body.order).not.toHaveProperty("internalNote");
+      expect(customerRes.body.order).not.toHaveProperty('internalNote');
     });
 
-    it("rejects empty admin order patches", async () => {
+    it('rejects empty admin order patches', async () => {
       const admin = await createAdminAgent();
       const { order } = await createCustomerOrder();
 
@@ -1083,57 +1064,59 @@ describe("auth endpoints", () => {
 
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
-        message: "No admin order updates provided",
+        message: 'No admin order updates provided',
       });
     });
   });
 
-  describe("admin product variant endpoints", () => {
-    async function createAdminAgent(email = `variant-admin-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`) {
+  describe('admin product variant endpoints', () => {
+    async function createAdminAgent(
+      email = `variant-admin-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+    ) {
       const agent = request.agent(testApp);
-      const registerRes = await agent.post("/api/auth/register").send({
+      const registerRes = await agent.post('/api/auth/register').send({
         email,
-        password: "password123",
-        confirmPassword: "password123",
+        password: 'password123',
+        confirmPassword: 'password123',
       });
       expect(registerRes.status).toBe(201);
-      await query("UPDATE users SET role = 'admin' WHERE id = $1", [
-        registerRes.body.user.id,
-      ]);
+      await query("UPDATE users SET role = 'admin' WHERE id = $1", [registerRes.body.user.id]);
       return agent;
     }
 
-    async function createCustomerAgent(email = `variant-customer-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`) {
+    async function createCustomerAgent(
+      email = `variant-customer-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+    ) {
       const agent = request.agent(testApp);
-      const registerRes = await agent.post("/api/auth/register").send({
+      const registerRes = await agent.post('/api/auth/register').send({
         email,
-        password: "password123",
-        confirmPassword: "password123",
+        password: 'password123',
+        confirmPassword: 'password123',
       });
       expect(registerRes.status).toBe(201);
       return agent;
     }
 
-    it("lets admins list and save product variants", async () => {
+    it('lets admins list and save product variants', async () => {
       const admin = await createAdminAgent();
-      const listRes = await admin.get("/api/admin/products/havic-gamepad/variants");
+      const listRes = await admin.get('/api/admin/products/havic-gamepad/variants');
       expect(listRes.status).toBe(200);
       expect(listRes.body.variants.length).toBeGreaterThan(0);
 
       const existing = listRes.body.variants[0];
-      const saveRes = await admin.put("/api/admin/products/havic-gamepad/variants").send({
+      const saveRes = await admin.put('/api/admin/products/havic-gamepad/variants').send({
         variants: [
           {
             id: existing.id,
             color: existing.color,
             size: existing.size,
-            sku: "API-GAMEPAD-1",
+            sku: 'API-GAMEPAD-1',
             stock: 5,
           },
           {
-            color: "#222222",
-            size: "XL",
-            sku: "API-GAMEPAD-2",
+            color: '#222222',
+            size: 'XL',
+            sku: 'API-GAMEPAD-2',
             stock: 9,
           },
         ],
@@ -1143,17 +1126,17 @@ describe("auth endpoints", () => {
       expect(saveRes.body.variants).toHaveLength(2);
       expect(saveRes.body.variants).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ sku: "API-GAMEPAD-1", stock: 5 }),
-          expect.objectContaining({ color: "#222222", size: "XL", sku: "API-GAMEPAD-2", stock: 9 }),
-        ]),
+          expect.objectContaining({ sku: 'API-GAMEPAD-1', stock: 5 }),
+          expect.objectContaining({ color: '#222222', size: 'XL', sku: 'API-GAMEPAD-2', stock: 9 }),
+        ])
       );
     });
 
-    it("protects product variants from non-admin users", async () => {
+    it('protects product variants from non-admin users', async () => {
       const customer = await createCustomerAgent();
 
-      const getRes = await customer.get("/api/admin/products/havic-gamepad/variants");
-      const putRes = await customer.put("/api/admin/products/havic-gamepad/variants").send({
+      const getRes = await customer.get('/api/admin/products/havic-gamepad/variants');
+      const putRes = await customer.put('/api/admin/products/havic-gamepad/variants').send({
         variants: [],
       });
 
@@ -1161,165 +1144,165 @@ describe("auth endpoints", () => {
       expect(putRes.status).toBe(403);
     });
 
-    it("validates product variant payloads and deletes variants", async () => {
+    it('validates product variant payloads and deletes variants', async () => {
       const admin = await createAdminAgent();
 
-      const invalidRes = await admin.put("/api/admin/products/havic-gamepad/variants").send({
-        variants: [{ color: "#db4444", size: "M", stock: -2 }],
+      const invalidRes = await admin.put('/api/admin/products/havic-gamepad/variants').send({
+        variants: [{ color: '#db4444', size: 'M', stock: -2 }],
       });
       expect(invalidRes.status).toBe(400);
       expect(invalidRes.body).toMatchObject({
-        message: "Stock must be a non-negative integer",
+        message: 'Stock must be a non-negative integer',
       });
 
-      const missingProductRes = await admin.get("/api/admin/products/missing-product/variants");
+      const missingProductRes = await admin.get('/api/admin/products/missing-product/variants');
       expect(missingProductRes.status).toBe(404);
 
-      const listRes = await admin.get("/api/admin/products/havic-gamepad/variants");
+      const listRes = await admin.get('/api/admin/products/havic-gamepad/variants');
       expect(listRes.body.variants.length).toBeGreaterThan(0);
       const variantPath = encodeURIComponent(listRes.body.variants[0].id);
-      const deleteRes = await admin.delete(`/api/admin/products/havic-gamepad/variants/${variantPath}`);
-      const deleteAgainRes = await admin.delete(`/api/admin/products/havic-gamepad/variants/${variantPath}`);
+      const deleteRes = await admin.delete(
+        `/api/admin/products/havic-gamepad/variants/${variantPath}`
+      );
+      const deleteAgainRes = await admin.delete(
+        `/api/admin/products/havic-gamepad/variants/${variantPath}`
+      );
 
       expect(deleteRes.status).toBe(200);
       expect(deleteAgainRes.status).toBe(404);
-      expect(deleteAgainRes.body).toMatchObject({ message: "Variant not found" });
+      expect(deleteAgainRes.body).toMatchObject({ message: 'Variant not found' });
     });
   });
 
-  describe("GET /api/me", () => {
-    it("returns current user when authenticated", async () => {
+  describe('GET /api/me', () => {
+    it('returns current user when authenticated', async () => {
       const agent = request.agent(testApp);
 
-      await agent.post("/api/auth/register").send({
-        email: "getme@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await agent.post('/api/auth/register').send({
+        email: 'getme@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
-      const meRes = await agent.get("/api/me");
+      const meRes = await agent.get('/api/me');
 
       expect(meRes.status).toBe(200);
       expect(meRes.body.user).toMatchObject({
-        email: "getme@example.com",
-        role: "customer",
+        email: 'getme@example.com',
+        role: 'customer',
       });
     });
 
-    it("returns 401 when not authenticated", async () => {
-      const res = await request(testApp).get("/api/me");
+    it('returns 401 when not authenticated', async () => {
+      const res = await request(testApp).get('/api/me');
 
       expect(res.status).toBe(401);
       expect(res.body).toMatchObject({
-        message: expect.stringContaining("Authentication required"),
+        message: expect.stringContaining('Authentication required'),
       });
     });
   });
 
-  describe("PATCH /api/me", () => {
-    it("updates user profile when authenticated", async () => {
+  describe('PATCH /api/me', () => {
+    it('updates user profile when authenticated', async () => {
       const agent = request.agent(testApp);
 
-      await agent.post("/api/auth/register").send({
-        email: "patchme@example.com",
-        password: "password123",
-        confirmPassword: "password123",
-        firstName: "Original",
+      await agent.post('/api/auth/register').send({
+        email: 'patchme@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+        firstName: 'Original',
       });
 
       const patchRes = await agent
-        .patch("/api/me")
-        .send({ firstName: "Updated", lastName: "Name" });
+        .patch('/api/me')
+        .send({ firstName: 'Updated', lastName: 'Name' });
 
       expect(patchRes.status).toBe(200);
       expect(patchRes.body.user).toMatchObject({
-        firstName: "Updated",
-        lastName: "Name",
-        email: "patchme@example.com",
+        firstName: 'Updated',
+        lastName: 'Name',
+        email: 'patchme@example.com',
       });
     });
 
-    it("returns 401 when not authenticated", async () => {
-      const res = await request(testApp)
-        .patch("/api/me")
-        .send({ firstName: "Updated" });
+    it('returns 401 when not authenticated', async () => {
+      const res = await request(testApp).patch('/api/me').send({ firstName: 'Updated' });
 
       expect(res.status).toBe(401);
     });
 
-    it("requires current password for password changes", async () => {
+    it('requires current password for password changes', async () => {
       const agent = request.agent(testApp);
 
-      await agent.post("/api/auth/register").send({
-        email: "pwchange@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await agent.post('/api/auth/register').send({
+        email: 'pwchange@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
-      const patchRes = await agent.patch("/api/me").send({
-        newPassword: "newpassword123",
-        confirmPassword: "newpassword123",
+      const patchRes = await agent.patch('/api/me').send({
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
       });
 
       expect(patchRes.status).toBe(400);
       expect(patchRes.body).toMatchObject({
-        message: expect.stringContaining("Current password"),
+        message: expect.stringContaining('Current password'),
       });
     });
 
-    it("updates password when current password is correct", async () => {
+    it('updates password when current password is correct', async () => {
       const agent = request.agent(testApp);
 
-      await agent.post("/api/auth/register").send({
-        email: "pwupdate@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await agent.post('/api/auth/register').send({
+        email: 'pwupdate@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
-      const patchRes = await agent.patch("/api/me").send({
-        currentPassword: "password123",
-        newPassword: "newpassword456",
-        confirmPassword: "newpassword456",
+      const patchRes = await agent.patch('/api/me').send({
+        currentPassword: 'password123',
+        newPassword: 'newpassword456',
+        confirmPassword: 'newpassword456',
       });
 
       expect(patchRes.status).toBe(200);
 
       // Try to login with old password - should fail
       const oldLoginRes = await request(testApp)
-        .post("/api/auth/login")
-        .send({ email: "pwupdate@example.com", password: "password123" });
+        .post('/api/auth/login')
+        .send({ email: 'pwupdate@example.com', password: 'password123' });
       expect(oldLoginRes.status).toBe(401);
 
       // Try to login with new password - should succeed
       const newLoginRes = await request(testApp)
-        .post("/api/auth/login")
-        .send({ email: "pwupdate@example.com", password: "newpassword456" });
+        .post('/api/auth/login')
+        .send({ email: 'pwupdate@example.com', password: 'newpassword456' });
       expect(newLoginRes.status).toBe(200);
     });
 
-    it("rejects duplicate email from another user", async () => {
+    it('rejects duplicate email from another user', async () => {
       const agent1 = request.agent(testApp);
       const agent2 = request.agent(testApp);
 
-      await agent1.post("/api/auth/register").send({
-        email: "user1duplicate@example.com",
-        password: "password123",
-        confirmPassword: "password123",
+      await agent1.post('/api/auth/register').send({
+        email: 'user1duplicate@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
       });
 
-      await agent2.post("/api/auth/register").send({
-        email: "user2duplicate@example.com",
-        password: "password456",
-        confirmPassword: "password456",
+      await agent2.post('/api/auth/register').send({
+        email: 'user2duplicate@example.com',
+        password: 'password456',
+        confirmPassword: 'password456',
       });
 
-      const patchRes = await agent2
-        .patch("/api/me")
-        .send({ email: "user1duplicate@example.com" });
+      const patchRes = await agent2.patch('/api/me').send({ email: 'user1duplicate@example.com' });
 
       expect(patchRes.status).toBe(409);
       expect(patchRes.body).toMatchObject({
-        message: expect.stringContaining("already registered"),
+        message: expect.stringContaining('already registered'),
       });
     });
   });

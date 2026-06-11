@@ -1,0 +1,6 @@
+# Ignore artifacts:
+dist
+node_modules
+
+# Ignore Vite config (if you want to format it, remove this line)
+vite.config.ts

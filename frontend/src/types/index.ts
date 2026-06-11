@@ -36,11 +36,12 @@ export type Category = {
   children?: string[];
   sortOrder?: number;
   parentId?: string | null;
+  productCount?: number;
 };
 
 export type Coupon = {
   code: string;
-  type: "percent" | "fixed";
+  type: 'percent' | 'fixed';
   amount: number;
   active: boolean;
 };
@@ -106,11 +107,11 @@ export type PublicUser = {
   lastName: string;
   email: string;
   address: string;
-  role: "customer" | "admin";
+  role: 'customer' | 'admin';
 };
 
 export type Navigate = (href: string) => void;
-export type AuthStatus = "checking" | "authenticated" | "guest";
+export type AuthStatus = 'checking' | 'authenticated' | 'guest';
 
 export type AddToCart = (
   productId: string,
@@ -181,13 +182,13 @@ export type ProductImageUploadResponse = {
   };
 };
 
-export type ProductSort = "featured" | "price-asc" | "price-desc" | "rating";
+export type ProductSort = 'featured' | 'price-asc' | 'price-desc' | 'rating';
 
 export const PRODUCT_SORTS: { value: ProductSort; label: string }[] = [
-  { value: "featured", label: "Featured" },
-  { value: "price-asc", label: "Price: Low to High" },
-  { value: "price-desc", label: "Price: High to Low" },
-  { value: "rating", label: "Top Rated" }
+  { value: 'featured', label: 'Featured' },
+  { value: 'price-asc', label: 'Price: Low to High' },
+  { value: 'price-desc', label: 'Price: High to Low' },
+  { value: 'rating', label: 'Top Rated' },
 ];
 
 export type CategoriesResponse = {
@@ -231,7 +232,7 @@ export type PaymentResult = {
   id: string;
   status: string;
   method: string;
-  provider: "local" | "stripe";
+  provider: 'local' | 'stripe';
   clientSecret?: string | null;
 };
 

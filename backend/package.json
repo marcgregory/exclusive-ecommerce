@@ -10,7 +10,11 @@
     "db:migrate": "tsx src/migrate.ts",
     "db:seed": "tsx src/seed-db.ts",
     "test": "vitest run --no-file-parallelism",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --config eslint.config.cjs src --ext .ts",
+    "lint:fix": "eslint --config eslint.config.cjs src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.{js,ts,json,md}\" \"scripts/**/*.{js,ts}\" \"vitest.{config,setup}.ts\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts,json,md}\" \"scripts/**/*.{js,ts}\" \"vitest.{config,setup}.ts\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -31,9 +35,17 @@
     "@types/express-session": "^1.18.1",
     "@types/node": "^22.10.2",
     "@types/supertest": "^7.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.61.0",
+    "@typescript-eslint/parser": "^8.61.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.5.6",
+    "prettier": "^3.8.4",
     "supertest": "^7.2.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "eslint-plugin-node": "^11.1.0"
   }
 }

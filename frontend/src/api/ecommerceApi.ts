@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { API_BASE } from "./client";
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { API_BASE } from './client';
 import type {
   AdminCategoryInput,
   AdminCategoryResponse,
@@ -21,7 +21,7 @@ import type {
   ProductDetailResponse,
   ProductsResponse,
   WishlistResponse,
-} from "../types";
+} from '../types';
 
 type AddCartItemInput = {
   productId: string;
@@ -110,239 +110,264 @@ type AuthResponse = {
     firstName: string;
     lastName: string;
     address: string;
-    role: "customer" | "admin";
+    role: 'customer' | 'admin';
   };
 };
 
 const customBaseQuery = fetchBaseQuery({
   baseUrl: API_BASE,
-  credentials: "include",
+  credentials: 'include',
   prepareHeaders: (headers) => {
-    if (!headers.has("Content-Type")) {
-      headers.set("Content-Type", "application/json");
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
     }
     return headers;
   },
 });
 
 export const ecommerceApi = createApi({
-  reducerPath: "ecommerceApi",
+  reducerPath: 'ecommerceApi',
   baseQuery: customBaseQuery,
-  tagTypes: ["Catalog", "Session", "Cart", "Wishlist", "Orders", "AdminOrders", "AdminProducts", "AdminProductVariants", "AdminCoupons"],
+  tagTypes: [
+    'Catalog',
+    'Session',
+    'Cart',
+    'Wishlist',
+    'Orders',
+    'AdminOrders',
+    'AdminProducts',
+    'AdminProductVariants',
+    'AdminCoupons',
+  ],
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
-      query: () => "/api/products",
-      providesTags: ["Catalog"],
+      query: () => '/api/products',
+      providesTags: ['Catalog'],
     }),
     getFilteredProducts: builder.query<ProductsResponse, ProductsFilter>({
       query: (filters) => {
         const params = new URLSearchParams();
-        if (filters.category) params.set("category", filters.category);
-        if (filters.q) params.set("q", filters.q);
-        if (filters.flag) params.set("flag", filters.flag);
-        if (filters.sort && filters.sort !== "featured") params.set("sort", filters.sort);
-        if (filters.page) params.set("page", String(filters.page));
-        if (filters.limit) params.set("limit", String(filters.limit));
+        if (filters.category) params.set('category', filters.category);
+        if (filters.q) params.set('q', filters.q);
+        if (filters.flag) params.set('flag', filters.flag);
+        if (filters.sort && filters.sort !== 'featured') params.set('sort', filters.sort);
+        if (filters.page) params.set('page', String(filters.page));
+        if (filters.limit) params.set('limit', String(filters.limit));
         return `/api/products?${params.toString()}`;
       },
-      providesTags: ["Catalog"],
+      providesTags: ['Catalog'],
     }),
     getProductDetail: builder.query<ProductDetailResponse, string>({
       query: (id) => `/api/products/${encodeURIComponent(id)}`,
-      providesTags: ["Catalog"],
+      providesTags: ['Catalog'],
     }),
     getCategories: builder.query<CategoriesResponse, void>({
-      query: () => "/api/categories",
-      providesTags: ["Catalog"],
+      query: () => '/api/categories',
+      providesTags: ['Catalog'],
     }),
     getMe: builder.query<MeResponse, void>({
-      query: () => "/api/me",
-      providesTags: ["Session"],
+      query: () => '/api/me',
+      providesTags: ['Session'],
     }),
     getCart: builder.query<CartResponse, string | undefined>({
-      query: (coupon) => `/api/cart${coupon ? `?coupon=${encodeURIComponent(coupon)}` : ""}`,
-      providesTags: ["Cart"],
+      query: (coupon) => `/api/cart${coupon ? `?coupon=${encodeURIComponent(coupon)}` : ''}`,
+      providesTags: ['Cart'],
     }),
     getWishlist: builder.query<WishlistResponse, void>({
-      query: () => "/api/wishlist",
-      providesTags: ["Wishlist"],
+      query: () => '/api/wishlist',
+      providesTags: ['Wishlist'],
     }),
     addCartItem: builder.mutation<CartResponse, AddCartItemInput>({
-      query: (body) => ({ url: "/api/cart/items", method: "POST", body }),
-      invalidatesTags: ["Cart"],
+      query: (body) => ({ url: '/api/cart/items', method: 'POST', body }),
+      invalidatesTags: ['Cart'],
     }),
     updateCartItem: builder.mutation<CartResponse, UpdateCartItemInput>({
       query: ({ id, quantity }) => ({
         url: `/api/cart/items/${id}`,
-        method: "PATCH",
+        method: 'PATCH',
         body: { quantity },
       }),
-      invalidatesTags: ["Cart"],
+      invalidatesTags: ['Cart'],
     }),
     deleteCartItem: builder.mutation<CartResponse, string>({
-      query: (id) => ({ url: `/api/cart/items/${id}`, method: "DELETE" }),
-      invalidatesTags: ["Cart"],
+      query: (id) => ({ url: `/api/cart/items/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Cart'],
     }),
     addWishlistProduct: builder.mutation<WishlistResponse, string>({
-      query: (productId) => ({ url: `/api/wishlist/${productId}`, method: "POST" }),
-      invalidatesTags: ["Wishlist"],
+      query: (productId) => ({ url: `/api/wishlist/${productId}`, method: 'POST' }),
+      invalidatesTags: ['Wishlist'],
     }),
     deleteWishlistProduct: builder.mutation<WishlistResponse, string>({
-      query: (productId) => ({ url: `/api/wishlist/${productId}`, method: "DELETE" }),
-      invalidatesTags: ["Wishlist"],
+      query: (productId) => ({ url: `/api/wishlist/${productId}`, method: 'DELETE' }),
+      invalidatesTags: ['Wishlist'],
     }),
     createOrder: builder.mutation<OrderResponse, CreateOrderInput>({
-      query: (body) => ({ url: "/api/orders", method: "POST", body }),
-      invalidatesTags: ["Cart", "Orders"],
+      query: (body) => ({ url: '/api/orders', method: 'POST', body }),
+      invalidatesTags: ['Cart', 'Orders'],
     }),
     getOrders: builder.query<OrdersResponse, void>({
-      query: () => "/api/orders",
-      providesTags: ["Orders"],
+      query: () => '/api/orders',
+      providesTags: ['Orders'],
     }),
     getOrderDetail: builder.query<OrderResponse, string>({
       query: (id) => `/api/orders/${encodeURIComponent(id)}`,
-      providesTags: ["Orders"],
+      providesTags: ['Orders'],
     }),
     createPayment: builder.mutation<PaymentResponse, CreatePaymentInput>({
-      query: (body) => ({ url: "/api/payments", method: "POST", body }),
-      invalidatesTags: ["Cart"],
+      query: (body) => ({ url: '/api/payments', method: 'POST', body }),
+      invalidatesTags: ['Cart'],
     }),
     logout: builder.mutation<{ ok: true }, void>({
-      query: () => ({ url: "/api/auth/logout", method: "POST" }),
-      invalidatesTags: ["Session", "Cart", "Wishlist"],
+      query: () => ({ url: '/api/auth/logout', method: 'POST' }),
+      invalidatesTags: ['Session', 'Cart', 'Wishlist'],
     }),
     register: builder.mutation<AuthResponse, RegisterInput>({
-      query: (body) => ({ url: "/api/auth/register", method: "POST", body }),
-      invalidatesTags: ["Session", "Cart", "Wishlist"],
+      query: (body) => ({ url: '/api/auth/register', method: 'POST', body }),
+      invalidatesTags: ['Session', 'Cart', 'Wishlist'],
     }),
     login: builder.mutation<AuthResponse, LoginInput>({
-      query: (body) => ({ url: "/api/auth/login", method: "POST", body }),
-      invalidatesTags: ["Session", "Cart", "Wishlist"],
+      query: (body) => ({ url: '/api/auth/login', method: 'POST', body }),
+      invalidatesTags: ['Session', 'Cart', 'Wishlist'],
     }),
     updateProfile: builder.mutation<AuthResponse, UpdateProfileInput>({
-      query: (body) => ({ url: "/api/me", method: "PATCH", body }),
-      invalidatesTags: ["Session"],
+      query: (body) => ({ url: '/api/me', method: 'PATCH', body }),
+      invalidatesTags: ['Session'],
     }),
     getAdminOrders: builder.query<AdminOrdersResponse, AdminOrdersFilter | undefined>({
       query: (filters) => {
-        const params = new URLSearchParams({ limit: "50" });
-        if (filters?.status) params.set("status", filters.status);
-        if (filters?.email) params.set("email", filters.email);
+        const params = new URLSearchParams({ limit: '50' });
+        if (filters?.status) params.set('status', filters.status);
+        if (filters?.email) params.set('email', filters.email);
         return `/api/admin/orders?${params.toString()}`;
       },
-      providesTags: ["AdminOrders"],
+      providesTags: ['AdminOrders'],
     }),
     getAdminOrderDetail: builder.query<{ order: AdminOrder }, string>({
       query: (id) => `/api/admin/orders/${encodeURIComponent(id)}`,
-      providesTags: ["AdminOrders"],
+      providesTags: ['AdminOrders'],
     }),
-    updateAdminOrder: builder.mutation<{ order: AdminOrder }, { id: string; updates: AdminOrderUpdate }>({
+    updateAdminOrder: builder.mutation<
+      { order: AdminOrder },
+      { id: string; updates: AdminOrderUpdate }
+    >({
       query: ({ id, updates }) => ({
         url: `/api/admin/orders/${encodeURIComponent(id)}`,
-        method: "PATCH",
+        method: 'PATCH',
         body: updates,
       }),
-      invalidatesTags: ["AdminOrders"],
+      invalidatesTags: ['AdminOrders'],
     }),
     getAdminProducts: builder.query<AdminProductListResponse, AdminProductsFilter | undefined>({
       query: (filters) => {
-        const params = new URLSearchParams({ limit: "50" });
-        if (filters?.q) params.set("q", filters.q);
+        const params = new URLSearchParams({ limit: '50' });
+        if (filters?.q) params.set('q', filters.q);
         return `/api/admin/products?${params.toString()}`;
       },
-      providesTags: ["AdminProducts"],
+      providesTags: ['AdminProducts'],
     }),
     getAdminProductDetail: builder.query<AdminProductResponse, string>({
       query: (id) => `/api/admin/products/${encodeURIComponent(id)}`,
-      providesTags: ["AdminProducts"],
+      providesTags: ['AdminProducts'],
     }),
     createAdminProduct: builder.mutation<AdminProductResponse, AdminProductInput>({
       query: (body) => ({
-        url: "/api/admin/products",
-        method: "POST",
+        url: '/api/admin/products',
+        method: 'POST',
         body,
       }),
-      invalidatesTags: ["AdminProducts"],
+      invalidatesTags: ['AdminProducts'],
     }),
-    updateAdminProduct: builder.mutation<AdminProductResponse, { id: string; updates: Partial<AdminProductInput> }>({
+    updateAdminProduct: builder.mutation<
+      AdminProductResponse,
+      { id: string; updates: Partial<AdminProductInput> }
+    >({
       query: ({ id, updates }) => ({
         url: `/api/admin/products/${encodeURIComponent(id)}`,
-        method: "PATCH",
+        method: 'PATCH',
         body: updates,
       }),
-      invalidatesTags: ["AdminProducts"],
+      invalidatesTags: ['AdminProducts'],
     }),
     deleteAdminProduct: builder.mutation<{ ok: true }, string>({
       query: (id) => ({
         url: `/api/admin/products/${encodeURIComponent(id)}`,
-        method: "DELETE",
+        method: 'DELETE',
       }),
-      invalidatesTags: ["AdminProducts"],
+      invalidatesTags: ['AdminProducts'],
     }),
     getAdminProductVariants: builder.query<AdminProductVariantsResponse, string>({
       query: (productId) => `/api/admin/products/${encodeURIComponent(productId)}/variants`,
-      providesTags: ["AdminProductVariants"],
+      providesTags: ['AdminProductVariants'],
     }),
-    updateAdminProductVariants: builder.mutation<AdminProductVariantsResponse, { productId: string; variants: any[] }>({
+    updateAdminProductVariants: builder.mutation<
+      AdminProductVariantsResponse,
+      { productId: string; variants: any[] }
+    >({
       query: ({ productId, variants }) => ({
         url: `/api/admin/products/${encodeURIComponent(productId)}/variants`,
-        method: "PUT",
+        method: 'PUT',
         body: { variants },
       }),
-      invalidatesTags: ["AdminProductVariants"],
+      invalidatesTags: ['AdminProductVariants'],
     }),
     createAdminCategory: builder.mutation<AdminCategoryResponse, AdminCategoryInput>({
       query: (body) => ({
-        url: "/api/admin/categories",
-        method: "POST",
+        url: '/api/admin/categories',
+        method: 'POST',
         body,
       }),
-      invalidatesTags: ["Catalog"],
+      invalidatesTags: ['Catalog'],
     }),
-    updateAdminCategory: builder.mutation<AdminCategoryResponse, { id: string; updates: Partial<AdminCategoryInput> }>({
+    updateAdminCategory: builder.mutation<
+      AdminCategoryResponse,
+      { id: string; updates: Partial<AdminCategoryInput> }
+    >({
       query: ({ id, updates }) => ({
         url: `/api/admin/categories/${encodeURIComponent(id)}`,
-        method: "PATCH",
+        method: 'PATCH',
         body: updates,
       }),
-      invalidatesTags: ["Catalog"],
+      invalidatesTags: ['Catalog'],
     }),
     deleteAdminCategory: builder.mutation<{ ok: true }, string>({
       query: (id) => ({
         url: `/api/admin/categories/${encodeURIComponent(id)}`,
-        method: "DELETE",
+        method: 'DELETE',
       }),
-      invalidatesTags: ["Catalog"],
+      invalidatesTags: ['Catalog'],
     }),
     getAdminCoupons: builder.query<AdminCouponListResponse, void>({
-      query: () => "/api/admin/coupons",
-      providesTags: ["AdminCoupons"],
+      query: () => '/api/admin/coupons',
+      providesTags: ['AdminCoupons'],
     }),
     createAdminCoupon: builder.mutation<AdminCouponResponse, AdminCouponInput>({
       query: (body) => ({
-        url: "/api/admin/coupons",
-        method: "POST",
+        url: '/api/admin/coupons',
+        method: 'POST',
         body,
       }),
-      invalidatesTags: ["AdminCoupons"],
+      invalidatesTags: ['AdminCoupons'],
     }),
-    updateAdminCoupon: builder.mutation<AdminCouponResponse, { code: string; updates: Partial<AdminCouponInput> }>({
+    updateAdminCoupon: builder.mutation<
+      AdminCouponResponse,
+      { code: string; updates: Partial<AdminCouponInput> }
+    >({
       query: ({ code, updates }) => ({
         url: `/api/admin/coupons/${encodeURIComponent(code)}`,
-        method: "PATCH",
+        method: 'PATCH',
         body: updates,
       }),
-      invalidatesTags: ["AdminCoupons"],
+      invalidatesTags: ['AdminCoupons'],
     }),
     deleteAdminCoupon: builder.mutation<{ ok: true }, string>({
       query: (code) => ({
         url: `/api/admin/coupons/${encodeURIComponent(code)}`,
-        method: "DELETE",
+        method: 'DELETE',
       }),
-      invalidatesTags: ["AdminCoupons"],
+      invalidatesTags: ['AdminCoupons'],
     }),
     sendContactMessage: builder.mutation<{ message: { id: string } }, ContactInput>({
-      query: (body) => ({ url: "/api/contact", method: "POST", body }),
+      query: (body) => ({ url: '/api/contact', method: 'POST', body }),
     }),
   }),
 });
@@ -366,6 +391,7 @@ export const {
   useGetOrdersQuery,
   useGetProductDetailQuery,
   useGetProductsQuery,
+  useGetFilteredProductsQuery,
   useGetWishlistQuery,
   useLazyGetProductDetailQuery,
   useLoginMutation,

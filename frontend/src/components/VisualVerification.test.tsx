@@ -1,57 +1,57 @@
 /** @vitest-environment jsdom */
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
-import { ProductCard } from "./ProductCard";
-import { resolveProductImage } from "../lib/productUtils";
-import type { Product } from "../types";
+import { describe, it } from 'vitest';
+import { render } from '@testing-library/react';
+import { ProductCard } from './ProductCard';
+import { resolveProductImage } from '../lib/productUtils';
+import type { Product } from '../types';
 
 const mockProducts: Product[] = [
   {
-    id: "p1",
-    name: "Asset Image Product",
-    image: "/assets/products/test-asset.jpg",
-    category: "test",
-    description: "desc",
+    id: 'p1',
+    name: 'Asset Image Product',
+    image: '/assets/products/test-asset.jpg',
+    category: 'test',
+    description: 'desc',
     price: 10,
     originalPrice: 20,
     discountPercent: 50,
     rating: 5,
     reviewCount: 1,
-    stockStatus: "In Stock",
+    stockStatus: 'In Stock',
     colors: [],
     sizes: [],
     isNew: false,
     flags: [],
   },
   {
-    id: "p2",
-    name: "Upload Image Product",
-    image: "/uploads/products/test-upload.jpg",
-    category: "test",
-    description: "desc",
+    id: 'p2',
+    name: 'Upload Image Product',
+    image: '/uploads/products/test-upload.jpg',
+    category: 'test',
+    description: 'desc',
     price: 10,
     originalPrice: 20,
     discountPercent: 50,
     rating: 5,
     reviewCount: 1,
-    stockStatus: "In Stock",
+    stockStatus: 'In Stock',
     colors: [],
     sizes: [],
     isNew: false,
     flags: [],
   },
   {
-    id: "p3",
-    name: "No Image Product",
-    image: "default",
-    category: "test",
-    description: "desc",
+    id: 'p3',
+    name: 'No Image Product',
+    image: 'default',
+    category: 'test',
+    description: 'desc',
     price: 10,
     originalPrice: 20,
     discountPercent: 50,
     rating: 5,
     reviewCount: 1,
-    stockStatus: "In Stock",
+    stockStatus: 'In Stock',
     colors: [],
     sizes: [],
     isNew: false,
@@ -59,9 +59,9 @@ const mockProducts: Product[] = [
   },
 ];
 
-describe("Product Visual Proof", () => {
-  it("verifies image rendering for various product states", () => {
-    console.log("\n--- PRODUCT VISUAL VERIFICATION REPORT ---\n");
+describe('Product Visual Proof', () => {
+  it('verifies image rendering for various product states', () => {
+    console.log('\n--- PRODUCT VISUAL VERIFICATION REPORT ---\n');
 
     mockProducts.forEach((product) => {
       const { container } = render(
@@ -73,9 +73,9 @@ describe("Product Visual Proof", () => {
         />
       );
 
-      const visualDiv = container.querySelector(".product-visual");
-      const img = visualDiv?.querySelector("img");
-      const placeholders = visualDiv?.querySelectorAll("span, i, b");
+      const visualDiv = container.querySelector('.product-visual');
+      const img = visualDiv?.querySelector('img');
+      const placeholders = visualDiv?.querySelectorAll('span, i, b');
       const resolved = resolveProductImage(product);
 
       console.log(`Product: ${product.name}`);
@@ -84,11 +84,13 @@ describe("Product Visual Proof", () => {
       console.log(`Actual <img> exists: ${!!img}`);
 
       if (!img && placeholders && placeholders.length > 0) {
-        console.log(`Fallback rendering occurred because: ${!resolved ? "No valid image URL found in product data" : "Resolved path was not recognized as a URL"}`);
+        console.log(
+          `Fallback rendering occurred because: ${!resolved ? 'No valid image URL found in product data' : 'Resolved path was not recognized as a URL'}`
+        );
       } else if (img) {
-        console.log(`Network Request Target: ${img.getAttribute("src")}`);
+        console.log(`Network Request Target: ${img.getAttribute('src')}`);
       }
-      console.log("------------------------------------------\n");
+      console.log('------------------------------------------\n');
     });
   });
 });

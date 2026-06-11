@@ -1,33 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Elements,
-  PaymentElement,
-  useElements,
-  useStripe,
-} from "@stripe/react-stripe-js";
-import { loadStripe, type Stripe, type StripeElements } from "@stripe/stripe-js";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  useCreateOrderMutation,
-  useCreatePaymentMutation,
-} from "../api/ecommerceApi";
-import { Breadcrumbs } from "../components/Breadcrumbs";
-import { Button } from "../components/Button";
-import { FormField } from "../components/FormField";
-import { OrderSummary } from "../components/OrderSummary";
-import { EmptyState, ErrorState, LoadingState } from "../components/StateViews";
-import { getErrorMessage } from "../lib/errors";
-import { getRtkErrorMessage, getRtkStatus } from "../lib/rtkErrors";
-import type {
-  AuthStatus,
-  Cart,
-  Navigate,
-  RefreshCart,
-} from "../types";
+import { useEffect, useMemo, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { useCreateOrderMutation, useCreatePaymentMutation } from '../api/ecommerceApi';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Button } from '../components/Button';
+import { FormField } from '../components/FormField';
+import { OrderSummary } from '../components/OrderSummary';
+import { EmptyState, ErrorState } from '../components/StateViews';
+import { getErrorMessage } from '../lib/errors';
+import { getRtkErrorMessage, getRtkStatus } from '../lib/rtkErrors';
+import type { AuthStatus, Cart, Navigate, RefreshCart } from '../types';
+import { CheckoutSkeleton } from '../components/skeletons/CheckoutSkeleton';
 
-const pendingCheckoutStorageKey = "exclusive.pendingStripeCheckout";
+const pendingCheckoutStorageKey = 'exclusive.pendingStripeCheckout';
 
 type PendingStripeCheckout = {
   orderId: string;
@@ -36,7 +24,7 @@ type PendingStripeCheckout = {
 };
 
 function createCheckoutIdempotencyKey() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `checkout-${crypto.randomUUID()}`;
   }
   return `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -68,19 +56,19 @@ function clearPendingCheckout() {
 
 function getApiStatus(error: unknown) {
   const rtkStatus = getRtkStatus(error);
-  if (typeof rtkStatus === "number") return rtkStatus;
-  return typeof error === "object" &&
+  if (typeof rtkStatus === 'number') return rtkStatus;
+  return typeof error === 'object' &&
     error !== null &&
-    "status" in error &&
-    typeof error.status === "number"
+    'status' in error &&
+    typeof error.status === 'number'
     ? error.status
     : undefined;
 }
 
 function getCheckoutErrorMessage(error: unknown) {
   const rtkMessage = getRtkErrorMessage(error);
-  if (rtkMessage && rtkMessage !== "Request failed") return rtkMessage;
-  return getErrorMessage(error, rtkMessage || "Request failed");
+  if (rtkMessage && rtkMessage !== 'Request failed') return rtkMessage;
+  return getErrorMessage(error, rtkMessage || 'Request failed');
 }
 
 type CheckoutPageProps = {
@@ -100,22 +88,19 @@ type StripePaymentFormProps = {
 };
 
 const billingSchema = z.object({
-  firstName: z.string().trim().min(1, "First name is required"),
-  companyName: z.string().trim().optional().default(""),
-  streetAddress: z.string().trim().min(1, "Street address is required"),
-  apartment: z.string().trim().optional().default(""),
-  townCity: z.string().trim().min(1, "Town/city is required"),
-  phone: z.string().trim().min(1, "Phone is required"),
-  email: z.string().trim().email("Enter a valid email address"),
+  firstName: z.string().trim().min(1, 'First name is required'),
+  companyName: z.string().trim().optional().default(''),
+  streetAddress: z.string().trim().min(1, 'Street address is required'),
+  apartment: z.string().trim().optional().default(''),
+  townCity: z.string().trim().min(1, 'Town/city is required'),
+  phone: z.string().trim().min(1, 'Phone is required'),
+  email: z.string().trim().email('Enter a valid email address'),
 });
 
 type BillingFormInput = z.input<typeof billingSchema>;
 type BillingForm = z.output<typeof billingSchema>;
 
-function StripePaymentForm({
-  submitting,
-  onConfirm,
-}: StripePaymentFormProps) {
+function StripePaymentForm({ submitting, onConfirm }: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -129,7 +114,7 @@ function StripePaymentForm({
         }}
         disabled={submitting || !stripe || !elements}
       >
-        {submitting ? "Confirming Payment..." : "Pay Now"}
+        {submitting ? 'Confirming Payment...' : 'Pay Now'}
       </Button>
     </>
   );
@@ -147,7 +132,7 @@ export function CheckoutPage({
 }: CheckoutPageProps) {
   const [createOrder] = useCreateOrderMutation();
   const [createPayment] = useCreatePaymentMutation();
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState('');
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const {
@@ -157,49 +142,45 @@ export function CheckoutPage({
   } = useForm<BillingFormInput, unknown, BillingForm>({
     resolver: zodResolver(billingSchema),
     defaultValues: {
-      firstName: "",
-      companyName: "",
-      streetAddress: "",
-      apartment: "",
-      townCity: "",
-      phone: "",
-      email: "",
+      firstName: '',
+      companyName: '',
+      streetAddress: '',
+      apartment: '',
+      townCity: '',
+      phone: '',
+      email: '',
     },
   });
-  const [pendingStripePayment, setPendingStripePayment] =
-    useState<PendingStripeCheckout | null>(() => readPendingCheckout());
-  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
+  const [pendingStripePayment, setPendingStripePayment] = useState<PendingStripeCheckout | null>(
+    () => readPendingCheckout()
+  );
+  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
   const stripePromise = useMemo(
     () =>
-      pendingStripePayment?.clientSecret && publishableKey
-        ? loadStripe(publishableKey)
-        : null,
-    [pendingStripePayment?.clientSecret, publishableKey],
+      pendingStripePayment?.clientSecret && publishableKey ? loadStripe(publishableKey) : null,
+    [pendingStripePayment?.clientSecret, publishableKey]
   );
 
   useEffect(() => {
     if (pendingStripePayment?.clientSecret && !publishableKey) {
       setStatusIsError(true);
-      setStatus("VITE_STRIPE_PUBLISHABLE_KEY is required for Stripe checkout");
+      setStatus('VITE_STRIPE_PUBLISHABLE_KEY is required for Stripe checkout');
     }
   }, [pendingStripePayment?.clientSecret, publishableKey]);
 
   const startStripePayment = async (checkout: PendingStripeCheckout) => {
     const paymentData = await createPayment({
       orderId: checkout.orderId,
-      paymentMethod: "stripe",
+      paymentMethod: 'stripe',
     }).unwrap();
-    if (
-      paymentData.payment.provider === "stripe" &&
-      paymentData.payment.clientSecret
-    ) {
+    if (paymentData.payment.provider === 'stripe' && paymentData.payment.clientSecret) {
       const nextCheckout = {
         ...checkout,
         clientSecret: paymentData.payment.clientSecret,
       };
       setPendingStripePayment(nextCheckout);
       writePendingCheckout(nextCheckout);
-      setStatus("Enter your payment details to confirm the order.");
+      setStatus('Enter your payment details to confirm the order.');
       return true;
     }
     return false;
@@ -207,15 +188,14 @@ export function CheckoutPage({
 
   const submit = handleSubmit(async (billing) => {
     const existingCheckout = readPendingCheckout();
-    const idempotencyKey =
-      existingCheckout?.idempotencyKey || createCheckoutIdempotencyKey();
+    const idempotencyKey = existingCheckout?.idempotencyKey || createCheckoutIdempotencyKey();
     try {
       setSubmitting(true);
-      setStatus("");
+      setStatus('');
       setStatusIsError(false);
       const data = await createOrder({
         billing,
-        paymentMethod: "stripe",
+        paymentMethod: 'stripe',
         couponCode: appliedCoupon || undefined,
         idempotencyKey,
       }).unwrap();
@@ -253,7 +233,7 @@ export function CheckoutPage({
     if (!pendingStripePayment) return;
     try {
       setSubmitting(true);
-      setStatus("");
+      setStatus('');
       setStatusIsError(false);
       await startStripePayment(pendingStripePayment);
     } catch (error) {
@@ -261,7 +241,7 @@ export function CheckoutPage({
         clearPendingCheckout();
         setPendingStripePayment(null);
         setStatusIsError(true);
-        setStatus("Saved checkout session expired. Please place your order again.");
+        setStatus('Saved checkout session expired. Please place your order again.');
         return;
       }
       setStatusIsError(true);
@@ -271,28 +251,23 @@ export function CheckoutPage({
     }
   };
 
-  const confirmStripePayment = async (
-    stripe: Stripe,
-    elements: StripeElements,
-  ) => {
+  const confirmStripePayment = async (stripe: Stripe, elements: StripeElements) => {
     if (!pendingStripePayment) return;
 
     try {
       setSubmitting(true);
-      setStatus("");
+      setStatus('');
       setStatusIsError(false);
       const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/orders/${pendingStripePayment.orderId}`,
         },
-        redirect: "if_required",
+        redirect: 'if_required',
       });
-      if (result.error) throw new Error(result.error.message || "Payment failed");
-      if (result.paymentIntent?.status !== "succeeded") {
-        throw new Error(
-          `Payment is ${result.paymentIntent?.status || "not complete"}.`,
-        );
+      if (result.error) throw new Error(result.error.message || 'Payment failed');
+      if (result.paymentIntent?.status !== 'succeeded') {
+        throw new Error(`Payment is ${result.paymentIntent?.status || 'not complete'}.`);
       }
       await refreshCart();
       onCouponConsumed();
@@ -306,33 +281,24 @@ export function CheckoutPage({
     }
   };
 
-  if (authStatus === "checking" || cartLoading) {
-    return (
-      <main className="container page">
-        <LoadingState
-          title="Loading checkout"
-          message="We are checking your cart before checkout."
-        />
-      </main>
-    );
+  if (authStatus === 'checking' || cartLoading) {
+    return <CheckoutSkeleton />;
   }
 
-  if (authStatus === "guest") {
+  if (authStatus === 'guest') {
     return (
       <main className="container page">
-        <Breadcrumbs
-          items={["Account", "My Account", "Product", "View Cart", "Checkout"]}
-        />
+        <Breadcrumbs items={['Account', 'My Account', 'Product', 'View Cart', 'Checkout']} />
         <EmptyState
           title="Sign in to checkout"
           message="Create an account or sign in before placing an order."
           action={{
-            label: "Sign In or Register",
-            onClick: () => navigate("/account"),
+            label: 'Sign In or Register',
+            onClick: () => navigate('/account'),
           }}
           secondaryAction={{
-            label: "Return To Shop",
-            onClick: () => navigate("/"),
+            label: 'Return To Shop',
+            onClick: () => navigate('/'),
           }}
         />
       </main>
@@ -342,16 +308,14 @@ export function CheckoutPage({
   if (cartError) {
     return (
       <main className="container page">
-        <Breadcrumbs
-          items={["Account", "My Account", "Product", "View Cart", "Checkout"]}
-        />
+        <Breadcrumbs items={['Account', 'My Account', 'Product', 'View Cart', 'Checkout']} />
         <ErrorState
           title="Checkout is not available yet"
           message={cartError}
-          action={{ label: "Try Again", onClick: () => refreshCart() }}
+          action={{ label: 'Try Again', onClick: () => refreshCart() }}
           secondaryAction={{
-            label: "Return To Shop",
-            onClick: () => navigate("/"),
+            label: 'Return To Shop',
+            onClick: () => navigate('/'),
           }}
         />
       </main>
@@ -361,13 +325,11 @@ export function CheckoutPage({
   if (!cart.items.length && !pendingStripePayment) {
     return (
       <main className="container page">
-        <Breadcrumbs
-          items={["Account", "My Account", "Product", "View Cart", "Checkout"]}
-        />
+        <Breadcrumbs items={['Account', 'My Account', 'Product', 'View Cart', 'Checkout']} />
         <EmptyState
           title="Your cart is empty"
           message="Add items to your cart before starting checkout."
-          action={{ label: "Return To Shop", onClick: () => navigate("/") }}
+          action={{ label: 'Return To Shop', onClick: () => navigate('/') }}
         />
       </main>
     );
@@ -375,34 +337,26 @@ export function CheckoutPage({
 
   return (
     <main className="container page">
-      <Breadcrumbs
-        items={["Account", "My Account", "Product", "View Cart", "Checkout"]}
-      />
+      <Breadcrumbs items={['Account', 'My Account', 'Product', 'View Cart', 'Checkout']} />
       <h1 className="page-title">Billing Details</h1>
       <form className="checkout-form" onSubmit={submit}>
         <div className="form-grid">
           {[
-            "firstName",
-            "companyName",
-            "streetAddress",
-            "apartment",
-            "townCity",
-            "phone",
-            "email",
+            'firstName',
+            'companyName',
+            'streetAddress',
+            'apartment',
+            'townCity',
+            'phone',
+            'email',
           ].map((name) => (
             <FormField
               key={name}
               name={name}
-              label={name.replace(/([A-Z])/g, " $1")}
+              label={name.replace(/([A-Z])/g, ' $1')}
               register={register(name as keyof BillingFormInput)}
               error={errors[name as keyof BillingFormInput]?.message}
-              required={[
-                "firstName",
-                "streetAddress",
-                "townCity",
-                "phone",
-                "email",
-              ].includes(name)}
+              required={['firstName', 'streetAddress', 'townCity', 'phone', 'email'].includes(name)}
             />
           ))}
         </div>
@@ -411,9 +365,7 @@ export function CheckoutPage({
             <OrderSummary cart={cart} />
           ) : (
             <div className="stripe-payment-panel">
-              <p className="form-status">
-                Your order is waiting for payment confirmation.
-              </p>
+              <p className="form-status">Your order is waiting for payment confirmation.</p>
             </div>
           )}
           {pendingStripePayment && (
@@ -423,31 +375,20 @@ export function CheckoutPage({
                   stripe={stripePromise}
                   options={{ clientSecret: pendingStripePayment.clientSecret }}
                 >
-                  <StripePaymentForm
-                    submitting={submitting}
-                    onConfirm={confirmStripePayment}
-                  />
+                  <StripePaymentForm submitting={submitting} onConfirm={confirmStripePayment} />
                 </Elements>
               ) : pendingStripePayment.clientSecret ? null : (
-                <Button
-                  type="button"
-                  onClick={retryStripePaymentSetup}
-                  disabled={submitting}
-                >
-                  {submitting ? "Resuming Payment..." : "Resume Payment"}
+                <Button type="button" onClick={retryStripePaymentSetup} disabled={submitting}>
+                  {submitting ? 'Resuming Payment...' : 'Resume Payment'}
                 </Button>
               )}
             </div>
           )}
           <Button type="submit" disabled={submitting || !!pendingStripePayment}>
-            {submitting ? "Placing Order..." : "Place Order"}
+            {submitting ? 'Placing Order...' : 'Place Order'}
           </Button>
           {status && (
-            <p
-              className={`form-status ${statusIsError ? "form-status--error" : ""}`}
-            >
-              {status}
-            </p>
+            <p className={`form-status ${statusIsError ? 'form-status--error' : ''}`}>{status}</p>
           )}
         </div>
       </form>

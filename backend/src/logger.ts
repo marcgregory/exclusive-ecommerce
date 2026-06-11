@@ -1,4 +1,4 @@
-type LogLevel = "info" | "error";
+type LogLevel = 'info' | 'error';
 
 type LogFields = Record<string, unknown>;
 
@@ -10,7 +10,7 @@ function writeLog(level: LogLevel, event: string, fields: LogFields = {}) {
     ...fields,
   };
   const serialized = JSON.stringify(payload);
-  if (level === "error") {
+  if (level === 'error') {
     console.error(serialized);
     return;
   }
@@ -18,11 +18,11 @@ function writeLog(level: LogLevel, event: string, fields: LogFields = {}) {
 }
 
 export function logInfo(event: string, fields?: LogFields) {
-  writeLog("info", event, fields);
+  writeLog('info', event, fields);
 }
 
 export function logError(event: string, fields?: LogFields) {
-  writeLog("error", event, fields);
+  writeLog('error', event, fields);
 }
 
 export function getErrorLogFields(error: unknown): LogFields {

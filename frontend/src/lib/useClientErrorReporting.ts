@@ -1,26 +1,26 @@
-import { useEffect } from "react";
-import { reportClientError } from "./monitoring";
+import { useEffect } from 'react';
+import { reportClientError } from './monitoring';
 
 export function useClientErrorReporting() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       reportClientError(event.error || event.message, {
-        source: "window.error",
+        source: 'window.error',
       });
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       reportClientError(event.reason, {
-        source: "window.unhandledrejection",
+        source: 'window.unhandledrejection',
       });
     };
 
-    window.addEventListener("error", handleError);
-    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     return () => {
-      window.removeEventListener("error", handleError);
-      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
 }

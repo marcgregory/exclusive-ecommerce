@@ -1,90 +1,90 @@
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { Provider } from "react-redux";
-import { AdminOrdersPage } from "./AdminOrdersPage";
-import { store } from "../app/store";
-import * as ecommerceApiModule from "../api/ecommerceApi";
-import type { AdminOrder, PublicUser } from "../types";
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Provider } from 'react-redux';
+import { AdminOrdersPage } from './AdminOrdersPage';
+import { store } from '../app/store';
+import * as ecommerceApiModule from '../api/ecommerceApi';
+import type { AdminOrder, PublicUser } from '../types';
 
 const admin: PublicUser = {
-  id: "admin-1",
-  firstName: "Ada",
-  lastName: "Admin",
-  email: "admin@example.com",
-  address: "1 Admin Way",
-  role: "admin",
+  id: 'admin-1',
+  firstName: 'Ada',
+  lastName: 'Admin',
+  email: 'admin@example.com',
+  address: '1 Admin Way',
+  role: 'admin',
 };
 
 const customer: PublicUser = {
   ...admin,
-  id: "customer-1",
-  role: "customer",
+  id: 'customer-1',
+  role: 'customer',
 };
 
 const stripeOrder: AdminOrder = {
-  id: "order-stripe-1",
-  userId: "user-1",
-  customerEmail: "buyer@example.com",
-  customerName: "Buyer Example",
+  id: 'order-stripe-1',
+  userId: 'user-1',
+  customerEmail: 'buyer@example.com',
+  customerName: 'Buyer Example',
   items: [
     {
-      id: "item-1",
-      productId: "p1",
+      id: 'item-1',
+      productId: 'p1',
       quantity: 1,
-      selectedColor: "Black",
-      selectedSize: "M",
-      name: "Classic Tee",
+      selectedColor: 'Black',
+      selectedSize: 'M',
+      name: 'Classic Tee',
       price: 2500,
     },
   ],
   billing: {
-    firstName: "Buyer",
-    lastName: "Example",
-    streetAddress: "123 Maple Drive",
-    townCity: "Townsville",
-    phone: "555-0123",
-    email: "buyer@example.com",
+    firstName: 'Buyer',
+    lastName: 'Example',
+    streetAddress: '123 Maple Drive',
+    townCity: 'Townsville',
+    phone: '555-0123',
+    email: 'buyer@example.com',
   },
-  paymentMethod: "stripe",
+  paymentMethod: 'stripe',
   subtotal: 2500,
   discount: 0,
   shipping: 500,
   total: 3000,
-  status: "processing",
-  internalNote: "",
-  createdAt: "2026-04-10T12:00:00.000Z",
+  status: 'processing',
+  internalNote: '',
+  createdAt: '2026-04-10T12:00:00.000Z',
 };
 
 function renderPage(user: PublicUser | null = admin) {
   const props = {
-    userState: { data: user, loading: false, error: "" },
+    userState: { data: user, loading: false, error: '' },
     navigate: vi.fn(),
   };
 
   const view = render(
     <Provider store={store}>
       <AdminOrdersPage {...props} />
-    </Provider>,
+    </Provider>
   );
   return { ...props, ...view };
 }
 
-describe("AdminOrdersPage", () => {
+describe('AdminOrdersPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
   });
 
-  it("requires an admin user", () => {
+  it('requires an admin user', () => {
     renderPage(customer);
 
     expect(screen.getByText(/Admin access required/i)).toBeDefined();
   });
 
-  it("loads admin orders and highlights Stripe orders that need review", async () => {
-    vi.spyOn(ecommerceApiModule, "useGetAdminOrdersQuery").mockReturnValue({
+  it('loads admin orders and highlights Stripe orders that need review', async () => {
+    vi.spyOn(ecommerceApiModule, 'useGetAdminOrdersQuery').mockReturnValue({
       data: {
         orders: [stripeOrder],
         total: 1,
@@ -98,17 +98,17 @@ describe("AdminOrdersPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("order-stripe-1")).toBeDefined();
+    expect(await screen.findByText('order-stripe-1')).toBeDefined();
     expect(screen.getByText(/buyer@example.com/i)).toBeDefined();
     expect(screen.getByText(/Stripe review/i)).toBeDefined();
-    expect(screen.getByText("Needs review")).toBeDefined();
+    expect(screen.getByText('Needs review')).toBeDefined();
   });
 
-  it("filters orders by status and customer email", async () => {
+  it('filters orders by status and customer email', async () => {
     const actor = userEvent.setup();
     const mockRefetch = vi.fn();
 
-    vi.spyOn(ecommerceApiModule, "useGetAdminOrdersQuery").mockReturnValue({
+    vi.spyOn(ecommerceApiModule, 'useGetAdminOrdersQuery').mockReturnValue({
       data: {
         orders: [],
         total: 0,
@@ -122,9 +122,9 @@ describe("AdminOrdersPage", () => {
 
     renderPage();
 
-    await actor.selectOptions(screen.getByLabelText(/Status/i), "cancelled");
-    await actor.type(screen.getByLabelText(/Customer email/i), "buyer@example.com");
-    await actor.click(screen.getByRole("button", { name: /Search/i }));
+    await actor.selectOptions(screen.getByLabelText(/Status/i), 'cancelled');
+    await actor.type(screen.getByLabelText(/Customer email/i), 'buyer@example.com');
+    await actor.click(screen.getByRole('button', { name: /Search/i }));
 
     // After status/email changes, the query should be called with new filters
     // The component will re-render and pass new filter params to the query
@@ -132,15 +132,15 @@ describe("AdminOrdersPage", () => {
       const calls = (ecommerceApiModule.useGetAdminOrdersQuery as any).mock.calls;
       const lastCall = calls[calls.length - 1];
       expect(lastCall[0]).toMatchObject({
-        status: "cancelled",
-        email: "buyer@example.com",
+        status: 'cancelled',
+        email: 'buyer@example.com',
       });
     });
   });
 
-  it("navigates to admin order details", async () => {
+  it('navigates to admin order details', async () => {
     const actor = userEvent.setup();
-    vi.spyOn(ecommerceApiModule, "useGetAdminOrdersQuery").mockReturnValue({
+    vi.spyOn(ecommerceApiModule, 'useGetAdminOrdersQuery').mockReturnValue({
       data: {
         orders: [stripeOrder],
         total: 1,
@@ -153,8 +153,8 @@ describe("AdminOrdersPage", () => {
     } as any);
     const { navigate } = renderPage();
 
-    await actor.click(await screen.findByRole("button", { name: /View Details/i }));
+    await actor.click(await screen.findByRole('button', { name: /View Details/i }));
 
-    expect(navigate).toHaveBeenCalledWith("/admin/orders/order-stripe-1");
+    expect(navigate).toHaveBeenCalledWith('/admin/orders/order-stripe-1');
   });
 });

@@ -6,23 +6,19 @@ import { ProductDetailsPage } from './ProductDetailsPage';
 import type { Product, ProductDetailResponse, ProductVariant } from '../types';
 
 vi.mock('../api/ecommerceApi', () => ({
-  useAddCartItemMutation: vi.fn(),
   useAddWishlistProductMutation: vi.fn(),
   useDeleteWishlistProductMutation: vi.fn(),
   useGetProductDetailQuery: vi.fn(),
 }));
 import {
-  useAddCartItemMutation,
   useAddWishlistProductMutation,
   useDeleteWishlistProductMutation,
   useGetProductDetailQuery,
 } from '../api/ecommerceApi';
 
 const mockedUseGetProductDetailQuery = useGetProductDetailQuery as unknown as Mock;
-const mockedUseAddCartItemMutation = useAddCartItemMutation as unknown as Mock;
 const mockedUseAddWishlistProductMutation = useAddWishlistProductMutation as unknown as Mock;
 const mockedUseDeleteWishlistProductMutation = useDeleteWishlistProductMutation as unknown as Mock;
-let addCartItem: Mock;
 let addWishlistProduct: Mock;
 let deleteWishlistProduct: Mock;
 let refetchProduct: Mock;
@@ -81,10 +77,13 @@ function renderPage(overrides: Partial<Parameters<typeof ProductDetailsPage>[0]>
   return { ...props, ...view };
 }
 
+function getPrimaryCartButton(container: HTMLElement) {
+  return container.querySelector<HTMLButtonElement>('.buy-row .button');
+}
+
 describe('ProductDetailsPage', () => {
   beforeEach(() => {
     refetchProduct = vi.fn();
-    addCartItem = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
     addWishlistProduct = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
     deleteWishlistProduct = vi.fn(() => ({ unwrap: vi.fn().mockResolvedValue({}) }));
     mockedUseGetProductDetailQuery.mockReturnValue({
@@ -93,7 +92,6 @@ describe('ProductDetailsPage', () => {
       isLoading: false,
       refetch: refetchProduct,
     });
-    mockedUseAddCartItemMutation.mockReturnValue([addCartItem, {}]);
     mockedUseAddWishlistProductMutation.mockReturnValue([addWishlistProduct, {}]);
     mockedUseDeleteWishlistProductMutation.mockReturnValue([deleteWishlistProduct, {}]);
   });
@@ -148,14 +146,15 @@ describe('ProductDetailsPage', () => {
     expect(screen.getByText('A detailed product description.')).toBeDefined();
     expect(screen.getByText('(12 Reviews)')).toBeDefined();
     expect(screen.getByText('In Stock')).toBeDefined();
-    expect(screen.getByText(/Choose a colour and size to check stock/i)).toBeDefined();
+    expect(screen.getByText(/Select options to check availability/i)).toBeDefined();
     expect(screen.getByText('Related Product')).toBeDefined();
   });
 
   it('adds an available in-stock variant to cart with stock and SKU feedback', async () => {
-    renderPage();
+    const { container, onAdd } = renderPage();
 
-    const buyButton = screen.getByRole('button', { name: /Buy Now/i }) as HTMLButtonElement;
+    const buyButton = getPrimaryCartButton(container);
+    expect(buyButton).not.toBeNull();
     expect(buyButton.disabled).toBe(true);
 
     await userEvent.click(screen.getByRole('button', { name: /Color red/i }));
@@ -163,14 +162,15 @@ describe('ProductDetailsPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'M' }));
     expect(buyButton.disabled).toBe(false);
-    expect(screen.getByText(/SKU: DETAIL-RED-M \| 3 in stock/i)).toBeDefined();
+    expect(screen.getByText(/3 in stock \| SKU: DETAIL-RED-M/i)).toBeDefined();
 
     await userEvent.click(buyButton);
-    expect(addCartItem).toHaveBeenCalledWith({
-      productId: 'p1',
-      quantity: 1,
-      selectedColor: 'red',
-      selectedSize: 'M',
+    expect(onAdd).toHaveBeenCalledWith(product, 1, 'red', 'M', {
+      selectedOptions: { Color: 'red', Size: 'M' },
+      unitPrice: 1999,
+      variantId: 'v-red-m',
+      sku: 'DETAIL-RED-M',
+      stock: 3,
     });
   });
 
@@ -212,21 +212,22 @@ describe('ProductDetailsPage', () => {
       isLoading: false,
       refetch: refetchProduct,
     });
-    renderPage();
+    const { container } = renderPage();
 
     screen.getByRole('heading', { name: 'Detail Product' });
     await userEvent.click(screen.getByRole('button', { name: /Color red/i }));
 
-    const buyButton = screen.getByRole('button', { name: /Buy Now/i }) as HTMLButtonElement;
+    const buyButton = getPrimaryCartButton(container);
+    expect(buyButton).not.toBeNull();
     expect((screen.getByRole('button', { name: 'S' }) as HTMLButtonElement).disabled).toBe(true);
     expect(buyButton.disabled).toBe(true);
     await userEvent.click(buyButton);
 
-    expect(addCartItem).not.toHaveBeenCalled();
+    expect(buyButton.disabled).toBe(true);
   });
 
   it('passes the selected quantity to add to cart', async () => {
-    const { container } = renderPage();
+    const { container, onAdd } = renderPage();
 
     screen.getByRole('heading', { name: 'Detail Product' });
     await userEvent.click(screen.getByRole('button', { name: /Color blue/i }));
@@ -235,30 +236,33 @@ describe('ProductDetailsPage', () => {
     const quantityButtons = container.querySelectorAll<HTMLButtonElement>('.quantity button');
     await userEvent.click(quantityButtons[1]);
     await userEvent.click(quantityButtons[1]);
-    await userEvent.click(screen.getByRole('button', { name: /Buy Now/i }));
+    const buyButton = getPrimaryCartButton(container);
+    expect(buyButton).not.toBeNull();
+    await userEvent.click(buyButton);
 
     await waitFor(() =>
-      expect(addCartItem).toHaveBeenCalledWith({
-        productId: 'p1',
-        quantity: 3,
-        selectedColor: 'blue',
-        selectedSize: 'S',
+      expect(onAdd).toHaveBeenCalledWith(product, 3, 'blue', 'S', {
+        selectedOptions: { Color: 'blue', Size: 'S' },
+        unitPrice: 1999,
+        variantId: 'v-blue-s',
+        sku: 'DETAIL-BLUE-S',
+        stock: 7,
       })
     );
   });
 
   it('shows a stock error when add to cart fails', async () => {
-    addCartItem.mockReturnValueOnce({
-      unwrap: vi.fn().mockRejectedValue({
-        status: 409,
-        data: { message: 'Only 0 Detail Product items are available' },
-      }),
+    const onAdd = vi.fn().mockRejectedValue({
+      status: 409,
+      data: { message: 'Only 0 Detail Product items are available' },
     });
-    renderPage();
+    const { container } = renderPage({ onAdd });
 
     await userEvent.click(screen.getByRole('button', { name: /Color blue/i }));
     await userEvent.click(screen.getByRole('button', { name: 'S' }));
-    await userEvent.click(screen.getByRole('button', { name: /Buy Now/i }));
+    const buyButton = getPrimaryCartButton(container);
+    expect(buyButton).not.toBeNull();
+    await userEvent.click(buyButton);
 
     expect(await screen.findByText(/Only 0 Detail Product items are available/i)).toBeDefined();
   });

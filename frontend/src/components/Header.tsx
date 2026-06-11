@@ -12,11 +12,12 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
-import type { Navigate, PublicUser } from '../types';
+import type { Navigate, PublicUser, AuthStatus } from '../types';
 
 type HeaderProps = {
   navigate: Navigate;
   user: PublicUser | null;
+  authStatus: AuthStatus;
   cartCount: number;
   wishlistCount: number;
   onLogout: () => Promise<void>;
@@ -26,6 +27,7 @@ type HeaderProps = {
 export function Header({
   navigate,
   user,
+  authStatus,
   cartCount,
   wishlistCount,
   onLogout,
@@ -53,7 +55,7 @@ export function Header({
     ['/admin/categories', 'Categories'],
     ['/admin/coupons', 'Coupons'],
     ['/admin/orders', 'Orders'],
-  ];
+  ] as const;
 
   const logout = async () => {
     setOpen(false);
@@ -81,8 +83,13 @@ export function Header({
                 {label}
               </button>
             ))}
-            {!user && <button onClick={() => navigate('/signup')}>Sign Up</button>}
-            {user?.role === 'admin' && (
+            {authStatus === 'unauthenticated' && (
+              <>
+                <button onClick={() => navigate('/login')}>Login</button>
+                <button onClick={() => navigate('/signup')}>Sign Up</button>
+              </>
+            )}
+            {authStatus === 'authenticated' && user?.role === 'admin' && (
               <>
                 <button
                   className="admin-trigger"
@@ -141,7 +148,7 @@ export function Header({
               <ShoppingCart size={22} />
               {cartCount > 0 && <span>{cartCount}</span>}
             </button>
-            {user ? (
+            {authStatus === 'authenticated' && user ? (
               <>
                 <div className="account-dropdown">
                   <button
@@ -213,7 +220,7 @@ export function Header({
               {label}
             </button>
           ))}
-          {user?.role === 'admin' && (
+          {authStatus === 'authenticated' && user?.role === 'admin' && (
             <>
               {/* In mobile drawer, show admin links as simple buttons */}
               {adminLinks.map(([href, label]) => (
@@ -229,7 +236,27 @@ export function Header({
               ))}
             </>
           )}
-          {user ? (
+          {authStatus === 'unauthenticated' && (
+            <>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate('/login');
+                }}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate('/signup');
+                }}
+              >
+                Sign Up
+              </button>
+            </>
+          )}
+          {authStatus === 'authenticated' && user ? (
             <>
               <button
                 onClick={() => {

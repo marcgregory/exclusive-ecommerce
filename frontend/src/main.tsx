@@ -384,6 +384,7 @@ function App() {
       <Header
         navigate={navigate}
         user={userState.data}
+        authStatus={authStatus}
         cartCount={localCart.items.reduce((sum, item) => sum + item.quantity, 0)}
         wishlistCount={wishlistCount.data}
         onLogout={handleLogout}

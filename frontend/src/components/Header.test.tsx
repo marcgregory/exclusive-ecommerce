@@ -26,6 +26,7 @@ describe('Header', () => {
       <Header
         navigate={navigate}
         user={null}
+        authStatus="unauthenticated"
         cartCount={0}
         wishlistCount={0}
         onLogout={vi.fn().mockResolvedValue(undefined)}
@@ -46,6 +47,7 @@ describe('Header', () => {
       <Header
         navigate={navigate}
         user={user}
+        authStatus="authenticated"
         cartCount={2}
         wishlistCount={1}
         onLogout={onLogout}

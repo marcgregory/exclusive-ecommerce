@@ -1,0 +1,1164 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/TO GOD BE THE GLORY/Desktop/cwm_claude_code/ecommerce/backend[39m
+
+ [32m✓[39m src/middleware.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 56[2mms[22m[39m
+ [32m✓[39m src/db.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 128[2mms[22m[39m
+ [32m✓[39m src/image-storage.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 38[2mms[22m[39m
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mruns migrations and seeds catalog data
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mruns migrations and seeds catalog data
+[22m[39mlistProducts raw rows: [
+  {
+    id: [32m'havic-gamepad'[39m,
+    name: [32m'HAVIT HV-G92 Gamepad'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-havic-gamepad.jpg'[39m
+  },
+  {
+    id: [32m'ak-keyboard'[39m,
+    name: [32m'AK-900 Wired Keyboard'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-ak-keyboard.jpg'[39m
+  },
+  {
+    id: [32m'ips-monitor'[39m,
+    name: [32m'IPS LCD Gaming Monitor'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-ips-monitor.jpg'[39m
+  },
+  {
+    id: [32m'comfort-chair'[39m,
+    name: [32m'S-Series Comfort Chair'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-comfort-chair.jpg'[39m
+  },
+  {
+    id: [32m'north-coat'[39m,
+    name: [32m'The North Coat'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-north-coat.jpg'[39m
+  },
+  {
+    id: [32m'gucci-bag'[39m,
+    name: [32m'Gucci Duffle Bag'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-gucci-bag.jpg'[39m
+  },
+  {
+    id: [32m'rgb-cooler'[39m,
+    name: [32m'RGB Liquid CPU Cooler'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-rgb-cooler.jpg'[39m
+  },
+  {
+    id: [32m'bookshelf'[39m,
+    name: [32m'Small BookShelf'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-bookshelf.jpg'[39m
+  },
+  {
+    id: [32m'breed-dog-food'[39m,
+    name: [32m'Breed Dry Dog Food'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-breed-dog-food.jpg'[39m
+  },
+  {
+    id: [32m'canon-camera'[39m,
+    name: [32m'CANON EOS DSLR Camera'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-canon-camera.jpg'[39m
+  },
+  {
+    id: [32m'gaming-laptop'[39m,
+    name: [32m'ASUS FHD Gaming Laptop'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-gaming-laptop.jpg'[39m
+  },
+  {
+    id: [32m'curology-set'[39m,
+    name: [32m'Curology Product Set'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-curology-set.jpg'[39m
+  },
+  {
+    id: [32m'kids-car'[39m,
+    name: [32m'Kids Electric Car'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-kids-car.jpg'[39m
+  },
+  {
+    id: [32m'soccer-cleats'[39m,
+    name: [32m'Jr. Zoom Soccer Cleats'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-soccer-cleats.jpg'[39m
+  },
+  {
+    id: [32m'gamepad-black'[39m,
+    name: [32m'GP11 Shooter USB Gamepad'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-gamepad-black.jpg'[39m
+  },
+  {
+    id: [32m'satin-jacket'[39m,
+    name: [32m'Quilted Satin Jacket'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-satin-jacket.jpg'[39m
+  }
+]
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mfilters, searches, sorts, and paginates products
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mfilters, searches, sorts, and paginates products
+[22m[39mlistProducts raw rows: [
+  {
+    id: [32m'ips-monitor'[39m,
+    name: [32m'IPS LCD Gaming Monitor'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-ips-monitor.jpg'[39m
+  },
+  {
+    id: [32m'rgb-cooler'[39m,
+    name: [32m'RGB Liquid CPU Cooler'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-rgb-cooler.jpg'[39m
+  }
+]
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mfilters, searches, sorts, and paginates products
+[22m[39mlistProducts raw rows: [
+  {
+    id: [32m'ak-keyboard'[39m,
+    name: [32m'AK-900 Wired Keyboard'[39m,
+    image_key: [32m'https://res.cloudinary.com/test/image/upload/mock-ak-keyboard.jpg'[39m
+  }
+]
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mcalculates cart totals from repository-backed products and coupons
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mcreates, updates, and deletes cart items
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mrejects cart quantities above available variant stock
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+ [32m✓[39m src/rate-limit.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1139[2mms[22m[39m
+   [33m[2m✓[22m[39m rate limit behavior[2m > [22mreturns 429 for auth attempts when test bypass is disabled [33m839[2mms[22m[39m
+ [32m✓[39m src/production-readiness.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 1042[2mms[22m[39m
+   [33m[2m✓[22m[39m health, readiness, and error metadata[2m > [22mkeeps liveness independent from database access [33m578[2mms[22m[39m
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2madds, lists, and removes wishlist products
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mcreates a new user and returns 201 with user data
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mcreates and updates users
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mcreates orders transactionally and clears the cart
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mcreates a new user and returns 201 with user data
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:36.604Z","requestId":"9e5ec631-9903-4157-9c1e-73c661104222","method":"POST","path":"/api/auth/register","status":201,"durationMs":156}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects duplicate email with 409
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mreturns the same pending order when checkout retries with the same idempotency key
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mchecks stock during checkout and decrements purchased variants
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects duplicate email with 409
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:36.871Z","requestId":"7d77e1d4-56a1-41de-9f94-6d165850a5dd","method":"POST","path":"/api/auth/register","status":201,"durationMs":161}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects duplicate email with 409
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:36.878Z","requestId":"9e78db1e-9e94-48d8-a69a-8cf67e8f6d31","method":"POST","path":"/api/auth/register","status":409,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects invalid email with 400
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mpersists contact submissions with API-shaped fields
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects invalid email with 400
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:36.997Z","requestId":"318f8090-75ba-4d44-9614-0387dadd191d","method":"POST","path":"/api/auth/register","status":400,"errorName":"Error","errorMessage":"Enter a valid email address","stack":"Error: Enter a valid email address\n    at httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.validateRegisterInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:155:35)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:324:63\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:860:9\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:825:5"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects invalid email with 400
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:36.997Z","requestId":"318f8090-75ba-4d44-9614-0387dadd191d","method":"POST","path":"/api/auth/register","status":400,"durationMs":4}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects short password with 400
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mexposes role on the session user
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects short password with 400
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:37.160Z","requestId":"ff669099-52d5-4357-bac1-aa25fb5a4cc6","method":"POST","path":"/api/auth/register","status":400,"errorName":"Error","errorMessage":"Password must be at least 8 characters","stack":"Error: Password must be at least 8 characters\n    at httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.validateRegisterInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:157:11)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:324:63\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:860:9\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:825:5"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects short password with 400
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:37.161Z","requestId":"ff669099-52d5-4357-bac1-aa25fb5a4cc6","method":"POST","path":"/api/auth/register","status":400,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects mismatched passwords with 400
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mcreates, updates, and deletes products via the admin repo
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects mismatched passwords with 400
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:37.312Z","requestId":"6787c209-7925-4cf0-bfd5-8b1c3ee61f59","method":"POST","path":"/api/auth/register","status":400,"errorName":"Error","errorMessage":"Password confirmation does not match","stack":"Error: Password confirmation does not match\n    at httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.validateRegisterInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:158:43)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:324:63\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:860:9\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:825:5"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2mrejects mismatched passwords with 400
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:37.313Z","requestId":"6787c209-7925-4cf0-bfd5-8b1c3ee61f59","method":"POST","path":"/api/auth/register","status":400,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2msets session cookie on successful registration
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mlists, saves, validates, and deletes product variants via the admin repo
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mcreates, partially updates, and deletes categories via the admin repo
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/register[2m > [22m[2msets session cookie on successful registration
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:37.619Z","requestId":"ac096c4d-d0c2-40c0-971f-353136afb648","method":"POST","path":"/api/auth/register","status":201,"durationMs":161}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mauthenticates user and sets session cookie
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2madvances order status through valid transitions
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2msaves a persistent internal admin order note
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mauthenticates user and sets session cookie
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:37.881Z","requestId":"86f9a842-06fe-4b46-ae10-c49720312ed5","method":"POST","path":"/api/auth/register","status":201,"durationMs":162}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mfilters admin order listings by status and email
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mauthenticates user and sets session cookie
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:37.969Z","requestId":"52dc8031-8187-45b7-9eba-446adfb860c6","method":"POST","path":"/api/auth/login","status":200,"durationMs":84}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects invalid email with 401
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2msoft-toggles and creates coupons
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects invalid email with 401
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:38.166Z","requestId":"22161883-3e5f-445d-a649-59c80244e694","method":"POST","path":"/api/auth/login","status":401,"durationMs":55}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects wrong password with 401
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/store.test.ts[2m > [22m[2mPostgreSQL persistence[2m > [22m[2mlists and updates contact message status
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+ [32m✓[39m src/store.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 3046[2mms[22m[39m
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects wrong password with 401
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:38.400Z","requestId":"a89e43b1-b941-440b-ac24-176671dcf8b3","method":"POST","path":"/api/auth/register","status":201,"durationMs":123}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects wrong password with 401
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:38.494Z","requestId":"0fb1515a-1535-4cd4-a918-2bacef7369f6","method":"POST","path":"/api/auth/login","status":401,"durationMs":91}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects missing email or password with 400
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects missing email or password with 400
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:38.599Z","requestId":"21777236-19a0-4ca1-89ab-5ff9cca443bb","method":"POST","path":"/api/auth/login","status":400,"errorName":"Error","errorMessage":"Email and password are required","stack":"Error: Email and password are required\n    at httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.validateLoginInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:173:34)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:343:33\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:860:9\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:825:5"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mrejects missing email or password with 400
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:38.599Z","requestId":"21777236-19a0-4ca1-89ab-5ff9cca443bb","method":"POST","path":"/api/auth/login","status":400,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mnormalizes email case for login
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mnormalizes email case for login
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:38.770Z","requestId":"0a4ac891-fbf2-4caf-af65-108fa07bb324","method":"POST","path":"/api/auth/register","status":201,"durationMs":76}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/login[2m > [22m[2mnormalizes email case for login
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:38.850Z","requestId":"3eb94743-b058-4f81-81dd-b191e814b518","method":"POST","path":"/api/auth/login","status":200,"durationMs":77}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/logout[2m > [22m[2mdestroys session and returns ok
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/logout[2m > [22m[2mdestroys session and returns ok
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.019Z","requestId":"c75b8311-6165-48c9-8885-b75090048330","method":"POST","path":"/api/auth/register","status":201,"durationMs":76}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/logout[2m > [22m[2mdestroys session and returns ok
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.024Z","requestId":"6a27b94d-193f-4ecf-bb7d-45c0b7b638ea","method":"POST","path":"/api/auth/logout","status":200,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/logout[2m > [22m[2mlogs out unauthenticated user without error
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/auth/logout[2m > [22m[2mlogs out unauthenticated user without error
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.116Z","requestId":"35a904ab-457c-4a66-abd8-ca58acdbd9d8","method":"POST","path":"/api/auth/logout","status":200,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mcatalog endpoints[2m > [22m[2mreturns product variants on product detail for customer stock selection
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mcatalog endpoints[2m > [22m[2mreturns product variants on product detail for customer stock selection
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.215Z","requestId":"099c1eb1-0439-4236-96d6-6f2bfd17f032","method":"GET","path":"/api/products/havic-gamepad","status":200,"durationMs":7}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrequires authentication
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrequires authentication
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.311Z","requestId":"5bd6de3b-5996-4053-bd45-51aabfd033c7","method":"POST","path":"/api/payments","status":401,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrequires an orderId
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrequires an orderId
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.478Z","requestId":"2bf09edb-9449-403f-89dd-cd206238d17c","method":"POST","path":"/api/auth/register","status":201,"durationMs":77}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrequires an orderId
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:39.484Z","requestId":"c346fbd1-3416-4945-bab4-6c5d1c896a9e","method":"POST","path":"/api/payments","status":400,"errorName":"Error","errorMessage":"orderId is required","stack":"Error: orderId is required\n    at Module.httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.parseInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\validation.ts:17:9)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:587:40\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:24:5\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrequires an orderId
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.485Z","requestId":"c346fbd1-3416-4945-bab4-6c5d1c896a9e","method":"POST","path":"/api/payments","status":400,"durationMs":4}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks the authenticated user's order shipped after local payment
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks the authenticated user's order shipped after local payment
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.655Z","requestId":"a4f27744-22ff-4fcd-9e74-5e388c4cce47","method":"POST","path":"/api/auth/register","status":201,"durationMs":78}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks the authenticated user's order shipped after local payment
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.669Z","requestId":"a0890142-3189-45ee-b28c-9e70cab6544e","method":"POST","path":"/api/cart/items","status":201,"durationMs":11}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks the authenticated user's order shipped after local payment
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.682Z","requestId":"797e1ebb-3ebb-411d-9a09-4ba555d44232","method":"POST","path":"/api/orders","status":201,"durationMs":10}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks the authenticated user's order shipped after local payment
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.690Z","requestId":"71081bc0-83fb-4d41-9114-242fff78c493","method":"POST","path":"/api/payments","status":201,"durationMs":6}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mcreates a Stripe PaymentIntent and leaves the order processing until payment succeeds
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mcreates a Stripe PaymentIntent and leaves the order processing until payment succeeds
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.873Z","requestId":"ae3dc639-6613-475d-8a37-759d16c444b5","method":"POST","path":"/api/auth/register","status":201,"durationMs":81}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mcreates a Stripe PaymentIntent and leaves the order processing until payment succeeds
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.886Z","requestId":"a98740eb-c3d1-4aab-a126-23ad11e443b6","method":"POST","path":"/api/cart/items","status":201,"durationMs":10}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mcreates a Stripe PaymentIntent and leaves the order processing until payment succeeds
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.897Z","requestId":"16f9c4bd-ad36-43de-a351-a1ca507e3bd3","method":"POST","path":"/api/orders","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mcreates a Stripe PaymentIntent and leaves the order processing until payment succeeds
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:39.903Z","requestId":"74309ae2-b673-4e9b-b137-a29b43fc3f50","method":"POST","path":"/api/payments","status":201,"durationMs":4}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.082Z","requestId":"4a39d941-feee-453b-b44e-3a2a43aaeacb","method":"POST","path":"/api/auth/register","status":201,"durationMs":78}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.093Z","requestId":"eef8742e-b9d4-46f5-a47a-4b7295b876ff","method":"POST","path":"/api/cart/items","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.104Z","requestId":"372c1389-14e2-4cb3-b6f5-00bf60b4c0bd","method":"POST","path":"/api/orders","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.111Z","requestId":"b00a9ff0-0f1d-461d-bec4-a33380442eba","method":"POST","path":"/api/cart/items","status":201,"durationMs":5}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.116Z","requestId":"6309d8ea-3258-4e95-af50-58fc63be1e88","method":"POST","path":"/api/orders","status":201,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.121Z","requestId":"6b699a96-3c8d-411f-9f68-447d741d8d6d","method":"GET","path":"/api/orders","status":200,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mreuses an order without repeating cart or stock side effects when checkout is retried with the same idempotency key
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.126Z","requestId":"f5ebe778-0da9-40ec-9e2d-41a4683a7d41","method":"GET","path":"/api/cart","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2msurfaces Stripe provider errors
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2msurfaces Stripe provider errors
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.309Z","requestId":"0a7f147e-0514-439f-b053-402687b1455f","method":"POST","path":"/api/auth/register","status":201,"durationMs":80}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2msurfaces Stripe provider errors
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.320Z","requestId":"2bf302fa-02ba-4f4c-b690-ee8359595a4c","method":"POST","path":"/api/cart/items","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2msurfaces Stripe provider errors
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.330Z","requestId":"4597d1c6-01c5-4bf2-b06e-1acb3d68609d","method":"POST","path":"/api/orders","status":201,"durationMs":8}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2msurfaces Stripe provider errors
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:40.334Z","requestId":"67448e2f-eb9b-4cb1-8ef7-549f9ca7cb08","method":"POST","path":"/api/payments","status":402,"errorName":"Error","errorMessage":"Your card was declined.","stack":"Error: Your card was declined.\n    at createStripePayment (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\payments.ts:156:25)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:591:21"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2msurfaces Stripe provider errors
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.335Z","requestId":"67448e2f-eb9b-4cb1-8ef7-549f9ca7cb08","method":"POST","path":"/api/payments","status":402,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not allow payment for another user's order
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not allow payment for another user's order
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.505Z","requestId":"dc98507d-1461-4f3a-8294-f18391bcee03","method":"POST","path":"/api/auth/register","status":201,"durationMs":77}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not allow payment for another user's order
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.516Z","requestId":"632ddc60-473f-4cea-b472-a9f21f2f51ff","method":"POST","path":"/api/cart/items","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not allow payment for another user's order
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.526Z","requestId":"acbec23b-1e93-4085-8780-95596471bfd7","method":"POST","path":"/api/orders","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not allow payment for another user's order
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.605Z","requestId":"396587b6-7510-4c41-a93f-bf27677bf313","method":"POST","path":"/api/auth/register","status":201,"durationMs":77}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not allow payment for another user's order
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.609Z","requestId":"5080c9ef-13f4-4f2f-8228-70497bf9c2e1","method":"POST","path":"/api/payments","status":404,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks an order shipped from a verified Stripe payment_intent.succeeded webhook
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks an order shipped from a verified Stripe payment_intent.succeeded webhook
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.778Z","requestId":"7bd214d0-5ae3-4ea5-85e4-08d6e6a1efe3","method":"POST","path":"/api/auth/register","status":201,"durationMs":79}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks an order shipped from a verified Stripe payment_intent.succeeded webhook
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.789Z","requestId":"c1998904-3249-4dc2-a5e4-441fa7bd1d43","method":"POST","path":"/api/cart/items","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks an order shipped from a verified Stripe payment_intent.succeeded webhook
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.799Z","requestId":"4bd014f2-f766-4c5f-bd91-3b9573dc330d","method":"POST","path":"/api/orders","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks an order shipped from a verified Stripe payment_intent.succeeded webhook
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.809Z","requestId":"8bf65941-559b-4bae-af60-82426b0c958c","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":7}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mmarks an order shipped from a verified Stripe payment_intent.succeeded webhook
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.814Z","requestId":"f0a3e6c4-037b-47d0-b840-398486442687","method":"GET","path":"/api/orders/order-1781201200794-jen7ou","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mkeeps failed Stripe orders visible by marking them cancelled
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mkeeps failed Stripe orders visible by marking them cancelled
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:40.994Z","requestId":"a9a72c24-5d67-4954-8e70-45ef410094c5","method":"POST","path":"/api/auth/register","status":201,"durationMs":78}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mkeeps failed Stripe orders visible by marking them cancelled
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.006Z","requestId":"7128afae-65d3-4293-a33f-755150c8f5d8","method":"POST","path":"/api/cart/items","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mkeeps failed Stripe orders visible by marking them cancelled
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.016Z","requestId":"b2f20966-efd6-45f1-9519-8b95c7cd83fb","method":"POST","path":"/api/orders","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mkeeps failed Stripe orders visible by marking them cancelled
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.024Z","requestId":"32fc916e-a914-4b79-a818-abcfbf8f8bb0","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":5}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mkeeps failed Stripe orders visible by marking them cancelled
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.030Z","requestId":"3dd01d57-6b06-4db6-9c63-3e281a4e4614","method":"GET","path":"/api/orders/order-1781201201011-0hiq05","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2maccepts duplicate Stripe webhook event IDs without reprocessing
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2maccepts duplicate Stripe webhook event IDs without reprocessing
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.210Z","requestId":"fdce7fef-5b3d-43b5-9473-30cb62713626","method":"POST","path":"/api/auth/register","status":201,"durationMs":83}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2maccepts duplicate Stripe webhook event IDs without reprocessing
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.221Z","requestId":"faa836db-4f4d-49a2-8234-be350af01811","method":"POST","path":"/api/cart/items","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2maccepts duplicate Stripe webhook event IDs without reprocessing
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.232Z","requestId":"a8377b40-371e-478e-8438-a96a1a02b3e8","method":"POST","path":"/api/orders","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2maccepts duplicate Stripe webhook event IDs without reprocessing
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.239Z","requestId":"5b804584-3633-425c-8d2a-734fea958e01","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":5}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2maccepts duplicate Stripe webhook event IDs without reprocessing
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.244Z","requestId":"328d03a3-d608-4b29-860a-11bc93f4e574","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2maccepts duplicate Stripe webhook event IDs without reprocessing
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.250Z","requestId":"a1ee69ec-9176-4659-8734-da770b30ed28","method":"GET","path":"/api/orders/order-1781201201227-72w9ch","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.431Z","requestId":"7098da1f-ed4d-4980-b20d-0970c5758d1b","method":"POST","path":"/api/auth/register","status":201,"durationMs":83}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.443Z","requestId":"38be2ba7-92d2-4261-b4e0-5693e8fe50bb","method":"POST","path":"/api/cart/items","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.454Z","requestId":"6cff12f3-2161-4805-a423-45a199f6d15e","method":"POST","path":"/api/orders","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.462Z","requestId":"ac9b4505-ef04-4c87-8ef0-08c3dd3a2cf0","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":5}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.467Z","requestId":"3f5c31a5-2b4a-46d2-8dda-42ce6af61b41","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.471Z","requestId":"5d0eeb12-612f-467c-ab65-cb15b5dcb1d2","method":"GET","path":"/api/orders/order-1781201201448-eg4ycn","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.478Z","requestId":"8347d04d-aaed-4c2c-808d-c4972cc1143a","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mdoes not downgrade shipped or delivered orders from later Stripe failure events
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.483Z","requestId":"ea85ae65-1448-41a4-99b8-fb7343a6ff19","method":"GET","path":"/api/orders/order-1781201201448-eg4ycn","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.657Z","requestId":"537a7332-ea16-4f31-80df-184f0daf8123","method":"POST","path":"/api/auth/register","status":201,"durationMs":78}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.668Z","requestId":"ab9ae7e9-561c-4ce7-bb42-24b8f03f1319","method":"POST","path":"/api/cart/items","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.678Z","requestId":"49c6b00d-6904-40c5-bf7d-c44c20b890da","method":"POST","path":"/api/orders","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.686Z","requestId":"0a10f300-1e07-44ff-8fc9-b1d3e0006874","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":5}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.690Z","requestId":"a2ce7bc3-c218-4901-a823-90302337bd84","method":"GET","path":"/api/orders/order-1781201201673-85zdps","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.696Z","requestId":"3ac4e69a-770f-4e1d-98f1-61495199cd05","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":4}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mpromotes a cancelled Stripe order when a later succeeded event arrives
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.701Z","requestId":"5c709c4d-727f-4e39-9a22-0ff2ffa54c42","method":"GET","path":"/api/orders/order-1781201201673-85zdps","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrecords Stripe events with missing order metadata and returns received
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrecords Stripe events with missing order metadata and returns received
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.806Z","requestId":"a44bd47c-0fae-42c0-b1e5-c6c77c884df2","method":"POST","path":"/api/webhooks/stripe","status":200,"durationMs":5}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrejects Stripe webhooks with invalid signatures
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrejects Stripe webhooks with invalid signatures
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:41.900Z","requestId":"1a4161cb-615c-4eb1-b34d-4486fff3da2e","method":"POST","path":"/api/webhooks/stripe","status":400,"errorName":"Error","errorMessage":"Stripe signature verification failed","stack":"Error: Stripe signature verification failed\n    at Module.verifyStripeWebhookEvent (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\payments.ts:78:25)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:148:19\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\body-parser\\lib\\read.js:137:5\n    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)\n    at invokeCallback (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\raw-body\\index.js:238:16)\n    at done (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\raw-body\\index.js:227:7)\n    at IncomingMessage.onEnd (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\raw-body\\index.js:287:7)"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPOST /api/payments[2m > [22m[2mrejects Stripe webhooks with invalid signatures
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:41.900Z","requestId":"1a4161cb-615c-4eb1-b34d-4486fff3da2e","method":"POST","path":"/api/webhooks/stripe","status":400,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins fetch an order detail
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins fetch an order detail
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.091Z","requestId":"f9950be2-2db7-47a2-a64b-0779377793c4","method":"POST","path":"/api/auth/register","status":201,"durationMs":89}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins fetch an order detail
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.170Z","requestId":"8522f722-fb5d-4b49-9314-fc4266a97d52","method":"POST","path":"/api/auth/register","status":201,"durationMs":76}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins fetch an order detail
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.181Z","requestId":"0970bce1-45b4-4c88-84eb-0f881b83356f","method":"POST","path":"/api/cart/items","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins fetch an order detail
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.193Z","requestId":"01aa321b-6bcd-44a8-ab6b-03ab5ce9ec1c","method":"POST","path":"/api/orders","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins fetch an order detail
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.198Z","requestId":"674320f9-1747-4d36-b311-e36819b9cbf6","method":"GET","path":"/api/admin/orders/order-1781201202187-zap2g3","status":200,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects non-admin reads and writes
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects non-admin reads and writes
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.376Z","requestId":"397580f2-6173-4901-8210-b820859457d3","method":"POST","path":"/api/auth/register","status":201,"durationMs":76}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects non-admin reads and writes
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.389Z","requestId":"d59f85e4-d797-4af5-8b8d-abe9f3133b16","method":"POST","path":"/api/cart/items","status":201,"durationMs":11}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects non-admin reads and writes
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.398Z","requestId":"704cb828-adc6-47dc-a092-d439071a5fa8","method":"POST","path":"/api/orders","status":201,"durationMs":7}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects non-admin reads and writes
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.401Z","requestId":"614d6047-0e42-4688-9118-cfcd0415c84f","method":"GET","path":"/api/admin/orders/order-1781201202393-4s4aci","status":403,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects non-admin reads and writes
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.406Z","requestId":"214fd655-4a7e-474d-866d-e56e826d3c03","method":"PATCH","path":"/api/admin/orders/order-1781201202393-4s4aci","status":403,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins patch status and internal note without leaking notes to customers
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins patch status and internal note without leaking notes to customers
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.587Z","requestId":"204748ef-9b31-4eef-a782-e95175838933","method":"POST","path":"/api/auth/register","status":201,"durationMs":83}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins patch status and internal note without leaking notes to customers
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.668Z","requestId":"6e3120e6-f041-4f5f-a4ea-f3c3321331de","method":"POST","path":"/api/auth/register","status":201,"durationMs":77}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins patch status and internal note without leaking notes to customers
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.679Z","requestId":"ae4af763-3247-464d-bcc5-e35b0d5a4177","method":"POST","path":"/api/cart/items","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins patch status and internal note without leaking notes to customers
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.690Z","requestId":"32dcf78e-7552-4157-b63d-57139630347d","method":"POST","path":"/api/orders","status":201,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins patch status and internal note without leaking notes to customers
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.696Z","requestId":"00fea3dd-2275-4f9e-9e7b-8c2ad61885a2","method":"PATCH","path":"/api/admin/orders/order-1781201202684-blytha","status":200,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mlets admins patch status and internal note without leaking notes to customers
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.700Z","requestId":"92e13d99-91ca-4e79-81ac-2422c064c96b","method":"GET","path":"/api/orders/order-1781201202684-blytha","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects empty admin order patches
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects empty admin order patches
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.878Z","requestId":"61cf826c-b8a8-49b4-bf4d-cd24bc36cd8c","method":"POST","path":"/api/auth/register","status":201,"durationMs":75}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects empty admin order patches
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.955Z","requestId":"31493595-feb8-42e0-9cb0-619dbae6f8cf","method":"POST","path":"/api/auth/register","status":201,"durationMs":74}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects empty admin order patches
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.965Z","requestId":"6b554dae-d2d1-4f08-9cd7-64835283125b","method":"POST","path":"/api/cart/items","status":201,"durationMs":8}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects empty admin order patches
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.974Z","requestId":"97c61526-86d8-4f72-b9a8-20be36044327","method":"POST","path":"/api/orders","status":201,"durationMs":7}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects empty admin order patches
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:42.979Z","requestId":"60f45293-98c6-4100-a6e9-62c03acfac48","method":"PATCH","path":"/api/admin/orders/order-1781201202969-dbhhxj","status":400,"errorName":"Error","errorMessage":"No admin order updates provided","stack":"Error: No admin order updates provided\n    at Module.updateAdminOrder (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\store.ts:968:25)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:683:25\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:860:9\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:825:5"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin order detail endpoints[2m > [22m[2mrejects empty admin order patches
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:42.979Z","requestId":"60f45293-98c6-4100-a6e9-62c03acfac48","method":"PATCH","path":"/api/admin/orders/order-1781201202969-dbhhxj","status":400,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mlets admins list and save product variants
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mlets admins list and save product variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.152Z","requestId":"eafbfbed-a9a7-4743-bbc5-6e2530100bc0","method":"POST","path":"/api/auth/register","status":201,"durationMs":86}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mlets admins list and save product variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.158Z","requestId":"a934089d-cc8d-429e-82d0-45979e34fc24","method":"GET","path":"/api/admin/products/havic-gamepad/variants","status":200,"durationMs":4}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mlets admins list and save product variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.170Z","requestId":"2ccd1178-4575-458b-b4ef-934c4eaf20b2","method":"PUT","path":"/api/admin/products/havic-gamepad/variants","status":200,"durationMs":9}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mprotects product variants from non-admin users
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mprotects product variants from non-admin users
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.349Z","requestId":"f6591a32-e8e9-4944-a264-d2e3e4add867","method":"POST","path":"/api/auth/register","status":201,"durationMs":76}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mprotects product variants from non-admin users
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.353Z","requestId":"87ef2e89-d01c-4804-9daa-41112b0d460f","method":"GET","path":"/api/admin/products/havic-gamepad/variants","status":403,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mprotects product variants from non-admin users
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.356Z","requestId":"74d42d8d-591e-4f2a-813a-3036b99a4dc4","method":"PUT","path":"/api/admin/products/havic-gamepad/variants","status":403,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.529Z","requestId":"ea67821c-df87-4c81-b5c4-64a7d9805438","method":"POST","path":"/api/auth/register","status":201,"durationMs":83}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:43.534Z","requestId":"e35cab4b-401c-4d28-8e5c-228fd6612b24","method":"PUT","path":"/api/admin/products/havic-gamepad/variants","status":400,"errorName":"Error","errorMessage":"Stock must be a non-negative integer","stack":"Error: Stock must be a non-negative integer\n    at Module.httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.parseInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\validation.ts:17:9)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:757:18\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:860:9\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///C:/Users/TO%20GOD%20BE%20THE%20GLORY/Desktop/cwm_claude_code/ecommerce/backend/node_modules/express-rate-limit/dist/index.mjs:825:5"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.534Z","requestId":"e35cab4b-401c-4d28-8e5c-228fd6612b24","method":"PUT","path":"/api/admin/products/havic-gamepad/variants","status":400,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.539Z","requestId":"4901cb4e-a839-4ca7-8edd-8c24471a1008","method":"GET","path":"/api/admin/products/missing-product/variants","status":404,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.544Z","requestId":"9b48337e-cd44-4b2f-96a1-630638a595de","method":"GET","path":"/api/admin/products/havic-gamepad/variants","status":200,"durationMs":3}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.549Z","requestId":"e23a9f27-bbeb-424d-9dd7-a7f3d90922b6","method":"DELETE","path":"/api/admin/products/havic-gamepad/variants/pv-havic-gamepad-%23111111-L","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2madmin product variant endpoints[2m > [22m[2mvalidates product variant payloads and deletes variants
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.553Z","requestId":"09208dd2-b99a-4b81-b3f7-9e9d17eb0e04","method":"DELETE","path":"/api/admin/products/havic-gamepad/variants/pv-havic-gamepad-%23111111-L","status":404,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mGET /api/auth/me[2m > [22m[2mreturns current user when authenticated
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mGET /api/auth/me[2m > [22m[2mreturns current user when authenticated
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.725Z","requestId":"355ec213-1b77-429b-a5bb-f07a72481d4d","method":"POST","path":"/api/auth/register","status":201,"durationMs":78}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mGET /api/auth/me[2m > [22m[2mreturns current user when authenticated
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.729Z","requestId":"e1119e79-5438-4e13-882d-7a12800df43e","method":"GET","path":"/api/auth/me","status":200,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mGET /api/auth/me[2m > [22m[2mreturns 401 when not authenticated
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mGET /api/auth/me[2m > [22m[2mreturns 401 when not authenticated
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.819Z","requestId":"6cce2fae-09e9-4741-9270-e72b4ec0cb5a","method":"GET","path":"/api/auth/me","status":401,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates user profile when authenticated
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates user profile when authenticated
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:43.997Z","requestId":"21ad5c52-cc3a-4138-ad4d-1911a4f5a229","method":"POST","path":"/api/auth/register","status":201,"durationMs":82}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates user profile when authenticated
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.002Z","requestId":"d321dfd4-1815-4cde-baf6-812737d22929","method":"PATCH","path":"/api/auth/me","status":200,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mreturns 401 when not authenticated
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mreturns 401 when not authenticated
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.090Z","requestId":"8adc49bf-1846-4de3-bd6c-c1040b48cbb7","method":"PATCH","path":"/api/auth/me","status":401,"durationMs":1}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrequires current password for password changes
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrequires current password for password changes
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.261Z","requestId":"e9a06a9f-cf65-4198-a971-ae483970263f","method":"POST","path":"/api/auth/register","status":201,"durationMs":81}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrequires current password for password changes
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:44.265Z","requestId":"057c99ed-9b06-4af7-b68d-795bde1bfb85","method":"PATCH","path":"/api/auth/me","status":400,"errorName":"Error","errorMessage":"Current password, new password, and confirmation are required","stack":"Error: Current password, new password, and confirmation are required\n    at httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.validateProfileInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:210:13)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:436:27\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:12:30\n    at Layer.handle [as handle_request] (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\middleware.ts:24:5\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrequires current password for password changes
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.266Z","requestId":"057c99ed-9b06-4af7-b68d-795bde1bfb85","method":"PATCH","path":"/api/auth/me","status":400,"durationMs":2}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates password when current password is correct
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates password when current password is correct
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.439Z","requestId":"66b35daf-0f71-428d-a4cc-5d87ed5e1d94","method":"POST","path":"/api/auth/register","status":201,"durationMs":81}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates password when current password is correct
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.589Z","requestId":"cd808c90-cfd6-452a-8239-216aa7715384","method":"PATCH","path":"/api/auth/me","status":200,"durationMs":148}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates password when current password is correct
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.665Z","requestId":"bbd085c0-dd7f-49be-9166-e765f6393f39","method":"POST","path":"/api/auth/login","status":401,"durationMs":74}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mupdates password when current password is correct
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.745Z","requestId":"a8e8ac0d-bd14-42c3-84b8-0f919c2fedbd","method":"POST","path":"/api/auth/login","status":200,"durationMs":78}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrejects duplicate email from another user
+[22m[39mLoaded env from: .env.production
+NODE_ENV: test
+Cloudinary config: {
+  "cloudinaryUrl": "[NOT SET]",
+  "cloudName": "[NOT SET]",
+  "apiKey": "[NOT SET]",
+  "apiSecret": "[NOT SET]"
+}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrejects duplicate email from another user
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.917Z","requestId":"71a4750d-940d-452c-97c7-a48303539f3d","method":"POST","path":"/api/auth/register","status":201,"durationMs":79}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrejects duplicate email from another user
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:44.995Z","requestId":"201f2349-49af-4268-bb5f-76a9cde1d762","method":"POST","path":"/api/auth/register","status":201,"durationMs":74}
+
+[90mstderr[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrejects duplicate email from another user
+[22m[39m{"level":"error","event":"api.error","timestamp":"2026-06-11T18:06:44.999Z","requestId":"be91a104-68db-4ec2-ae07-bad30ca6496a","method":"PATCH","path":"/api/auth/me","status":409,"errorName":"Error","errorMessage":"Email already registered","stack":"Error: Email already registered\n    at httpError (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:41:24)\n    at Module.validateProfileInput (C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\auth.ts:197:13)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at C:\\Users\\TO GOD BE THE GLORY\\Desktop\\cwm_claude_code\\ecommerce\\backend\\src\\index.ts:436:21"}
+
+[90mstdout[2m | src/auth.test.ts[2m > [22m[2mauth endpoints[2m > [22m[2mPATCH /api/auth/me[2m > [22m[2mrejects duplicate email from another user
+[22m[39m{"level":"info","event":"api.request","timestamp":"2026-06-11T18:06:45.000Z","requestId":"be91a104-68db-4ec2-ae07-bad30ca6496a","method":"PATCH","path":"/api/auth/me","status":409,"durationMs":3}
+
+ [32m✓[39m src/auth.test.ts [2m([22m[2m48 tests[22m[2m)[22m[33m 9701[2mms[22m[39m
+   [33m[2m✓[22m[39m auth endpoints[2m > [22mPOST /api/auth/register[2m > [22mcreates a new user and returns 201 with user data [33m303[2mms[22m[39m
+   [33m[2m✓[22m[39m auth endpoints[2m > [22mPOST /api/auth/register[2m > [22msets session cookie on successful registration [33m305[2mms[22m[39m
+   [33m[2m✓[22m[39m auth endpoints[2m > [22mPOST /api/auth/login[2m > [22mauthenticates user and sets session cookie [33m351[2mms[22m[39m
+   [33m[2m✓[22m[39m auth endpoints[2m > [22mPOST /api/auth/login[2m > [22mrejects wrong password with 401 [33m328[2mms[22m[39m
+   [33m[2m✓[22m[39m auth endpoints[2m > [22mPATCH /api/auth/me[2m > [22mupdates password when current password is correct [33m479[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m103 passed[39m[22m[90m (103)[39m
+[2m   Start at [22m 02:06:33
+[2m   Duration [22m 11.11s[2m (transform 986ms, setup 181ms, collect 3.12s, tests 15.15s, environment 2ms, prepare 1.58s)[22m
+

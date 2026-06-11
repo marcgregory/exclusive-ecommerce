@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import {
   useGetOrdersQuery,
+  useGoogleAuthMutation,
   useLoginMutation,
   useRegisterMutation,
   useUpdateProfileMutation,
@@ -52,6 +53,61 @@ type ProfileFormInput = z.input<typeof profileSchema>;
 type ProfileForm = z.output<typeof profileSchema>;
 
 const signupSideImage = 'https://www.figma.com/api/mcp/asset/d608e25b-65c2-421f-96da-b54acb84e61f';
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
+type GoogleCredentialResponse = {
+  credential?: string;
+};
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            callback: (response: GoogleCredentialResponse) => void;
+            client_id: string;
+          }) => void;
+          renderButton: (
+            element: HTMLElement,
+            options: {
+              logo_alignment?: 'left' | 'center';
+              shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+              size?: 'large' | 'medium' | 'small';
+              text?: 'signup_with' | 'signin_with' | 'continue_with' | 'signin';
+              theme?: 'outline' | 'filled_blue' | 'filled_black';
+              type?: 'standard' | 'icon';
+              width?: number;
+            }
+          ) => void;
+        };
+      };
+    };
+  }
+}
+
+function GoogleMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24">
+      <path
+        fill="#4285F4"
+        d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.47a5.53 5.53 0 0 1-2.4 3.63v2.96h3.89c2.27-2.1 3.53-5.18 3.53-8.61z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.89-2.96c-1.08.72-2.46 1.15-4.06 1.15-3.12 0-5.77-2.1-6.72-4.94H1.27v3.05A12 12 0 0 0 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.34A7.2 7.2 0 0 1 4.9 12c0-.81.14-1.6.38-2.34V6.61H1.27A12 12 0 0 0 0 12c0 1.94.46 3.78 1.27 5.39l4.01-3.05z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.72c1.76 0 3.35.61 4.59 1.8l3.44-3.44A11.55 11.55 0 0 0 12 0 12 12 0 0 0 1.27 6.61l4.01 3.05C6.23 6.82 8.88 4.72 12 4.72z"
+      />
+    </svg>
+  );
+}
 
 function formatOrderDate(value: string) {
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(
@@ -74,6 +130,8 @@ export function AccountPage({
   const [authStatusIsError, setAuthStatusIsError] = useState(false);
   const [profileStatus, setProfileStatus] = useState('');
   const [profileStatusIsError, setProfileStatusIsError] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const googleButtonId = useId();
 
   const {
     data: ordersData,
@@ -86,6 +144,7 @@ export function AccountPage({
 
   const [register, registerState] = useRegisterMutation();
   const [login, loginState] = useLoginMutation();
+  const [googleAuth, googleAuthState] = useGoogleAuthMutation();
   const [updateProfile, updateProfileState] = useUpdateProfileMutation();
 
   const orders = ordersData?.orders ?? [];
@@ -105,6 +164,70 @@ export function AccountPage({
   const profileForm = useForm<ProfileFormInput, unknown, ProfileForm>({
     resolver: zodResolver(profileSchema),
   });
+
+  useEffect(() => {
+    if (userState.data || !googleClientId || !googleButtonRef.current) return;
+
+    let cancelled = false;
+    const scriptId = 'google-identity-services';
+
+    const initializeGoogle = () => {
+      if (cancelled || !window.google || !googleButtonRef.current) return;
+      googleButtonRef.current.replaceChildren();
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          if (!response.credential) {
+            setAuthStatusIsError(true);
+            setAuthStatus('Google did not return a sign-in credential.');
+            return;
+          }
+          try {
+            setAuthStatus('');
+            setAuthStatusIsError(false);
+            const result = await googleAuth({ credential: response.credential }).unwrap();
+            onAuthChanged(result.user);
+            setAuthStatus('Signed in with Google.');
+          } catch (error) {
+            setAuthStatusIsError(true);
+            setAuthStatus(getRtkErrorMessage(error));
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        logo_alignment: 'left',
+        shape: 'rectangular',
+        size: 'large',
+        text: authMode === 'login' ? 'signin_with' : 'signup_with',
+        theme: 'outline',
+        type: 'standard',
+        width: 370,
+      });
+    };
+
+    const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
+    if (existingScript) {
+      if (window.google) initializeGoogle();
+      else existingScript.addEventListener('load', initializeGoogle, { once: true });
+      return () => {
+        cancelled = true;
+        existingScript.removeEventListener('load', initializeGoogle);
+      };
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.addEventListener('load', initializeGoogle, { once: true });
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+      script.removeEventListener('load', initializeGoogle);
+    };
+  }, [authMode, googleAuth, onAuthChanged, userState.data]);
 
   const submitAuth = authForm.handleSubmit(async (payload) => {
     try {
@@ -237,10 +360,25 @@ export function AccountPage({
                   : 'Create Account'}
             </Button>
             {authMode === 'register' && (
-              <button className="google-signup-button" type="button">
-                <span aria-hidden="true">G</span>
+              <button
+                className="google-signup-button google-signup-button--fallback"
+                type="button"
+                disabled
+                hidden={Boolean(googleClientId)}
+              >
+                <GoogleMark />
                 Sign up with Google
               </button>
+            )}
+            <div
+              aria-label={authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}
+              className="google-signin-render"
+              hidden={!googleClientId}
+              id={googleButtonId}
+              ref={googleButtonRef}
+            />
+            {!googleClientId && (
+              <p className="signup-help">Google sign-in needs VITE_GOOGLE_CLIENT_ID.</p>
             )}
             <div className="signup-switch">
               <span>

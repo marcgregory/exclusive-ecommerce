@@ -28,6 +28,7 @@ import {
   deleteWishlistProduct,
   findProduct,
   findUserByEmail,
+  findUserByGoogleSub,
   getAdminOrder,
   getUserCart,
   getRelatedProducts,
@@ -56,7 +57,12 @@ import {
   toCartResponse,
 } from './store.js';
 import { closePool, query } from './db.js';
-import { validateLoginInput, validateProfileInput, validateRegisterInput } from './auth.js';
+import {
+  validateLoginInput,
+  validateProfileInput,
+  validateRegisterInput,
+  verifyGoogleCredential,
+} from './auth.js';
 import { loadRuntimeConfig } from './config.js';
 import { createPayment } from './payments.js';
 import { verifyStripeWebhookEvent } from './payments.js';
@@ -326,6 +332,35 @@ app.post(
     const user = await findUserByEmail(email);
     if (!user || !(await bcrypt.compare(password, user.passwordHash)))
       return res.status(401).json({ message: 'Invalid email or password' });
+    req.session.userId = user.id;
+    res.json({ user: publicUser(user) });
+  })
+);
+
+app.post(
+  '/api/auth/google',
+  authLimiter,
+  asyncRoute(async (req, res) => {
+    const profile = await verifyGoogleCredential(req.body?.credential, config.googleClientId);
+    let user = await findUserByGoogleSub(profile.googleSub);
+
+    if (!user) {
+      const existingUser = await findUserByEmail(profile.email);
+      if (existingUser) {
+        user = await updateUser(existingUser.id, { googleSub: profile.googleSub });
+      } else {
+        user = await createUser({
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
+          address: '',
+          passwordHash: await bcrypt.hash(`google:${profile.googleSub}:${crypto.randomUUID()}`, 10),
+          googleSub: profile.googleSub,
+        });
+      }
+    }
+
+    if (!user) throw Object.assign(new Error('Google sign-in failed'), { status: 500 });
     req.session.userId = user.id;
     res.json({ user: publicUser(user) });
   })

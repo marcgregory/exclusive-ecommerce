@@ -11,6 +11,7 @@ export type CloudinaryConfig = {
 export type RuntimeConfig = {
   cloudinary: CloudinaryConfig;
   databaseUrl: string;
+  googleClientId?: string;
   imageStorageProvider: ImageStorageProvider;
   isProduction: boolean;
   nodeEnv: string;
@@ -60,6 +61,7 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
   const paymentProvider: PaymentProvider = env.PAYMENT_PROVIDER === 'stripe' ? 'stripe' : 'local';
   const imageStorageProvider: ImageStorageProvider =
     env.IMAGE_STORAGE_PROVIDER === 'cloudinary' ? 'cloudinary' : 'local';
+  const googleClientId = env.GOOGLE_CLIENT_ID;
   const cloudinary: CloudinaryConfig = {
     cloudinaryUrl: env.CLOUDINARY_URL,
     cloudName: env.CLOUDINARY_CLOUD_NAME,
@@ -91,6 +93,7 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
   return {
     cloudinary,
     databaseUrl,
+    googleClientId,
     imageStorageProvider,
     isProduction,
     nodeEnv,

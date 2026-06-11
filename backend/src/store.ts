@@ -30,9 +30,12 @@ type ProductFilters = {
   limit?: number;
 };
 
-type NewUser = Omit<User, 'id' | 'role'> & { role?: User['role'] };
+type NewUser = Omit<User, 'id' | 'role' | 'googleSub'> & {
+  googleSub?: string;
+  role?: User['role'];
+};
 type UpdateUserInput = Partial<
-  Pick<User, 'firstName' | 'lastName' | 'email' | 'address' | 'passwordHash'>
+  Pick<User, 'firstName' | 'lastName' | 'email' | 'address' | 'passwordHash' | 'googleSub'>
 >;
 
 const nowId = (prefix: string) =>
@@ -49,6 +52,7 @@ function mapUser(row: QueryResultRow): User {
     email: String(row.email || ''),
     address: String(row.address || ''),
     passwordHash: String(row.password_hash || ''),
+    googleSub: String(row.google_sub || ''),
     role: row.role === 'admin' ? 'admin' : 'customer',
   };
 }
@@ -302,10 +306,15 @@ export async function findUserByEmail(email: string): Promise<User | undefined> 
   return result.rows[0] ? mapUser(result.rows[0]) : undefined;
 }
 
+export async function findUserByGoogleSub(googleSub: string): Promise<User | undefined> {
+  const result = await query('SELECT * FROM users WHERE google_sub = $1 LIMIT 1', [googleSub]);
+  return result.rows[0] ? mapUser(result.rows[0]) : undefined;
+}
+
 export async function createUser(input: NewUser): Promise<User> {
   const id = nowId('user');
   const result = await query(
-    "INSERT INTO users (id, first_name, last_name, email, address, password_hash, role) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'customer')) RETURNING *",
+    "INSERT INTO users (id, first_name, last_name, email, address, password_hash, google_sub, role) VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), COALESCE($8, 'customer')) RETURNING *",
     [
       id,
       input.firstName,
@@ -313,6 +322,7 @@ export async function createUser(input: NewUser): Promise<User> {
       input.email,
       input.address,
       input.passwordHash,
+      input.googleSub,
       input.role ?? null,
     ]
   );
@@ -328,10 +338,18 @@ export async function updateUser(
   const user = { ...mapUser(current.rows[0]), ...input };
   const result = await query(
     `UPDATE users
-     SET first_name = $2, last_name = $3, email = $4, address = $5, password_hash = $6
+     SET first_name = $2, last_name = $3, email = $4, address = $5, password_hash = $6, google_sub = NULLIF($7, '')
      WHERE id = $1
      RETURNING *`,
-    [user.id, user.firstName, user.lastName, user.email, user.address, user.passwordHash]
+    [
+      user.id,
+      user.firstName,
+      user.lastName,
+      user.email,
+      user.address,
+      user.passwordHash,
+      user.googleSub,
+    ]
   );
   return mapUser(result.rows[0]);
 }

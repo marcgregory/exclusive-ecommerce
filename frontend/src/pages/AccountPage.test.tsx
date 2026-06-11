@@ -7,6 +7,7 @@ import type { Order, PublicUser } from '../types';
 
 const apiMocks = vi.hoisted(() => ({
   getOrders: vi.fn(),
+  googleAuth: vi.fn(),
   register: vi.fn(),
   login: vi.fn(),
   updateProfile: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('../api/ecommerceApi', async (importOriginal) => {
       }
       return apiMocks.getOrders();
     },
+    useGoogleAuthMutation: () => apiMocks.googleAuth(),
     useRegisterMutation: () => apiMocks.register(),
     useLoginMutation: () => apiMocks.login(),
     useUpdateProfileMutation: () => apiMocks.updateProfile(),
@@ -89,9 +91,11 @@ function renderPage(overrides: Partial<Parameters<typeof AccountPage>[0]> = {}) 
 describe('AccountPage', () => {
   beforeEach(() => {
     apiMocks.getOrders.mockReset();
+    apiMocks.googleAuth.mockReset();
     apiMocks.register.mockReset();
     apiMocks.login.mockReset();
     apiMocks.updateProfile.mockReset();
+    apiMocks.googleAuth.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
   });
 
   afterEach(() => {
@@ -111,10 +115,11 @@ describe('AccountPage', () => {
 
     renderPage({ userState: { data: null, loading: false, error: '' } });
 
-    expect(screen.getByText(/Sign in to continue/i)).toBeDefined();
-    expect(screen.getByRole('heading', { level: 2, name: /Sign In/i })).toBeDefined();
-    expect(screen.getByLabelText(/Email/i)).toBeDefined();
+    expect(screen.getByRole('heading', { level: 1, name: /Create an account/i })).toBeDefined();
+    expect(screen.getByLabelText(/Name/i)).toBeDefined();
+    expect(screen.getByLabelText(/Email or Phone Number/i)).toBeDefined();
     expect(screen.getByLabelText(/Password/i)).toBeDefined();
+    expect(screen.getByRole('button', { name: /Sign up with Google/i })).toBeDefined();
   });
 
   it('renders the authenticated profile', async () => {
@@ -283,12 +288,11 @@ describe('AccountPage', () => {
 
     renderPage({ userState: { data: null, loading: false, error: '' }, onAuthChanged });
 
-    await userEvent.type(screen.getByLabelText(/Email/i), 'jane@example.com');
+    await userEvent.click(screen.getByRole('button', { name: /Log in/i }));
+    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'jane@example.com');
     await userEvent.type(screen.getByLabelText(/Password/i), 'password123');
 
-    // Click the submit button (type="submit"), not the action button
-    const submitButtons = screen.getAllByRole('button', { name: /Sign In/i });
-    await userEvent.click(submitButtons[submitButtons.length - 1]);
+    await userEvent.click(screen.getByRole('button', { name: /Log In/i }));
 
     await waitFor(() =>
       expect(mockLogin).toHaveBeenCalledWith(
@@ -319,28 +323,20 @@ describe('AccountPage', () => {
 
     renderPage({ userState: { data: null, loading: false, error: '' }, onAuthChanged });
 
-    // Switch to register mode - click the toggle button inside the form
-    const toggleButtons = screen.getAllByRole('button', { name: /Create account/i });
-    await userEvent.click(toggleButtons[toggleButtons.length - 1]);
+    await userEvent.type(screen.getByLabelText(/Name/i), 'Jane');
+    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'jane@example.com');
+    await userEvent.type(screen.getByLabelText(/Password/i), 'password123');
 
-    await userEvent.type(screen.getByLabelText(/First Name/i), 'Jane');
-    await userEvent.type(screen.getByLabelText(/Last Name/i), 'Doe');
-    await userEvent.type(screen.getByLabelText(/Email/i), 'jane@example.com');
-    await userEvent.type(screen.getAllByLabelText(/Password/i)[0], 'password123');
-    await userEvent.type(screen.getByLabelText(/Confirm Password/i), 'password123');
-    await userEvent.type(screen.getByLabelText(/Address/i), '123 Maple Drive');
-
-    const submitButtons = screen.getAllByRole('button', { name: /Create Account/i });
-    await userEvent.click(submitButtons[submitButtons.length - 1]);
+    await userEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
     await waitFor(() =>
       expect(mockRegister).toHaveBeenCalledWith({
         firstName: 'Jane',
-        lastName: 'Doe',
+        lastName: '',
         email: 'jane@example.com',
         password: 'password123',
         confirmPassword: 'password123',
-        address: '123 Maple Drive',
+        address: '',
       })
     );
     expect(onAuthChanged).toHaveBeenCalledWith(user);
@@ -366,11 +362,11 @@ describe('AccountPage', () => {
 
     renderPage({ userState: { data: null, loading: false, error: '' } });
 
-    await userEvent.type(screen.getByLabelText(/Email/i), 'wrong@example.com');
+    await userEvent.click(screen.getByRole('button', { name: /Log in/i }));
+    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'wrong@example.com');
     await userEvent.type(screen.getByLabelText(/Password/i), 'wrongpass');
 
-    const submitButtons = screen.getAllByRole('button', { name: /Sign In/i });
-    await userEvent.click(submitButtons[submitButtons.length - 1]);
+    await userEvent.click(screen.getByRole('button', { name: /Log In/i }));
 
     await waitFor(() =>
       expect(mockLogin).toHaveBeenCalledWith(
@@ -402,16 +398,10 @@ describe('AccountPage', () => {
 
     renderPage({ userState: { data: null, loading: false, error: '' } });
 
-    // Switch to register mode
-    const toggleButtons = screen.getAllByRole('button', { name: /Create account/i });
-    await userEvent.click(toggleButtons[toggleButtons.length - 1]);
+    await userEvent.type(screen.getByLabelText(/Email or Phone Number/i), 'existing@example.com');
+    await userEvent.type(screen.getByLabelText(/Password/i), 'password123');
 
-    await userEvent.type(screen.getByLabelText(/Email/i), 'existing@example.com');
-    await userEvent.type(screen.getAllByLabelText(/Password/i)[0], 'password123');
-    await userEvent.type(screen.getByLabelText(/Confirm Password/i), 'password123');
-
-    const submitButtons = screen.getAllByRole('button', { name: /Create Account/i });
-    await userEvent.click(submitButtons[submitButtons.length - 1]);
+    await userEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
     await waitFor(() =>
       expect(mockRegister).toHaveBeenCalledWith(

@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import type { User } from './types.js';
 import { DEV_SESSION_SECRET } from './config.js';
 
@@ -11,6 +12,30 @@ type PublicUpdate = Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'add
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const GOOGLE_CERTS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+
+type GoogleJwk = crypto.JsonWebKey & {
+  alg?: string;
+  kid?: string;
+  use?: string;
+};
+
+type GoogleTokenPayload = {
+  aud?: string;
+  email?: string;
+  email_verified?: boolean | string;
+  exp?: number;
+  family_name?: string;
+  given_name?: string;
+  iss?: string;
+  name?: string;
+  sub?: string;
+};
+
+let googleKeysCache: {
+  expiresAt: number;
+  keys: GoogleJwk[];
+} | null = null;
 
 export function httpError(message: string, status = 400) {
   return Object.assign(new Error(message), { status });
@@ -28,6 +53,86 @@ function optionalText(value: unknown) {
 
 export function isValidEmail(email: string) {
   return emailPattern.test(email);
+}
+
+function decodeBase64UrlJson<T>(value: string): T {
+  return JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as T;
+}
+
+async function getGoogleKeys(fetchImpl = globalThis.fetch): Promise<GoogleJwk[]> {
+  if (googleKeysCache && googleKeysCache.expiresAt > Date.now()) return googleKeysCache.keys;
+  if (!fetchImpl) throw httpError('Google authentication is unavailable', 503);
+
+  const response = await fetchImpl(GOOGLE_CERTS_URL);
+  if (!response.ok) throw httpError('Google authentication is unavailable', 503);
+
+  const body = (await response.json()) as { keys?: GoogleJwk[] };
+  const cacheControl = response.headers.get('cache-control') || '';
+  const maxAge = Number(cacheControl.match(/max-age=(\d+)/)?.[1] || 300);
+  const keys = Array.isArray(body.keys) ? body.keys : [];
+  googleKeysCache = {
+    expiresAt: Date.now() + Math.max(60, maxAge) * 1000,
+    keys,
+  };
+  return keys;
+}
+
+export async function verifyGoogleCredential(
+  credential: unknown,
+  clientId: string | undefined,
+  fetchImpl = globalThis.fetch
+): Promise<{
+  email: string;
+  firstName: string;
+  googleSub: string;
+  lastName: string;
+}> {
+  if (!clientId) throw httpError('Google sign-in is not configured', 503);
+  const token = String(credential || '');
+  const [encodedHeader, encodedPayload, encodedSignature] = token.split('.');
+  if (!encodedHeader || !encodedPayload || !encodedSignature) {
+    throw httpError('Invalid Google credential', 401);
+  }
+
+  const header = decodeBase64UrlJson<{ alg?: string; kid?: string }>(encodedHeader);
+  const payload = decodeBase64UrlJson<GoogleTokenPayload>(encodedPayload);
+  if (header.alg !== 'RS256' || !header.kid) throw httpError('Invalid Google credential', 401);
+
+  const key = (await getGoogleKeys(fetchImpl)).find((entry) => entry.kid === header.kid);
+  if (!key) throw httpError('Invalid Google credential', 401);
+
+  const verifier = crypto.createVerify('RSA-SHA256');
+  verifier.update(`${encodedHeader}.${encodedPayload}`);
+  verifier.end();
+  const isValidSignature = verifier.verify(
+    crypto.createPublicKey({ key, format: 'jwk' }),
+    Buffer.from(encodedSignature, 'base64url')
+  );
+  if (!isValidSignature) throw httpError('Invalid Google credential', 401);
+
+  if (payload.aud !== clientId) throw httpError('Invalid Google credential audience', 401);
+  if (payload.iss !== 'accounts.google.com' && payload.iss !== 'https://accounts.google.com') {
+    throw httpError('Invalid Google credential issuer', 401);
+  }
+  if (!payload.exp || payload.exp * 1000 <= Date.now()) {
+    throw httpError('Google credential expired', 401);
+  }
+  if (payload.email_verified !== true && payload.email_verified !== 'true') {
+    throw httpError('Google email is not verified', 401);
+  }
+  const email = normalizeEmail(payload.email);
+  if (!payload.sub || !email || !isValidEmail(email)) {
+    throw httpError('Invalid Google profile', 401);
+  }
+
+  const fallbackName = String(payload.name || '').trim();
+  const [fallbackFirst = '', ...fallbackRest] = fallbackName.split(/\s+/).filter(Boolean);
+  return {
+    email,
+    firstName: String(payload.given_name || fallbackFirst || '').trim(),
+    googleSub: payload.sub,
+    lastName: String(payload.family_name || fallbackRest.join(' ') || '').trim(),
+  };
 }
 
 export function getSessionSecret(env = process.env) {

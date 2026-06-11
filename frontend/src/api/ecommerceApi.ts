@@ -93,6 +93,10 @@ type LoginInput = {
   password: string;
 };
 
+type GoogleAuthInput = {
+  credential: string;
+};
+
 type UpdateProfileInput = {
   firstName?: string;
   lastName?: string;
@@ -227,6 +231,10 @@ export const ecommerceApi = createApi({
     }),
     login: builder.mutation<AuthResponse, LoginInput>({
       query: (body) => ({ url: '/api/auth/login', method: 'POST', body }),
+      invalidatesTags: ['Session', 'Cart', 'Wishlist'],
+    }),
+    googleAuth: builder.mutation<AuthResponse, GoogleAuthInput>({
+      query: (body) => ({ url: '/api/auth/google', method: 'POST', body }),
       invalidatesTags: ['Session', 'Cart', 'Wishlist'],
     }),
     updateProfile: builder.mutation<AuthResponse, UpdateProfileInput>({
@@ -395,6 +403,7 @@ export const {
   useGetWishlistQuery,
   useLazyGetProductDetailQuery,
   useLoginMutation,
+  useGoogleAuthMutation,
   useLogoutMutation,
   useRegisterMutation,
   useCreateAdminProductMutation,

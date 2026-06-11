@@ -52,7 +52,7 @@ export type User = {
   email: string;
   address: string;
   passwordHash: string;
-  googleSub: string;
+  googleSub?: string;
   role: UserRole;
 };
 

@@ -69,6 +69,18 @@ describe('Header', () => {
     expect(navigate).toHaveBeenCalledWith('/account');
 
     await userEvent.click(screen.getByRole('button', { name: /Account menu/i }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /My Order/i }));
+    expect(navigate).toHaveBeenCalledWith('/account#orders');
+
+    await userEvent.click(screen.getByRole('button', { name: /Account menu/i }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /My Cancellations/i }));
+    expect(navigate).toHaveBeenCalledWith('/account#cancellations');
+
+    await userEvent.click(screen.getByRole('button', { name: /Account menu/i }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /My Reviews/i }));
+    expect(navigate).toHaveBeenCalledWith('/account#reviews');
+
+    await userEvent.click(screen.getByRole('button', { name: /Account menu/i }));
     await userEvent.click(screen.getByRole('menuitem', { name: /Logout/i }));
 
     await waitFor(() => expect(onLogout).toHaveBeenCalledTimes(1));

@@ -573,7 +573,13 @@ app.post(
       body.paymentMethod || 'bank',
       body.couponCode || undefined,
       body.idempotencyKey || undefined,
-      body.saveBillingInfo
+      body.saveBillingInfo,
+      body.items.map((item) => ({
+        productId: String(item.productId),
+        quantity: item.quantity,
+        selectedColor: item.selectedColor,
+        selectedSize: item.selectedSize,
+      }))
     );
     res.status(201).json({ order });
   })

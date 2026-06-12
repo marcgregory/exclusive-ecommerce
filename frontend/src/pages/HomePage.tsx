@@ -6,7 +6,7 @@ import { ProductCard } from '../components/ProductCard';
 import { SectionHeader } from '../components/SectionHeader';
 import { ServiceBadges } from '../components/ServiceBadges';
 import type { AddToCart, AddToWishlist, Category, Navigate, Product } from '../types';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 type HomePageProps = {
   products: Product[];
@@ -26,6 +26,17 @@ export function HomePage({
   wishlistProductIds,
 }: HomePageProps) {
   const flash = products.filter((product) => product.flags.includes('flash'));
+  const flashDisplay =
+    flash.length >= 5
+      ? flash
+      : [
+          ...flash,
+          ...products.filter(
+            (product) =>
+              !product.flags.includes('flash') &&
+              (product.discountPercent > 0 || product.originalPrice > product.price)
+          ),
+        ].slice(0, 5);
   const best = products.filter((product) => product.flags.includes('best'));
   const explore = products.filter((product) => product.flags.includes('explore'));
   const hero = products.filter((product) => product.flags.includes('hero'));
@@ -48,7 +59,7 @@ export function HomePage({
 
       <section className="home-section home-section--flash">
         <ProductCarousel
-          products={flash}
+          products={flashDisplay}
           kicker="Today's"
           title="Flash Sales"
           countdown={<CountdownTimer days={3} />}
@@ -56,6 +67,8 @@ export function HomePage({
           onWishlist={onWishlist}
           navigate={navigate}
           wishlistProductIds={wishlistProductIds}
+          viewAllHref="/search?flag=flash"
+          viewAllDisabled={flash.length <= 5}
         />
       </section>
 
@@ -107,6 +120,8 @@ export function HomePage({
           onWishlist={onWishlist}
           navigate={navigate}
           wishlistProductIds={wishlistProductIds}
+          viewAllHref="/search"
+          viewAllDisabled={explore.length === 0}
         />
       </section>
 
@@ -301,6 +316,8 @@ type ProductCarouselProps = {
   onWishlist: AddToWishlist;
   navigate: Navigate;
   wishlistProductIds: string[];
+  viewAllHref: string;
+  viewAllDisabled: boolean;
 };
 
 function ProductCarousel({
@@ -312,26 +329,45 @@ function ProductCarousel({
   onWishlist,
   navigate,
   wishlistProductIds,
+  viewAllHref,
+  viewAllDisabled,
 }: ProductCarouselProps) {
-  const visibleCount = 4;
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
-  const maxIndex = Math.max(0, products.length - visibleCount);
-  const showControls = products.length > visibleCount;
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  useEffect(() => {
-    setIndex((current) => Math.min(current, maxIndex));
-  }, [maxIndex]);
+  const syncScrollState = useCallback(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+    setCanScrollLeft(carousel.scrollLeft > 2);
+    setCanScrollRight(carousel.scrollLeft < maxScrollLeft - 2);
+  }, []);
 
   useEffect(() => {
     const carousel = carouselRef.current;
-    const firstCard = carousel?.querySelector<HTMLElement>('.product-card');
-    if (!carousel || !firstCard) return;
-    carousel.scrollTo({ left: index * (firstCard.offsetWidth + 30), behavior: 'smooth' });
-  }, [index]);
+    if (!carousel) return;
+
+    syncScrollState();
+    carousel.addEventListener('scroll', syncScrollState, { passive: true });
+    const resizeObserver = new ResizeObserver(syncScrollState);
+    resizeObserver.observe(carousel);
+
+    return () => {
+      carousel.removeEventListener('scroll', syncScrollState);
+      resizeObserver.disconnect();
+    };
+  }, [products.length, syncScrollState]);
 
   const move = (direction: -1 | 1) => {
-    setIndex((current) => Math.min(maxIndex, Math.max(0, current + direction)));
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    const firstCard = carousel.querySelector<HTMLElement>('.product-card');
+    const distance = firstCard
+      ? firstCard.offsetWidth + 30
+      : Math.max(240, carousel.clientWidth * 0.85);
+    carousel.scrollBy({ left: direction * distance, behavior: 'smooth' });
+    window.setTimeout(syncScrollState, 280);
   };
 
   return (
@@ -340,15 +376,15 @@ function ProductCarousel({
         <SectionHeader
           kicker={kicker}
           title={title}
-          controls={showControls}
+          controls
           onLeftScroll={() => move(-1)}
           onRightScroll={() => move(1)}
-          canScrollLeft={index > 0}
-          canScrollRight={index < maxIndex}
+          canScrollLeft={canScrollLeft}
+          canScrollRight={canScrollRight}
         />
         {countdown && <div className="section-countdown">{countdown}</div>}
       </div>
-      <div className="product-carousel" data-has-controls={showControls} ref={carouselRef}>
+      <div className="product-carousel" data-has-controls ref={carouselRef}>
         <div className="product-carousel__track">
           {products.map((product) => (
             <ProductCard
@@ -362,6 +398,13 @@ function ProductCarousel({
           ))}
         </div>
       </div>
+      <Button
+        className="center-button"
+        onClick={() => navigate(viewAllHref)}
+        disabled={viewAllDisabled}
+      >
+        View All Products
+      </Button>
     </>
   );
 }

@@ -108,7 +108,7 @@ export function ProductDetailsPage({
           ? 'This product is currently out of stock.'
           : 'Please choose every required in-stock option before adding to cart.'
       );
-      return;
+      return false;
     }
     try {
       setActionError('');
@@ -120,12 +120,21 @@ export function ProductDetailsPage({
         sku: selectorPayload.sku,
         stock: selectorPayload.stock,
       });
+      return true;
     } catch (error) {
       if (getRtkStatus(error) === 401) {
         navigate('/login');
-        return;
+        return false;
       }
       setActionError(getActionErrorMessage(error));
+      return false;
+    }
+  };
+
+  const buyNow = async () => {
+    const added = await addToCart();
+    if (added) {
+      navigate('/checkout');
     }
   };
 
@@ -186,7 +195,7 @@ export function ProductDetailsPage({
           />
           <div className="buy-row">
             <QuantityStepper value={quantity} onChange={setQuantity} />
-            <Button onClick={addToCart} disabled={!canAddToCart}>
+            <Button onClick={buyNow} disabled={!canAddToCart}>
               {isOutOfStock ? 'Out of stock' : 'Buy Now'}
             </Button>
             <button

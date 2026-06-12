@@ -71,6 +71,7 @@ function App() {
   const dispatch = useDispatch<AppDispatch>();
   const { path, query, navigate } = useRoute();
   const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [cartNotice, setCartNotice] = useState('');
   const localCart = useAppSelector((state) => state.cart);
 
   const productsQuery = useGetProductsQuery();
@@ -142,6 +143,12 @@ function App() {
   const loadProducts = productsQuery.refetch;
   const loadCategories = categoriesQuery.refetch;
 
+  useEffect(() => {
+    if (!cartNotice) return;
+    const timeoutId = window.setTimeout(() => setCartNotice(''), 2600);
+    return () => window.clearTimeout(timeoutId);
+  }, [cartNotice]);
+
   const onAdd = useCallback(
     async (
       productOrId: Product | string,
@@ -167,6 +174,7 @@ function App() {
           ...options,
         })
       );
+      setCartNotice(`${product.name} added to cart`);
     },
     [dispatch, products.data]
   );
@@ -318,6 +326,7 @@ function App() {
           navigate={navigate}
           appliedCoupon={appliedCoupon}
           onCouponConsumed={() => setAppliedCoupon('')}
+          onOrderComplete={() => dispatch(clearCart())}
         />
       );
     if (path === '/account')
@@ -390,6 +399,13 @@ function App() {
         onLogout={handleLogout}
         logoutSaving={logoutState.isLoading}
       />
+      {cartNotice && (
+        <div className="cart-toast" role="status" aria-live="polite">
+          <strong>Added to cart</strong>
+          <span>{cartNotice.replace(' added to cart', '')}</span>
+          <button onClick={() => navigate('/cart')}>View Cart</button>
+        </div>
+      )}
       {page}
       <button className="back-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
         ↑

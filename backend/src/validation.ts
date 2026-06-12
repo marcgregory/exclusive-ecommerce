@@ -82,6 +82,17 @@ export const createOrderSchema = z.object({
   couponCode: optionalText.optional(),
   idempotencyKey: optionalText.optional(),
   saveBillingInfo: z.coerce.boolean().optional().default(false),
+  items: z
+    .array(
+      z.object({
+        productId: requiredText('productId is required'),
+        quantity: z.coerce.number().int().positive().default(1),
+        selectedColor: optionalText,
+        selectedSize: optionalText,
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export const createPaymentSchema = z.object({

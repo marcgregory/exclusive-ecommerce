@@ -222,6 +222,14 @@ describe('CheckoutPage', () => {
       couponCode: 'SAVE10',
       idempotencyKey: expect.any(String),
       saveBillingInfo: true,
+      items: [
+        {
+          productId: 'p1',
+          quantity: 1,
+          selectedColor: 'red',
+          selectedSize: 'M',
+        },
+      ],
     });
     expect(apiMocks.createPayment).toHaveBeenCalledWith({
       orderId: 'order-1',

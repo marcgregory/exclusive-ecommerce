@@ -67,6 +67,7 @@ export function Header({
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
+    setOpen(false);
     setAccountOpen(false);
     navigate(`/search?q=${encodeURIComponent(trimmed)}`);
   };
@@ -254,6 +255,18 @@ export function Header({
           >
             <X />
           </button>
+          <form className="mobile-search" role="search" onSubmit={submitSearch}>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search products"
+              aria-label="Search products"
+            />
+            <button type="submit" aria-label="Search">
+              <Search size={20} />
+            </button>
+          </form>
           {publicLinks.map(([href, label]) => (
             <button
               key={href}
@@ -293,6 +306,15 @@ export function Header({
               </button>
             </>
           )}
+          <button
+            onClick={() => {
+              setOpen(false);
+              navigate('/wishlist');
+            }}
+          >
+            Wishlist
+            {wishlistCount > 0 && <span className="mobile-drawer__count">{wishlistCount}</span>}
+          </button>
           {authStatus === 'authenticated' && user ? (
             <>
               <button
@@ -315,6 +337,7 @@ export function Header({
             }}
           >
             Cart
+            {cartCount > 0 && <span className="mobile-drawer__count">{cartCount}</span>}
           </button>
         </div>
       )}

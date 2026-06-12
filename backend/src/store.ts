@@ -596,7 +596,8 @@ export async function createOrder(
   paymentMethod = 'bank',
   couponCode?: string,
   idempotencyKey?: string,
-  saveBillingInfo = false
+  saveBillingInfo = false,
+  submittedItems: Array<Pick<CartItem, 'productId' | 'quantity' | 'selectedColor' | 'selectedSize'>> = []
 ): Promise<Order> {
   const normalizedIdempotencyKey = idempotencyKey?.trim() || undefined;
 
@@ -606,7 +607,20 @@ export async function createOrder(
       if (existingOrder) return existingOrder;
 
       const cart = await getCartByUserId(userId, client);
-      const totals = await toCartResponse(cart, couponCode, client);
+      const checkoutCart =
+        submittedItems.length > 0
+          ? {
+              ...cart,
+              items: submittedItems.map((item, index) => ({
+                id: `checkout-${index}`,
+                productId: item.productId,
+                quantity: item.quantity,
+                selectedColor: item.selectedColor || '',
+                selectedSize: item.selectedSize || '',
+              })),
+            }
+          : cart;
+      const totals = await toCartResponse(checkoutCart, couponCode, client);
       if (!totals.items.length) throw Object.assign(new Error('Cart is empty'), { status: 400 });
 
       for (const item of totals.items) {

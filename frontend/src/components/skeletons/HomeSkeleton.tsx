@@ -15,7 +15,7 @@ export function HomeSkeleton() {
 
   return (
     <main aria-busy="true">
-      <section className="container hero-zone">
+      <section className="home-hero-shell">
         <aside className="category-rail">
           {railSkeletons.map((_, index) => (
             <button key={index} className="category-rail__skeleton-item" disabled>
@@ -45,21 +45,29 @@ export function HomeSkeleton() {
         </div>
       </section>
 
-      <section className="container section">
-        <SectionHeader
-          kicker="Today's"
-          title="Flash Sales"
-          controls
-          onLeftScroll={() => productRowRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
-          onRightScroll={() => productRowRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
-        />
-        <div className="section-title-row">
-          <CountdownTimer />
+      <section className="home-section home-section--flash">
+        <div className="section-heading-row">
+          <SectionHeader
+            kicker="Today's"
+            title="Flash Sales"
+            controls
+            onLeftScroll={() =>
+              productRowRef.current?.scrollBy({ left: -300, behavior: 'smooth' })
+            }
+            onRightScroll={() =>
+              productRowRef.current?.scrollBy({ left: 300, behavior: 'smooth' })
+            }
+          />
+          <div className="section-countdown">
+            <CountdownTimer />
+          </div>
         </div>
-        <div className="product-row" ref={productRowRef}>
-          {productCardSkeletons.map((_, i) => (
-            <ProductCardSkeleton key={i} />
-          ))}
+        <div className="product-carousel" ref={productRowRef}>
+          <div className="product-carousel__track">
+            {productCardSkeletons.map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
         <div className="center-button skeleton-button" />
       </section>

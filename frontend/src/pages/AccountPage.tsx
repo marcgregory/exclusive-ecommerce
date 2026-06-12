@@ -146,16 +146,32 @@ export function AccountPage({
       <div className="account-layout">
         <aside className="account-menu">
           <h3>Manage My Account</h3>
-          <p>My Profile</p>
-          <p>Address Book</p>
-          <p>My Payment Options</p>
+          <button type="button" onClick={() => navigate('/account#profile')}>
+            My Profile
+          </button>
+          <button type="button" onClick={() => navigate('/account#address-book')}>
+            Address Book
+          </button>
+          <button type="button" onClick={() => navigate('/account#payment-options')}>
+            My Payment Options
+          </button>
           <h3>My Orders</h3>
-          <p>My Returns</p>
-          <p>My Cancellations</p>
+          <button type="button" onClick={() => navigate('/account#orders')}>
+            My Orders
+          </button>
+          <button type="button" onClick={() => navigate('/account#returns')}>
+            My Returns
+          </button>
+          <button type="button" onClick={() => navigate('/account#cancellations')}>
+            My Cancellations
+          </button>
           <h3>My WishList</h3>
+          <button type="button" onClick={() => navigate('/wishlist')}>
+            Saved Products
+          </button>
         </aside>
         <div className="account-content">
-          <form className="profile-card" onSubmit={submitProfile}>
+          <form className="profile-card account-section" id="profile" onSubmit={submitProfile}>
             <h2>Edit Your Profile</h2>
             <div className="two-col">
               <FormField
@@ -226,7 +242,7 @@ export function AccountPage({
             )}
           </form>
 
-          <section className="profile-card order-history">
+          <section className="profile-card order-history account-section" id="orders">
             {ordersLoading ? (
               <OrderSkeleton />
             ) : (
@@ -260,6 +276,26 @@ export function AccountPage({
                 ))}
               </>
             )}
+          </section>
+          <section className="profile-card account-section" id="returns">
+            <h2>My Returns</h2>
+            <p className="order-history__empty">Return requests will appear here.</p>
+          </section>
+          <section className="profile-card account-section" id="cancellations">
+            <h2>My Cancellations</h2>
+            <p className="order-history__empty">Cancelled orders will appear here.</p>
+          </section>
+          <section className="profile-card account-section" id="reviews">
+            <h2>My Reviews</h2>
+            <p className="order-history__empty">Product reviews you write will appear here.</p>
+          </section>
+          <section className="profile-card account-section" id="address-book">
+            <h2>Address Book</h2>
+            <p className="order-history__empty">Use your profile address for checkout.</p>
+          </section>
+          <section className="profile-card account-section" id="payment-options">
+            <h2>My Payment Options</h2>
+            <p className="order-history__empty">Saved payment methods will appear here.</p>
           </section>
         </div>
       </div>

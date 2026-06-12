@@ -42,6 +42,12 @@ type CreateOrderInput = {
   couponCode?: string;
   idempotencyKey: string;
   saveBillingInfo?: boolean;
+  items?: Array<{
+    productId: string;
+    quantity: number;
+    selectedColor?: string;
+    selectedSize?: string;
+  }>;
 };
 
 type CreatePaymentInput = {

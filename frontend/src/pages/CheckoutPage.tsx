@@ -85,6 +85,7 @@ type CheckoutPageProps = {
   navigate: Navigate;
   appliedCoupon: string;
   onCouponConsumed: () => void;
+  onOrderComplete?: () => void;
 };
 
 type StripePaymentFormProps = {
@@ -148,6 +149,7 @@ export function CheckoutPage({
   navigate,
   appliedCoupon,
   onCouponConsumed,
+  onOrderComplete = () => {},
 }: CheckoutPageProps) {
   const [createOrder] = useCreateOrderMutation();
   const [createPayment] = useCreatePaymentMutation();
@@ -255,6 +257,12 @@ export function CheckoutPage({
         couponCode: activeCoupon?.code || appliedCoupon || undefined,
         idempotencyKey,
         saveBillingInfo,
+        items: cart.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          selectedColor: item.selectedColor,
+          selectedSize: item.selectedSize,
+        })),
       }).unwrap();
 
       const checkout: PendingStripeCheckout = {
@@ -276,6 +284,7 @@ export function CheckoutPage({
       }
       await refreshCart();
       onCouponConsumed();
+      onOrderComplete();
       clearPendingCheckout();
       navigate(`/orders/${data.order.id}`);
     } catch (error) {
@@ -328,6 +337,7 @@ export function CheckoutPage({
       }
       await refreshCart();
       onCouponConsumed();
+      onOrderComplete();
       clearPendingCheckout();
       navigate(`/orders/${pendingStripePayment.orderId}`);
     } catch (error) {

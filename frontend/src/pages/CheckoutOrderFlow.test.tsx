@@ -22,6 +22,12 @@ const apiMocks = vi.hoisted(() => ({
   getMe: vi.fn(),
 }));
 
+const stripeMocks = vi.hoisted(() => ({
+  stripe: null as any,
+  elements: { id: 'elements' } as any,
+  loadStripe: vi.fn(() => Promise.resolve({ id: 'stripe-promise' })),
+}));
+
 vi.mock('../api/client', () => ({
   ApiError: class ApiError extends Error {
     status: number;
@@ -35,8 +41,8 @@ vi.mock('../api/client', () => ({
   api: vi.fn(),
 }));
 vi.mock('../api/ecommerceApi', () => ({
-  useCreateOrderMutation: () => [apiMocks.createOrder],
-  useCreatePaymentMutation: () => [apiMocks.createPayment],
+  useCreateOrderMutation: () => [apiMocks.createOrder, { isLoading: false, error: undefined }],
+  useCreatePaymentMutation: () => [apiMocks.createPayment, { isLoading: false, error: undefined }],
   useGetOrderDetailQuery: (id: string, options?: { skip?: boolean }) => {
     if (options?.skip) {
       return {
@@ -74,7 +80,27 @@ vi.mock('../api/ecommerceApi', () => ({
   useLoginMutation: () => apiMocks.login(),
   useUpdateProfileMutation: () => apiMocks.updateProfile(),
   useGoogleAuthMutation: () => apiMocks.googleAuth(),
-  useValidateCouponMutation: () => [apiMocks.validateCoupon],
+  useValidateCouponMutation: () => [apiMocks.validateCoupon, { isLoading: false, error: undefined }],
+}));
+vi.mock('@stripe/stripe-js', () => ({ loadStripe: stripeMocks.loadStripe }));
+vi.mock('@stripe/react-stripe-js', async () => {
+  const React = await import('react');
+  return {
+    Elements: ({ children }: { children: React.ReactNode }) =>
+      React.createElement('div', { 'data-testid': 'stripe-elements' }, children),
+    PaymentElement: ({ className }: { className?: string }) =>
+      React.createElement('div', {
+        className,
+        'data-testid': 'payment-element',
+      }),
+    useElements: () => stripeMocks.elements,
+    useStripe: () => stripeMocks.stripe,
+  };
+});
+vi.mock('@react-oauth/google', () => ({
+  GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => children,
+  GoogleLogin: () => <button>Google Login</button>,
+  useGoogleLogin: () => vi.fn(),
 }));
 import { api } from '../api/client';
 
@@ -191,6 +217,8 @@ describe('checkout to order history flow', () => {
     apiMocks.login.mockReset();
     apiMocks.updateProfile.mockReset();
     mockedApi.mockReset();
+    stripeMocks.loadStripe.mockClear();
+    sessionStorage.clear();
 
     apiMocks.getOrderDetail.mockImplementation((id: string) => ({
       data: orders.find((order) => order.id === id)
@@ -213,25 +241,16 @@ describe('checkout to order history flow', () => {
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.googleAuth.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
-    apiMocks.validateCoupon.mockImplementation(() => {
-      return {
-        unwrap: async () => ({
-          coupon: { code: 'SAVE10', type: 'percent', amount: 10 }
-        })
-      };
-    });
-    apiMocks.getMe.mockImplementation(() => {
-      return {
-        data: {
-          user: {
-            ...user,
-            checkoutBilling: undefined,
-          }
-        },
-        isLoading: false,
-        error: undefined,
-        refetch: vi.fn(),
-      };
+    apiMocks.validateCoupon.mockImplementation(() => ({
+      unwrap: async () => ({
+        coupon: { code: 'SAVE10', type: 'percent', amount: 10 },
+      }),
+    }));
+    apiMocks.getMe.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: undefined,
+      refetch: vi.fn(),
     });
 
     apiMocks.createOrder.mockImplementation((payload: MockCreateOrderInput) => ({
@@ -328,6 +347,9 @@ describe('checkout to order history flow', () => {
 
   afterEach(() => {
     cleanup();
+    sessionStorage.clear();
+    vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it('checks out cart items, opens the order details, and lists the order in account history', async () => {
@@ -335,7 +357,7 @@ describe('checkout to order history flow', () => {
     render(<TestCheckoutOrderFlow />);
 
     expect(screen.getByText(/Classic Tee/i)).toBeDefined();
-    expect(screen.getByText('$5000')).toBeDefined();
+    expect(screen.getAllByText('$5000').length).toBeGreaterThan(0);
 
     await actor.type(screen.getByLabelText(/first Name/i), 'Jane');
     await actor.type(screen.getByLabelText(/street Address/i), '123 Maple Drive');

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
 import { CartItem as CartItemRow } from '../components/CartItem';
@@ -17,7 +17,7 @@ type CartPageProps = {
   refreshCart: RefreshCart;
   appliedCoupon: string;
   onAppliedCouponChange: (code: string) => void;
-  onUpdateQuantity?: (id: string, quantity: number) => void;
+  onUpdateQuantity?: (id: string, quantity: number) => void | Promise<void>;
   onRemoveItem?: (id: string) => void;
   onClearCart?: () => void;
 };
@@ -37,6 +37,30 @@ export function CartPage({
 }: CartPageProps) {
   const [couponInput, setCouponInput] = useState(appliedCoupon);
   const [actionError, setActionError] = useState('');
+  const [draftQuantities, setDraftQuantities] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setDraftQuantities((currentDrafts) => {
+      const nextDrafts = Object.fromEntries(cart.items.map((item) => [item.id, item.quantity]));
+      const currentIds = Object.keys(currentDrafts);
+      const nextIds = Object.keys(nextDrafts);
+      const hasSameDrafts =
+        currentIds.length === nextIds.length &&
+        nextIds.every((id) => currentDrafts[id] === nextDrafts[id]);
+
+      return hasSameDrafts ? currentDrafts : nextDrafts;
+    });
+  }, [cart.items]);
+
+  const changedQuantities = useMemo(
+    () =>
+      cart.items.filter((item) => {
+        const draftQuantity = draftQuantities[item.id] ?? item.quantity;
+        return draftQuantity !== item.quantity;
+      }),
+    [cart.items, draftQuantities]
+  );
+  const canUpdateCart = changedQuantities.length > 0 && Boolean(onUpdateQuantity);
 
   const applyCoupon = async () => {
     try {
@@ -49,9 +73,27 @@ export function CartPage({
   };
 
   const updateQty = (item: CartItem, quantity: number) => {
-    if (quantity === item.quantity) return;
     setActionError('');
-    onUpdateQuantity?.(item.id, quantity);
+    setDraftQuantities((currentDrafts) => ({
+      ...currentDrafts,
+      [item.id]: Math.max(1, quantity),
+    }));
+  };
+
+  const updateCart = async () => {
+    if (!canUpdateCart || !onUpdateQuantity) return;
+
+    try {
+      setActionError('');
+      await Promise.all(
+        changedQuantities.map((item) =>
+          onUpdateQuantity(item.id, draftQuantities[item.id] ?? item.quantity)
+        )
+      );
+      await refreshCart(appliedCoupon);
+    } catch (error) {
+      setActionError(getErrorMessage(error));
+    }
   };
 
   const remove = (id: string) => {
@@ -119,7 +161,7 @@ export function CartPage({
         {cart.items.map((item) => (
           <CartItemRow
             key={item.id}
-            item={item}
+            item={{ ...item, quantity: draftQuantities[item.id] ?? item.quantity }}
             onQuantityChange={(_, quantity) => updateQty(item, quantity)}
             onRemove={remove}
           />
@@ -129,7 +171,7 @@ export function CartPage({
         <Button variant="ghost" onClick={() => navigate('/')}>
           Return To Shop
         </Button>
-        <Button variant="ghost" onClick={() => refreshCart(appliedCoupon)}>
+        <Button variant="ghost" onClick={updateCart} disabled={!canUpdateCart}>
           Update Cart
         </Button>
         <Button variant="ghost" onClick={() => onClearCart?.()}>

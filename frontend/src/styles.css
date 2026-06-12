@@ -5060,10 +5060,11 @@ canvas {
 
   .product-detail {
     grid-template-columns: 1fr;
+    gap: 22px;
   }
 
   .thumbs {
-    order: 2;
+    order: 1;
     grid-template-columns: repeat(4, minmax(74px, 1fr));
     overflow-x: auto;
   }
@@ -5073,10 +5074,12 @@ canvas {
   }
 
   .main-product-image {
+    order: 0;
     height: clamp(300px, 70vw, 460px);
   }
 
   .product-info {
+    order: 2;
     width: 100%;
     max-width: none;
     margin-left: 0;
@@ -5197,7 +5200,6 @@ canvas {
 
   .coupon,
   .checkout-coupon,
-  .buy-row,
   .choice-row,
   .option-group,
   .form-actions,
@@ -5216,14 +5218,48 @@ canvas {
   .checkout-coupon input,
   .checkout-coupon .button,
   .checkout-summary-panel > .button,
-  .buy-row .button,
-  .wishlist-square,
   .form-actions .button {
     width: 100%;
   }
 
   .wishlist-square {
     min-height: 44px;
+  }
+
+  .product-detail-page .buy-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .product-detail-page .buy-row .quantity {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .product-detail-page .buy-row .button {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .product-detail-page .buy-row .quantity button,
+  .product-detail-page .buy-row .quantity span {
+    width: 33.333%;
+  }
+
+  .product-detail-page .buy-row .button {
+    min-height: 48px;
+  }
+
+  .product-detail-page .wishlist-square {
+    grid-column: 2;
+    width: 44px;
+    justify-self: end;
+  }
+
+  .product-detail-page > .section {
+    padding-top: 56px;
   }
 
   .option-group legend {
@@ -5345,7 +5381,19 @@ canvas {
   }
 
   .main-product-image {
-    height: 300px;
+    height: min(300px, 72vw);
+  }
+
+  .product-detail-page .product-detail {
+    gap: 18px;
+  }
+
+  .product-detail-page .thumbs {
+    gap: 10px;
+  }
+
+  .product-detail-page > .section .section-header {
+    margin-bottom: 28px;
   }
 
   .cart-row > div:first-child {

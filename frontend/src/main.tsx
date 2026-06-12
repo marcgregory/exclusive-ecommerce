@@ -310,7 +310,9 @@ function App() {
           refreshCart={refreshCart}
           appliedCoupon={appliedCoupon}
           onAppliedCouponChange={setAppliedCoupon}
-          onUpdateQuantity={(id, quantity) => dispatch(updateQuantity({ id, quantity }))}
+          onUpdateQuantity={(id, quantity) => {
+            dispatch(updateQuantity({ id, quantity }));
+          }}
           onRemoveItem={(id) => dispatch(removeItem(id))}
           onClearCart={() => dispatch(clearCart())}
         />

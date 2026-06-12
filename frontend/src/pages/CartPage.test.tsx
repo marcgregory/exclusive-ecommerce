@@ -160,7 +160,7 @@ describe('CartPage', () => {
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
-  it('renders cart items and updates quantity through the page callback', async () => {
+  it('renders cart items and commits draft quantity changes through Update Cart', async () => {
     const refreshCart = vi.fn();
     const onUpdateQuantity = vi.fn();
 
@@ -189,14 +189,47 @@ describe('CartPage', () => {
     const plusButton = row?.querySelectorAll('.quantity button')[1];
     await userEvent.click(plusButton!);
 
-    expect(onUpdateQuantity).toHaveBeenCalledWith('item-1', 3);
+    expect(within(row!).getByText('3')).toBeDefined();
+    expect(within(row!).getByText('$3998')).toBeDefined();
+    expect(onUpdateQuantity).not.toHaveBeenCalled();
     expect(refreshCart).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: /Update Cart/i }));
+
+    expect(onUpdateQuantity).toHaveBeenCalledWith('item-1', 3);
+    await waitFor(() => expect(refreshCart).toHaveBeenCalledWith(''));
 
     const couponInput = screen.getByPlaceholderText('Coupon Code');
     await userEvent.type(couponInput, ' save10 ');
     await userEvent.click(screen.getByRole('button', { name: /Apply Coupon/i }));
 
     await waitFor(() => expect(refreshCart).toHaveBeenCalledWith('SAVE10'));
+  });
+
+  it('does not update quantities when Update Cart has no draft changes', async () => {
+    const refreshCart = vi.fn();
+    const onUpdateQuantity = vi.fn();
+
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={refreshCart}
+        appliedCoupon=""
+        onAppliedCouponChange={vi.fn()}
+        onUpdateQuantity={onUpdateQuantity}
+      />
+    );
+
+    const updateCartButton = screen.getByRole('button', { name: /Update Cart/i });
+    expect(updateCartButton).toBeDisabled();
+    await userEvent.click(updateCartButton);
+
+    expect(onUpdateQuantity).not.toHaveBeenCalled();
+    expect(refreshCart).not.toHaveBeenCalled();
   });
 
   it('removes cart items through the page callback', async () => {

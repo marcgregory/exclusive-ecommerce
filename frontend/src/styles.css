@@ -5063,6 +5063,24 @@ canvas {
     gap: 22px;
   }
 
+  .product-detail > *,
+  .product-detail-page .breadcrumbs,
+  .product-info,
+  .main-product-image,
+  .thumbs,
+  .delivery-box {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .product-detail-page .breadcrumbs,
+  .product-info h1,
+  .detail-copy,
+  .delivery-box h4,
+  .delivery-box p {
+    overflow-wrap: anywhere;
+  }
+
   .thumbs {
     order: 1;
     grid-template-columns: repeat(4, minmax(74px, 1fr));
@@ -5231,6 +5249,7 @@ canvas {
     grid-template-columns: minmax(0, 1fr) 44px;
     align-items: stretch;
     gap: 12px;
+    width: 100%;
   }
 
   .product-detail-page .buy-row .quantity {
@@ -5240,7 +5259,9 @@ canvas {
 
   .product-detail-page .buy-row .button {
     grid-column: 1;
+    min-width: 0;
     width: 100%;
+    padding-inline: 18px;
   }
 
   .product-detail-page .buy-row .quantity button,
@@ -5262,10 +5283,27 @@ canvas {
     padding-top: 56px;
   }
 
+  .product-detail-page .option-group {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
   .option-group legend {
     float: none;
     min-width: 0;
     width: 100%;
+  }
+
+  .product-detail-page .option-group .choice-row {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .product-detail-page .choice-row--swatches {
+    gap: 14px;
   }
 
   .delivery-box > div {

@@ -18,6 +18,8 @@ const apiMocks = vi.hoisted(() => ({
   login: vi.fn(),
   updateProfile: vi.fn(),
   googleAuth: vi.fn(),
+  validateCoupon: vi.fn(),
+  getMe: vi.fn(),
 }));
 
 vi.mock('../api/client', () => ({
@@ -57,10 +59,22 @@ vi.mock('../api/ecommerceApi', () => ({
     }
     return apiMocks.getOrders();
   },
+  useGetMeQuery: (arg: undefined, options?: { skip?: boolean }) => {
+    if (options?.skip) {
+      return {
+        data: undefined,
+        isLoading: false,
+        error: undefined,
+        refetch: vi.fn(),
+      };
+    }
+    return apiMocks.getMe(arg);
+  },
   useRegisterMutation: () => apiMocks.register(),
   useLoginMutation: () => apiMocks.login(),
   useUpdateProfileMutation: () => apiMocks.updateProfile(),
   useGoogleAuthMutation: () => apiMocks.googleAuth(),
+  useValidateCouponMutation: () => [apiMocks.validateCoupon],
 }));
 import { api } from '../api/client';
 
@@ -199,6 +213,26 @@ describe('checkout to order history flow', () => {
     apiMocks.login.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.updateProfile.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
     apiMocks.googleAuth.mockReturnValue([vi.fn(), { isLoading: false, error: undefined }]);
+    apiMocks.validateCoupon.mockImplementation(() => {
+      return {
+        unwrap: async () => ({
+          coupon: { code: 'SAVE10', type: 'percent', amount: 10 }
+        })
+      };
+    });
+    apiMocks.getMe.mockImplementation(() => {
+      return {
+        data: {
+          user: {
+            ...user,
+            checkoutBilling: undefined,
+          }
+        },
+        isLoading: false,
+        error: undefined,
+        refetch: vi.fn(),
+      };
+    });
 
     apiMocks.createOrder.mockImplementation((payload: MockCreateOrderInput) => ({
       unwrap: async () => {
@@ -233,7 +267,7 @@ describe('checkout to order history flow', () => {
         if (!order) throw new Error('Order not found');
         order.status = 'shipped';
         return {
-          payment: { id: 'payment-1', status: 'succeeded' },
+          payment: { id: 'payment-1', status: 'succeeded', provider: 'stripe' },
           order,
         };
       },
@@ -301,7 +335,7 @@ describe('checkout to order history flow', () => {
     render(<TestCheckoutOrderFlow />);
 
     expect(screen.getByText(/Classic Tee/i)).toBeDefined();
-    expect(screen.getByText('$4500')).toBeDefined();
+    expect(screen.getByText('$5000')).toBeDefined();
 
     await actor.type(screen.getByLabelText(/first Name/i), 'Jane');
     await actor.type(screen.getByLabelText(/street Address/i), '123 Maple Drive');

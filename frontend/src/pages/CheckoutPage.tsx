@@ -4,7 +4,12 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useCreateOrderMutation, useCreatePaymentMutation } from '../api/ecommerceApi';
+import {
+  useCreateOrderMutation,
+  useCreatePaymentMutation,
+  useGetMeQuery,
+  useValidateCouponMutation,
+} from '../api/ecommerceApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
 import { FormField } from '../components/FormField';
@@ -12,7 +17,7 @@ import { OrderSummary } from '../components/OrderSummary';
 import { EmptyState, ErrorState } from '../components/StateViews';
 import { getErrorMessage } from '../lib/errors';
 import { getRtkErrorMessage, getRtkStatus } from '../lib/rtkErrors';
-import type { AuthStatus, Cart, Navigate, RefreshCart } from '../types';
+import type { AuthStatus, Cart, Coupon, Navigate, RefreshCart } from '../types';
 import { CheckoutSkeleton } from '../components/skeletons/CheckoutSkeleton';
 
 const pendingCheckoutStorageKey = 'exclusive.pendingStripeCheckout';
@@ -100,6 +105,20 @@ const billingSchema = z.object({
 type BillingFormInput = z.input<typeof billingSchema>;
 type BillingForm = z.output<typeof billingSchema>;
 
+const billingFields: Array<{
+  name: keyof BillingFormInput;
+  label: string;
+  required?: boolean;
+}> = [
+  { name: 'firstName', label: 'First Name', required: true },
+  { name: 'companyName', label: 'Company Name' },
+  { name: 'streetAddress', label: 'Street Address', required: true },
+  { name: 'apartment', label: 'Apartment, floor, etc. (optional)' },
+  { name: 'townCity', label: 'Town City', required: true },
+  { name: 'phone', label: 'Phone Number', required: true },
+  { name: 'email', label: 'Email Address', required: true },
+];
+
 function StripePaymentForm({ submitting, onConfirm }: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -132,13 +151,19 @@ export function CheckoutPage({
 }: CheckoutPageProps) {
   const [createOrder] = useCreateOrderMutation();
   const [createPayment] = useCreatePaymentMutation();
+  const [validateCoupon] = useValidateCouponMutation();
+  const meQuery = useGetMeQuery(undefined, { skip: authStatus !== 'authenticated' });
   const [status, setStatus] = useState('');
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [couponInput, setCouponInput] = useState(appliedCoupon);
+  const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
+  const [saveBillingInfo, setSaveBillingInfo] = useState(true);
   const {
     formState: { errors },
     handleSubmit,
     register,
+    reset,
   } = useForm<BillingFormInput, unknown, BillingForm>({
     resolver: zodResolver(billingSchema),
     defaultValues: {
@@ -160,6 +185,37 @@ export function CheckoutPage({
       pendingStripePayment?.clientSecret && publishableKey ? loadStripe(publishableKey) : null,
     [pendingStripePayment?.clientSecret, publishableKey]
   );
+
+  useEffect(() => {
+    setCouponInput(appliedCoupon);
+  }, [appliedCoupon]);
+
+  useEffect(() => {
+    const user = meQuery.data?.user;
+    if (!user) return;
+    reset({
+      firstName: user.checkoutBilling?.firstName || user.firstName || '',
+      companyName: user.checkoutBilling?.companyName || '',
+      streetAddress: user.checkoutBilling?.streetAddress || user.address || '',
+      apartment: user.checkoutBilling?.apartment || '',
+      townCity: user.checkoutBilling?.townCity || '',
+      phone: user.checkoutBilling?.phone || '',
+      email: user.checkoutBilling?.email || user.email || '',
+    });
+  }, [meQuery.data?.user, reset]);
+
+  const displayCart = useMemo(() => {
+    if (!activeCoupon) return cart;
+    const discount =
+      activeCoupon.type === 'percent'
+        ? Math.round(cart.subtotal * (activeCoupon.amount / 100))
+        : activeCoupon.amount;
+    return {
+      ...cart,
+      discount,
+      total: Math.max(0, cart.subtotal - discount + cart.shipping),
+    };
+  }, [activeCoupon, cart]);
 
   useEffect(() => {
     if (pendingStripePayment?.clientSecret && !publishableKey) {
@@ -196,8 +252,9 @@ export function CheckoutPage({
       const data = await createOrder({
         billing,
         paymentMethod: 'stripe',
-        couponCode: appliedCoupon || undefined,
+        couponCode: activeCoupon?.code || appliedCoupon || undefined,
         idempotencyKey,
+        saveBillingInfo,
       }).unwrap();
 
       const checkout: PendingStripeCheckout = {
@@ -281,6 +338,28 @@ export function CheckoutPage({
     }
   };
 
+  const applyCoupon = async () => {
+    try {
+      const code = couponInput.trim().toUpperCase();
+      setStatus('');
+      setStatusIsError(false);
+      if (!code) {
+        setActiveCoupon(null);
+        await refreshCart('');
+        return;
+      }
+      const result = await validateCoupon(code).unwrap();
+      setActiveCoupon(result.coupon);
+      setCouponInput(result.coupon.code);
+      await refreshCart(result.coupon.code);
+      setStatus(`Coupon ${result.coupon.code} applied.`);
+    } catch (error) {
+      setActiveCoupon(null);
+      setStatusIsError(true);
+      setStatus(getCheckoutErrorMessage(error));
+    }
+  };
+
   if (authStatus === 'loading' || cartLoading) {
     return <CheckoutSkeleton />;
   }
@@ -336,33 +415,33 @@ export function CheckoutPage({
   }
 
   return (
-    <main className="container page">
+    <main className="container page checkout-page">
       <Breadcrumbs items={['Account', 'My Account', 'Product', 'View Cart', 'Checkout']} />
       <h1 className="page-title">Billing Details</h1>
       <form className="checkout-form" onSubmit={submit}>
         <div className="form-grid">
-          {[
-            'firstName',
-            'companyName',
-            'streetAddress',
-            'apartment',
-            'townCity',
-            'phone',
-            'email',
-          ].map((name) => (
+          {billingFields.map(({ name, label, required = false }) => (
             <FormField
               key={name}
               name={name}
-              label={name.replace(/([A-Z])/g, ' $1')}
-              register={register(name as keyof BillingFormInput)}
-              error={errors[name as keyof BillingFormInput]?.message}
-              required={['firstName', 'streetAddress', 'townCity', 'phone', 'email'].includes(name)}
+              label={label}
+              register={register(name)}
+              error={errors[name]?.message}
+              required={required}
             />
           ))}
+          <label className="checkout-save">
+            <input
+              type="checkbox"
+              checked={saveBillingInfo}
+              onChange={(event) => setSaveBillingInfo(event.target.checked)}
+            />
+            <span>Save this information for faster check-out next time</span>
+          </label>
         </div>
-        <div>
+        <div className="checkout-summary-panel">
           {cart.items.length ? (
-            <OrderSummary cart={cart} />
+            <OrderSummary cart={displayCart} />
           ) : (
             <div className="stripe-payment-panel">
               <p className="form-status">Your order is waiting for payment confirmation.</p>
@@ -384,6 +463,17 @@ export function CheckoutPage({
               )}
             </div>
           )}
+          <div className="checkout-coupon">
+            <input
+              value={couponInput}
+              onChange={(event) => setCouponInput(event.target.value)}
+              placeholder="Coupon Code"
+              aria-label="Coupon Code"
+            />
+            <Button type="button" onClick={applyCoupon} disabled={submitting}>
+              Apply Coupon
+            </Button>
+          </div>
           <Button type="submit" disabled={submitting || !!pendingStripePayment}>
             {submitting ? 'Placing Order...' : 'Place Order'}
           </Button>

@@ -8,6 +8,8 @@ type SectionHeaderProps = {
   controls?: boolean;
   onLeftScroll?: () => void;
   onRightScroll?: () => void;
+  canScrollLeft?: boolean;
+  canScrollRight?: boolean;
 };
 
 export function SectionHeader({
@@ -17,6 +19,8 @@ export function SectionHeader({
   controls = false,
   onLeftScroll,
   onRightScroll,
+  canScrollLeft = true,
+  canScrollRight = true,
 }: SectionHeaderProps) {
   return (
     <div className="section-header">
@@ -29,7 +33,14 @@ export function SectionHeader({
       </div>
       <div className="section-header__actions">
         {action}
-        {controls && <CarouselControls onLeftClick={onLeftScroll} onRightClick={onRightScroll} />}
+        {controls && onLeftScroll && onRightScroll && (
+          <CarouselControls
+            onLeftClick={onLeftScroll}
+            onRightClick={onRightScroll}
+            canScrollLeft={canScrollLeft}
+            canScrollRight={canScrollRight}
+          />
+        )}
       </div>
     </div>
   );

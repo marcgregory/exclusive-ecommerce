@@ -11,7 +11,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Navigate, PublicUser, AuthStatus } from '../types';
 
 type HeaderProps = {
@@ -37,11 +37,37 @@ export function Header({
   const [query, setQuery] = useState('');
   const [adminOpen, setAdminOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setAccountOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setAccountOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [accountOpen]);
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
+    setAccountOpen(false);
     navigate(`/search?q=${encodeURIComponent(trimmed)}`);
   };
 
@@ -79,13 +105,26 @@ export function Header({
           </button>
           <nav className="desktop-nav">
             {publicLinks.map(([href, label]) => (
-              <button key={href} onClick={() => navigate(href)}>
+              <button
+                key={href}
+                onClick={() => {
+                  setAccountOpen(false);
+                  navigate(href);
+                }}
+              >
                 {label}
               </button>
             ))}
             {authStatus === 'unauthenticated' && (
               <>
-                <button onClick={() => navigate('/signup')}>Sign Up</button>
+                <button
+                  onClick={() => {
+                    setAccountOpen(false);
+                    navigate('/signup');
+                  }}
+                >
+                  Sign Up
+                </button>
               </>
             )}
             {authStatus === 'authenticated' && user?.role === 'admin' && (
@@ -133,7 +172,10 @@ export function Header({
             {/* Wishlist (Heart) - always visible */}
             <button
               className="icon-button badge-button"
-              onClick={() => navigate('/wishlist')}
+              onClick={() => {
+                setAccountOpen(false);
+                navigate('/wishlist');
+              }}
               aria-label="Wishlist"
             >
               <Heart size={22} />
@@ -141,7 +183,10 @@ export function Header({
             </button>
             <button
               className="icon-button badge-button"
-              onClick={() => navigate('/cart')}
+              onClick={() => {
+                setAccountOpen(false);
+                navigate('/cart');
+              }}
               aria-label="Cart"
             >
               <ShoppingCart size={22} />
@@ -149,18 +194,19 @@ export function Header({
             </button>
             {authStatus === 'authenticated' && user ? (
               <>
-                <div className="account-dropdown">
+                <div className="account-dropdown" ref={accountMenuRef}>
                   <button
                     className="icon-button account-trigger"
                     onClick={() => setAccountOpen((current) => !current)}
                     aria-expanded={accountOpen}
                     aria-haspopup="menu"
+                    aria-controls="account-menu"
                     aria-label="Account menu"
                   >
                     <User size={20} />
                   </button>
                   {accountOpen && (
-                    <div className="account-dropdown__menu" role="menu">
+                    <div className="account-dropdown__menu" id="account-menu" role="menu">
                       {accountMenuItems.map(({ label, href, icon: Icon }) => (
                         <button
                           key={label}

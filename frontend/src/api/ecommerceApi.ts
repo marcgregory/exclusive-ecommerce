@@ -14,6 +14,7 @@ import type {
   AdminProductVariantsResponse,
   CartResponse,
   CategoriesResponse,
+  CouponValidationResponse,
   MeResponse,
   OrderResponse,
   OrdersResponse,
@@ -40,6 +41,7 @@ type CreateOrderInput = {
   paymentMethod: string;
   couponCode?: string;
   idempotencyKey: string;
+  saveBillingInfo?: boolean;
 };
 
 type CreatePaymentInput = {
@@ -114,6 +116,7 @@ type AuthResponse = {
     firstName: string;
     lastName: string;
     address: string;
+    checkoutBilling?: Record<string, string>;
     role: 'customer' | 'admin';
   };
 };
@@ -176,6 +179,9 @@ export const ecommerceApi = createApi({
     getCart: builder.query<CartResponse, string | undefined>({
       query: (coupon) => `/api/cart${coupon ? `?coupon=${encodeURIComponent(coupon)}` : ''}`,
       providesTags: ['Cart'],
+    }),
+    validateCoupon: builder.mutation<CouponValidationResponse, string>({
+      query: (code) => ({ url: '/api/coupons/validate', method: 'POST', body: { code } }),
     }),
     getWishlist: builder.query<WishlistResponse, void>({
       query: () => '/api/wishlist',
@@ -420,6 +426,7 @@ export const {
   useCreateAdminCouponMutation,
   useUpdateAdminCouponMutation,
   useDeleteAdminCouponMutation,
+  useValidateCouponMutation,
   useSendContactMessageMutation,
   useLazyGetFilteredProductsQuery,
 } = ecommerceApi;

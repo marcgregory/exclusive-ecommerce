@@ -51,6 +51,7 @@ export type User = {
   lastName: string;
   email: string;
   address: string;
+  checkoutBilling?: Record<string, string>;
   passwordHash: string;
   googleSub?: string;
   role: UserRole;

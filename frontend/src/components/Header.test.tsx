@@ -73,4 +73,32 @@ describe('Header', () => {
 
     await waitFor(() => expect(onLogout).toHaveBeenCalledTimes(1));
   });
+
+  it('closes the account dropdown on Escape and outside click', async () => {
+    const interaction = userEvent.setup();
+
+    render(
+      <Header
+        navigate={vi.fn()}
+        user={user}
+        authStatus="authenticated"
+        cartCount={0}
+        wishlistCount={0}
+        onLogout={vi.fn().mockResolvedValue(undefined)}
+        logoutSaving={false}
+      />
+    );
+
+    await interaction.click(screen.getByRole('button', { name: /Account menu/i }));
+    expect(screen.getByRole('menu')).toBeDefined();
+
+    await interaction.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+
+    await interaction.click(screen.getByRole('button', { name: /Account menu/i }));
+    expect(screen.getByRole('menu')).toBeDefined();
+
+    await interaction.click(document.body);
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+  });
 });

@@ -81,6 +81,7 @@ export const createOrderSchema = z.object({
   paymentMethod: optionalText.default('bank'),
   couponCode: optionalText.optional(),
   idempotencyKey: optionalText.optional(),
+  saveBillingInfo: z.coerce.boolean().optional().default(false),
 });
 
 export const createPaymentSchema = z.object({

@@ -572,7 +572,8 @@ app.post(
       billing,
       body.paymentMethod || 'bank',
       body.couponCode || undefined,
-      body.idempotencyKey || undefined
+      body.idempotencyKey || undefined,
+      body.saveBillingInfo
     );
     res.status(201).json({ order });
   })

@@ -1,4 +1,4 @@
-import { Heart, ShieldCheck, Truck } from 'lucide-react';
+import { Heart, RotateCcw, Truck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   useAddWishlistProductMutation,
@@ -187,7 +187,7 @@ export function ProductDetailsPage({
           <div className="buy-row">
             <QuantityStepper value={quantity} onChange={setQuantity} />
             <Button onClick={addToCart} disabled={!canAddToCart}>
-              {isOutOfStock ? 'Out of stock' : 'Add To Cart'}
+              {isOutOfStock ? 'Out of stock' : 'Buy Now'}
             </Button>
             <button
               className="wishlist-square"
@@ -212,7 +212,7 @@ export function ProductDetailsPage({
               </div>
             </div>
             <div>
-              <ShieldCheck />
+              <RotateCcw />
               <div>
                 <h4>Return Delivery</h4>
                 <p>Free 30 Days Delivery Returns. Details</p>

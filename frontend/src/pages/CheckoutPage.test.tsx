@@ -8,6 +8,8 @@ import type { Cart } from '../types';
 const apiMocks = vi.hoisted(() => ({
   createOrder: vi.fn(),
   createPayment: vi.fn(),
+  getMe: vi.fn(),
+  validateCoupon: vi.fn(),
 }));
 
 const stripeMocks = vi.hoisted(() => ({
@@ -19,6 +21,8 @@ const stripeMocks = vi.hoisted(() => ({
 vi.mock('../api/ecommerceApi', () => ({
   useCreateOrderMutation: () => [apiMocks.createOrder],
   useCreatePaymentMutation: () => [apiMocks.createPayment],
+  useGetMeQuery: () => apiMocks.getMe(),
+  useValidateCouponMutation: () => [apiMocks.validateCoupon],
 }));
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: stripeMocks.loadStripe }));
 vi.mock('@stripe/react-stripe-js', async () => {
@@ -82,6 +86,9 @@ describe('CheckoutPage', () => {
   beforeEach(() => {
     apiMocks.createOrder.mockReset();
     apiMocks.createPayment.mockReset();
+    apiMocks.getMe.mockReset();
+    apiMocks.validateCoupon.mockReset();
+    apiMocks.getMe.mockReturnValue({ data: undefined });
     stripeMocks.loadStripe.mockClear();
     stripeMocks.stripe = null;
     stripeMocks.elements = { id: 'elements' };
@@ -214,6 +221,7 @@ describe('CheckoutPage', () => {
       paymentMethod: 'stripe',
       couponCode: 'SAVE10',
       idempotencyKey: expect.any(String),
+      saveBillingInfo: true,
     });
     expect(apiMocks.createPayment).toHaveBeenCalledWith({
       orderId: 'order-1',
@@ -223,6 +231,88 @@ describe('CheckoutPage', () => {
     expect(refreshCart).toHaveBeenCalled();
     expect(onCouponConsumed).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/orders/order-1');
+  });
+
+  it('validates and applies a coupon to the checkout totals', async () => {
+    const refreshCart = vi.fn();
+    apiMocks.validateCoupon.mockReturnValueOnce(
+      resolveMutation({
+        valid: true,
+        coupon: { code: 'SAVE10', type: 'percent', amount: 10, active: true },
+      })
+    );
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={refreshCart}
+        navigate={vi.fn()}
+        appliedCoupon=""
+        onCouponConsumed={vi.fn()}
+      />
+    );
+
+    await userEvent.type(screen.getByLabelText(/Coupon Code/i), 'save10');
+    await userEvent.click(screen.getByRole('button', { name: /Apply Coupon/i }));
+
+    await waitFor(() => expect(apiMocks.validateCoupon).toHaveBeenCalledWith('SAVE10'));
+    expect(refreshCart).toHaveBeenCalledWith('SAVE10');
+    expect(screen.getByText(/Coupon SAVE10 applied/i)).toBeDefined();
+    expect(screen.getByText('$300')).toBeDefined();
+  });
+
+  it('prefills saved checkout details and can opt out of saving them', async () => {
+    apiMocks.getMe.mockReturnValue({
+      data: {
+        user: {
+          id: 'user-1',
+          firstName: 'Saved',
+          lastName: 'Shopper',
+          email: 'saved@example.com',
+          address: 'Saved address',
+          checkoutBilling: {
+            firstName: 'Checkout Jane',
+            streetAddress: '456 Saved Street',
+            townCity: 'Saved Town',
+            phone: '555-1000',
+            email: 'checkout@example.com',
+          },
+          role: 'customer',
+        },
+      },
+    });
+    apiMocks.createOrder.mockReturnValueOnce(resolveMutation({ order: { id: 'order-1' } }));
+    apiMocks.createPayment.mockReturnValueOnce(
+      resolveMutation({
+        payment: { id: 'pay-1', status: 'succeeded' },
+        order: { id: 'order-1', status: 'shipped' },
+      })
+    );
+
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={vi.fn()}
+        navigate={vi.fn()}
+        appliedCoupon=""
+        onCouponConsumed={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText(/First Name/i)).toHaveValue('Checkout Jane');
+    await userEvent.click(screen.getByLabelText(/Save this information/i));
+    await userEvent.click(screen.getByRole('button', { name: /Place Order/i }));
+
+    await waitFor(() => expect(apiMocks.createOrder).toHaveBeenCalled());
+    expect(apiMocks.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ saveBillingInfo: false })
+    );
   });
 
   it('confirms Stripe payments in the browser before navigating', async () => {

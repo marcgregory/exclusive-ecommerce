@@ -50,15 +50,13 @@ export function ProductOptionsSelector({
   const updateOption = (name: string, value: string) => {
     onChange({ ...selectedOptions, [name]: selectedOptions[name] === value ? '' : value });
   };
+  const labelForGroup = (name: string) => (name === 'Color' ? 'Colours:' : `${name}:`);
 
   return (
     <div className="product-options-selector">
       {groups.map((group) => (
         <fieldset className="option-group" key={group.name}>
-          <legend>
-            {group.name}
-            {group.required && <span aria-label="required"> *</span>}
-          </legend>
+          <legend>{labelForGroup(group.name)}</legend>
           <div
             className={group.name === 'Color' ? 'choice-row choice-row--swatches' : 'choice-row'}
           >

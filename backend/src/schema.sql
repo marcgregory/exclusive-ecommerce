@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   address TEXT NOT NULL DEFAULT '',
+  checkout_billing JSONB NOT NULL DEFAULT '{}'::jsonb,
   password_hash TEXT NOT NULL,
   google_sub TEXT UNIQUE,
   role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
@@ -158,6 +159,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS internal_note TEXT NOT NULL DEFAULT 
 CREATE UNIQUE INDEX IF NOT EXISTS orders_user_id_idempotency_key_idx ON orders (user_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'customer';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS checkout_billing JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer', 'admin'));
 UPDATE users SET role = 'admin' WHERE id = 'demo-user';

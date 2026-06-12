@@ -30,12 +30,22 @@ type ProductFilters = {
   limit?: number;
 };
 
-type NewUser = Omit<User, 'id' | 'role' | 'googleSub'> & {
+type NewUser = Omit<User, 'id' | 'role' | 'googleSub' | 'checkoutBilling'> & {
+  checkoutBilling?: Record<string, string>;
   googleSub?: string;
   role?: User['role'];
 };
 type UpdateUserInput = Partial<
-  Pick<User, 'firstName' | 'lastName' | 'email' | 'address' | 'passwordHash' | 'googleSub'>
+  Pick<
+    User,
+    | 'firstName'
+    | 'lastName'
+    | 'email'
+    | 'address'
+    | 'checkoutBilling'
+    | 'passwordHash'
+    | 'googleSub'
+  >
 >;
 
 const nowId = (prefix: string) =>
@@ -51,6 +61,7 @@ function mapUser(row: QueryResultRow): User {
     lastName: String(row.last_name || ''),
     email: String(row.email || ''),
     address: String(row.address || ''),
+    checkoutBilling: (row.checkout_billing || {}) as Record<string, string>,
     passwordHash: String(row.password_hash || ''),
     googleSub: String(row.google_sub || ''),
     role: row.role === 'admin' ? 'admin' : 'customer',
@@ -314,13 +325,14 @@ export async function findUserByGoogleSub(googleSub: string): Promise<User | und
 export async function createUser(input: NewUser): Promise<User> {
   const id = nowId('user');
   const result = await query(
-    "INSERT INTO users (id, first_name, last_name, email, address, password_hash, google_sub, role) VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), COALESCE($8, 'customer')) RETURNING *",
+    "INSERT INTO users (id, first_name, last_name, email, address, checkout_billing, password_hash, google_sub, role) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, NULLIF($8, ''), COALESCE($9, 'customer')) RETURNING *",
     [
       id,
       input.firstName,
       input.lastName,
       input.email,
       input.address,
+      JSON.stringify(input.checkoutBilling ?? {}),
       input.passwordHash,
       input.googleSub,
       input.role ?? null,
@@ -338,7 +350,7 @@ export async function updateUser(
   const user = { ...mapUser(current.rows[0]), ...input };
   const result = await query(
     `UPDATE users
-     SET first_name = $2, last_name = $3, email = $4, address = $5, password_hash = $6, google_sub = NULLIF($7, '')
+     SET first_name = $2, last_name = $3, email = $4, address = $5, checkout_billing = $6::jsonb, password_hash = $7, google_sub = NULLIF($8, '')
      WHERE id = $1
      RETURNING *`,
     [
@@ -347,6 +359,7 @@ export async function updateUser(
       user.lastName,
       user.email,
       user.address,
+      JSON.stringify(user.checkoutBilling ?? {}),
       user.passwordHash,
       user.googleSub,
     ]
@@ -582,7 +595,8 @@ export async function createOrder(
   billing: Record<string, string>,
   paymentMethod = 'bank',
   couponCode?: string,
-  idempotencyKey?: string
+  idempotencyKey?: string,
+  saveBillingInfo = false
 ): Promise<Order> {
   const normalizedIdempotencyKey = idempotencyKey?.trim() || undefined;
 
@@ -637,6 +651,16 @@ export async function createOrder(
           totals.total,
         ]
       );
+
+      if (saveBillingInfo) {
+        await client.query(
+          `UPDATE users
+           SET checkout_billing = $2::jsonb,
+               address = COALESCE(NULLIF($3, ''), address)
+           WHERE id = $1`,
+          [userId, JSON.stringify(billing), billing.streetAddress || '']
+        );
+      }
 
       const orderItems: Array<CartItem & { name: string; price: number }> = [];
       for (const item of totals.items) {

@@ -111,6 +111,7 @@ export type PublicUser = {
   lastName: string;
   email: string;
   address: string;
+  checkoutBilling?: Record<string, string>;
   role: 'customer' | 'admin';
 };
 
@@ -233,6 +234,11 @@ export type AdminCouponResponse = {
 
 export type CartResponse = {
   cart: Cart;
+};
+
+export type CouponValidationResponse = {
+  valid: boolean;
+  coupon: Coupon;
 };
 
 export type OrderResponse = {

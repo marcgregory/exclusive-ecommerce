@@ -270,6 +270,24 @@ describe('PostgreSQL persistence', () => {
     expect((await getUserCart('demo-user')).items).toHaveLength(0);
   });
 
+  it('saves checkout billing details to the user profile when requested', async () => {
+    const billing = {
+      firstName: 'Saved',
+      companyName: 'Exclusive Co',
+      streetAddress: '789 Billing Lane',
+      apartment: 'Floor 4',
+      townCity: 'Dhaka',
+      phone: '555-0188',
+      email: 'saved-billing@example.com',
+    };
+
+    await createOrder('demo-user', billing, 'bank', undefined, undefined, true);
+
+    const user = await getSessionUser({ session: { userId: 'demo-user' } });
+    expect(user?.address).toBe('789 Billing Lane');
+    expect(user?.checkoutBilling).toMatchObject(billing);
+  });
+
   it('returns the same pending order when checkout retries with the same idempotency key', async () => {
     const billing = {
       firstName: 'Md',

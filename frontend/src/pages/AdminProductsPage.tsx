@@ -57,6 +57,7 @@ type VariantDraft = {
   size: string;
   sku: string;
   stock: string;
+  imageUrl: string;
 };
 
 const emptyDraft: ProductDraft = {
@@ -136,6 +137,7 @@ function variantToDraft(variant: ProductVariant): VariantDraft {
     size: variant.size,
     sku: variant.sku,
     stock: String(variant.stock),
+    imageUrl: variant.imageUrl || '',
   };
 }
 
@@ -323,7 +325,7 @@ export function AdminProductsPage({ userState, navigate, currentPath }: AdminPro
   const addVariantRow = () => {
     setVariants((current) => [
       ...current,
-      { localId: variantDraftId(), color: '', size: '', sku: '', stock: '0' },
+      { localId: variantDraftId(), color: '', size: '', sku: '', stock: '0', imageUrl: '' },
     ]);
     setVariantsError('');
     setVariantsSuccess('');
@@ -362,6 +364,7 @@ export function AdminProductsPage({ userState, navigate, currentPath }: AdminPro
           size: variant.size.trim(),
           sku: variant.sku.trim(),
           stock: Number(variant.stock || 0),
+          imageUrl: variant.imageUrl.trim(),
         })),
       }).unwrap();
       if (variantsData) {
@@ -664,72 +667,120 @@ export function AdminProductsPage({ userState, navigate, currentPath }: AdminPro
                   <span>Size</span>
                   <span>SKU</span>
                   <span>Stock</span>
+                  <span>Image</span>
                   <span />
                 </div>
-                {variants.map((variant, index) => (
-                  <div className="admin-variants-row" key={variant.localId}>
-                    <label>
-                      Color
-                      <input
-                        value={variant.color}
-                        list="admin-product-color-options"
-                        onChange={(event) =>
-                          updateVariant(variant.localId, 'color', event.target.value)
-                        }
-                        placeholder="Default"
-                        aria-label={`Variant ${index + 1} color`}
+                {variants.map((variant, index) => {
+                  const uploadVariantImage = async (event: ChangeEvent<HTMLInputElement>) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (!file) return;
+
+                    try {
+                      const data = await api<ProductImageUploadResponse>('/api/admin/uploads/product-image', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': file.type,
+                          'X-File-Name': file.name,
+                        },
+                        body: file,
+                      });
+                      updateVariant(variant.localId, 'imageUrl', data.upload.url);
+                    } catch (err) {
+                      setVariantsError(getErrorMessage(err));
+                    }
+                  };
+
+                  return (
+                    <div className="admin-variants-row" key={variant.localId}>
+                      <label>
+                        Color
+                        <input
+                          value={variant.color}
+                          list="admin-product-color-options"
+                          onChange={(event) =>
+                            updateVariant(variant.localId, 'color', event.target.value)
+                          }
+                          placeholder="Default"
+                          aria-label={`Variant ${index + 1} color`}
+                          disabled={!editingProductId || variantsSaving}
+                        />
+                      </label>
+                      <label>
+                        Size
+                        <input
+                          value={variant.size}
+                          list="admin-product-size-options"
+                          onChange={(event) =>
+                            updateVariant(variant.localId, 'size', event.target.value)
+                          }
+                          placeholder="Default"
+                          aria-label={`Variant ${index + 1} size`}
+                          disabled={!editingProductId || variantsSaving}
+                        />
+                      </label>
+                      <label>
+                        SKU
+                        <input
+                          value={variant.sku}
+                          onChange={(event) =>
+                            updateVariant(variant.localId, 'sku', event.target.value)
+                          }
+                          placeholder="Optional"
+                          aria-label={`Variant ${index + 1} sku`}
+                          disabled={!editingProductId || variantsSaving}
+                        />
+                      </label>
+                      <label>
+                        Stock
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={variant.stock}
+                          onChange={(event) =>
+                            updateVariant(variant.localId, 'stock', event.target.value)
+                          }
+                          aria-label={`Variant ${index + 1} stock`}
+                          disabled={!editingProductId || variantsSaving}
+                        />
+                      </label>
+                      <div className="admin-catalog-image-field" style={{ margin: 0, gap: '4px', gridTemplateColumns: '1fr auto' }}>
+                        <label style={{ gap: 0, fontSize: '10px' }}>
+                          <span className="sr-only">Image URL or key</span>
+                          <input
+                            style={{ minHeight: '38px', fontSize: '12px' }}
+                            value={variant.imageUrl}
+                            onChange={(event) =>
+                              updateVariant(variant.localId, 'imageUrl', event.target.value)
+                            }
+                            placeholder="URL / key"
+                            aria-label={`Variant ${index + 1} image URL`}
+                            disabled={!editingProductId || variantsSaving}
+                          />
+                        </label>
+                        <label className="admin-catalog-upload-button" style={{ height: '38px', minHeight: '38px', padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--line)', borderRadius: '4px' }}>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            onChange={uploadVariantImage}
+                            disabled={!editingProductId || variantsSaving}
+                            style={{ display: 'none' }}
+                          />
+                          <ImageUp size={14} style={{ color: 'var(--muted)' }} />
+                        </label>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        onClick={() => removeVariantRow(variant.localId)}
                         disabled={!editingProductId || variantsSaving}
-                      />
-                    </label>
-                    <label>
-                      Size
-                      <input
-                        value={variant.size}
-                        list="admin-product-size-options"
-                        onChange={(event) =>
-                          updateVariant(variant.localId, 'size', event.target.value)
-                        }
-                        placeholder="Default"
-                        aria-label={`Variant ${index + 1} size`}
-                        disabled={!editingProductId || variantsSaving}
-                      />
-                    </label>
-                    <label>
-                      SKU
-                      <input
-                        value={variant.sku}
-                        onChange={(event) =>
-                          updateVariant(variant.localId, 'sku', event.target.value)
-                        }
-                        placeholder="Optional"
-                        aria-label={`Variant ${index + 1} sku`}
-                        disabled={!editingProductId || variantsSaving}
-                      />
-                    </label>
-                    <label>
-                      Stock
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={variant.stock}
-                        onChange={(event) =>
-                          updateVariant(variant.localId, 'stock', event.target.value)
-                        }
-                        aria-label={`Variant ${index + 1} stock`}
-                        disabled={!editingProductId || variantsSaving}
-                      />
-                    </label>
-                    <Button
-                      variant="ghost"
-                      onClick={() => removeVariantRow(variant.localId)}
-                      disabled={!editingProductId || variantsSaving}
-                      aria-label={`Delete variant ${index + 1}`}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                ))}
+                        aria-label={`Delete variant ${index + 1}`}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  );
+                })}
                 {editingProductId && !variantsLoading && !variants.length && (
                   <p className="admin-variants-editor__note">
                     No variants yet. Add one row to begin tracking option stock.

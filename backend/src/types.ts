@@ -34,6 +34,7 @@ export type ProductVariant = {
   color: string;
   size: string;
   stock: number;
+  imageUrl?: string;
 };
 
 export type Coupon = {

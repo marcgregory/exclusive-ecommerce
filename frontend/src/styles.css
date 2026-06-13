@@ -3243,7 +3243,7 @@ button {
   display: grid;
   grid-template-columns:
     minmax(0, 1fr) minmax(70px, 0.75fr) minmax(0, 1fr) minmax(72px, 0.65fr)
-    42px;
+    minmax(0, 1.25fr) 42px;
   gap: 8px;
   align-items: end;
 }

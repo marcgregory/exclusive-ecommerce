@@ -148,6 +148,7 @@ export const adminProductVariantSchema = z
       .number()
       .int('Stock must be a whole number')
       .nonnegative('Stock must be a non-negative integer'),
+    imageUrl: optionalText,
   })
   .passthrough();
 

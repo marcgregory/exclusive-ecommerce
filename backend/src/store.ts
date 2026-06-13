@@ -109,6 +109,7 @@ function mapProductVariant(row: QueryResultRow): ProductVariant {
     color: String(row.color || ''),
     size: String(row.size || ''),
     stock: Number(row.stock || 0),
+    imageUrl: String(row.image_url || ''),
   };
 }
 
@@ -1043,6 +1044,7 @@ export type ProductVariantInput = {
   color?: string;
   size?: string;
   stock: number;
+  imageUrl?: string;
 };
 
 const STOCK_STATUSES = ['In Stock', 'Out of Stock', 'Preorder'] as const;
@@ -1163,7 +1165,7 @@ export async function deleteProduct(productId: string): Promise<boolean> {
 
 function validateProductVariantInput(
   input: ProductVariantInput
-): ProductVariantInput & { sku: string; color: string; size: string; stock: number } {
+): ProductVariantInput & { sku: string; color: string; size: string; stock: number; imageUrl: string } {
   const id = input.id ? String(input.id).trim() : undefined;
   const sku = String(input.sku || '').trim();
   const color = String(input.color || '').trim();
@@ -1172,7 +1174,8 @@ function validateProductVariantInput(
   if (!Number.isInteger(stock) || stock < 0) {
     throw Object.assign(new Error('Stock must be a non-negative integer'), { status: 400 });
   }
-  return { id, sku, color, size, stock };
+  const imageUrl = String(input.imageUrl || '').trim();
+  return { id, sku, color, size, stock, imageUrl };
 }
 
 function validateProductVariantsInput(variants: ProductVariantInput[]) {
@@ -1196,7 +1199,7 @@ export async function listProductVariants(
 ): Promise<ProductVariant[] | undefined> {
   if (!(await findProduct(productId, client))) return undefined;
   const result = await run(client).query(
-    "SELECT id, product_id, sku, color, size, stock FROM product_variants WHERE product_id = $1 ORDER BY COALESCE(color, '') ASC, COALESCE(size, '') ASC, id ASC",
+    "SELECT id, product_id, sku, color, size, stock, image_url FROM product_variants WHERE product_id = $1 ORDER BY COALESCE(color, '') ASC, COALESCE(size, '') ASC, id ASC",
     [productId]
   );
   return result.rows.map(mapProductVariant);
@@ -1235,13 +1238,13 @@ export async function saveProductVariants(
     for (const variant of variants) {
       if (variant.id) {
         await client.query(
-          'UPDATE product_variants SET sku = $3, color = $4, size = $5, stock = $6 WHERE product_id = $1 AND id = $2',
-          [productId, variant.id, variant.sku, variant.color, variant.size, variant.stock]
+          'UPDATE product_variants SET sku = $3, color = $4, size = $5, stock = $6, image_url = $7 WHERE product_id = $1 AND id = $2',
+          [productId, variant.id, variant.sku, variant.color, variant.size, variant.stock, variant.imageUrl]
         );
       } else {
         await client.query(
-          'INSERT INTO product_variants (id, product_id, sku, color, size, stock) VALUES ($1, $2, $3, $4, $5, $6)',
-          [nowId('pv'), productId, variant.sku, variant.color, variant.size, variant.stock]
+          'INSERT INTO product_variants (id, product_id, sku, color, size, stock, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [nowId('pv'), productId, variant.sku, variant.color, variant.size, variant.stock, variant.imageUrl]
         );
       }
     }

@@ -28,6 +28,7 @@ export type ProductVariant = {
   stock: number;
   price?: number;
   options?: Record<string, string>;
+  imageUrl?: string;
 };
 
 export type Category = {
@@ -177,6 +178,7 @@ export type AdminProductVariantInput = {
   color?: string;
   size?: string;
   stock: number;
+  imageUrl?: string;
 };
 
 export type AdminProductVariantsResponse = {

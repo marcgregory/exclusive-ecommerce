@@ -284,21 +284,22 @@ function App() {
     if (path.startsWith('/orders/'))
       return <OrderPage authStatus={authStatus} id={path.split('/').pop()} navigate={navigate} />;
     if (path === '/admin' || path === '/admin/products')
-      return <AdminProductsPage userState={userState} navigate={navigate} />;
+      return <AdminProductsPage userState={userState} navigate={navigate} currentPath={path} />;
     if (path === '/admin/categories')
-      return <AdminCategoriesPage userState={userState} navigate={navigate} />;
+      return <AdminCategoriesPage userState={userState} navigate={navigate} currentPath={path} />;
     if (path === '/admin/coupons')
-      return <AdminCouponsPage userState={userState} navigate={navigate} />;
+      return <AdminCouponsPage userState={userState} navigate={navigate} currentPath={path} />;
     if (path.startsWith('/admin/orders/'))
       return (
         <AdminOrderDetailPage
           id={path.split('/').pop()}
           userState={userState}
           navigate={navigate}
+          currentPath={path}
         />
       );
     if (path === '/admin/orders')
-      return <AdminOrdersPage userState={userState} navigate={navigate} />;
+      return <AdminOrdersPage userState={userState} navigate={navigate} currentPath={path} />;
     if (path === '/cart')
       return (
         <CartPage
@@ -392,6 +393,7 @@ function App() {
     <>
       <TopHeader />
       <Header
+        currentPath={path}
         navigate={navigate}
         user={userState.data}
         authStatus={authStatus}

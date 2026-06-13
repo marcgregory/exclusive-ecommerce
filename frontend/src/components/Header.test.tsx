@@ -24,6 +24,7 @@ describe('Header', () => {
 
     render(
       <Header
+        currentPath="/"
         navigate={navigate}
         user={null}
         authStatus="unauthenticated"
@@ -45,6 +46,7 @@ describe('Header', () => {
 
     render(
       <Header
+        currentPath="/"
         navigate={navigate}
         user={user}
         authStatus="authenticated"
@@ -91,6 +93,7 @@ describe('Header', () => {
 
     render(
       <Header
+        currentPath="/"
         navigate={vi.fn()}
         user={user}
         authStatus="authenticated"

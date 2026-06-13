@@ -61,6 +61,7 @@ function renderPage(user: PublicUser | null = admin) {
   const props = {
     userState: { data: user, loading: false, error: '' },
     navigate: vi.fn(),
+    currentPath: '/admin/orders',
   };
 
   const view = render(

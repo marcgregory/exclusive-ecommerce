@@ -62,6 +62,7 @@ function renderPage(user: PublicUser | null = admin) {
     id: 'order-1',
     userState: { data: user, loading: false, error: '' },
     navigate: vi.fn(),
+    currentPath: '/admin/orders/order-1',
   };
 
   const view = render(

@@ -9,6 +9,20 @@ import { OrderPage } from './OrderPage';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import type { Cart, Navigate, Order, PublicUser } from '../types';
 
+// Mock IntersectionObserver for jsdom (used by useScrollSpy in AccountPage)
+class MockIntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = '';
+  readonly thresholds: readonly number[] = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] { return []; }
+}
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+}
+
 const apiMocks = vi.hoisted(() => ({
   createOrder: vi.fn(),
   createPayment: vi.fn(),

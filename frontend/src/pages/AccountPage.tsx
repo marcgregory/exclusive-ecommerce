@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,9 +9,21 @@ import { FormField } from '../components/FormField';
 import { ErrorState } from '../components/StateViews';
 import { formatMoney } from '../lib/format';
 import { getRtkErrorMessage } from '../lib/rtkErrors';
+import { useScrollSpy } from '../lib/useScrollSpy';
 import type { AsyncState, Navigate, PublicUser } from '../types';
 import { OrderSkeleton } from '../components/skeletons/OrderSkeleton';
 import { AccountPageSkeleton } from '../components/skeletons/AccountPageSkeleton';
+
+/** All section IDs in the account page, in DOM order */
+const ACCOUNT_SECTION_IDS = [
+  'profile',
+  'orders',
+  'returns',
+  'cancellations',
+  'reviews',
+  'address-book',
+  'payment-options',
+] as const;
 
 type AccountPageProps = {
   userState: AsyncState<PublicUser | null>;
@@ -49,6 +61,9 @@ export function AccountPage({
   onUserRefresh,
   navigate,
 }: AccountPageProps) {
+  const sectionIds = useMemo(() => [...ACCOUNT_SECTION_IDS], []);
+  const { activeId, scrollTo } = useScrollSpy(sectionIds);
+
   const [profileStatus, setProfileStatus] = useState('');
   const [profileStatusIsError, setProfileStatusIsError] = useState(false);
 
@@ -146,23 +161,47 @@ export function AccountPage({
       <div className="account-layout">
         <aside className="account-menu">
           <h3>Manage My Account</h3>
-          <button type="button" onClick={() => navigate('/account#profile')}>
+          <button
+            type="button"
+            className={activeId === 'profile' ? 'active' : ''}
+            onClick={() => { scrollTo('profile'); navigate('/account#profile'); }}
+          >
             My Profile
           </button>
-          <button type="button" onClick={() => navigate('/account#address-book')}>
+          <button
+            type="button"
+            className={activeId === 'address-book' ? 'active' : ''}
+            onClick={() => { scrollTo('address-book'); navigate('/account#address-book'); }}
+          >
             Address Book
           </button>
-          <button type="button" onClick={() => navigate('/account#payment-options')}>
+          <button
+            type="button"
+            className={activeId === 'payment-options' ? 'active' : ''}
+            onClick={() => { scrollTo('payment-options'); navigate('/account#payment-options'); }}
+          >
             My Payment Options
           </button>
           <h3>My Orders</h3>
-          <button type="button" onClick={() => navigate('/account#orders')}>
+          <button
+            type="button"
+            className={activeId === 'orders' ? 'active' : ''}
+            onClick={() => { scrollTo('orders'); navigate('/account#orders'); }}
+          >
             My Orders
           </button>
-          <button type="button" onClick={() => navigate('/account#returns')}>
+          <button
+            type="button"
+            className={activeId === 'returns' ? 'active' : ''}
+            onClick={() => { scrollTo('returns'); navigate('/account#returns'); }}
+          >
             My Returns
           </button>
-          <button type="button" onClick={() => navigate('/account#cancellations')}>
+          <button
+            type="button"
+            className={activeId === 'cancellations' ? 'active' : ''}
+            onClick={() => { scrollTo('cancellations'); navigate('/account#cancellations'); }}
+          >
             My Cancellations
           </button>
           <h3>My WishList</h3>

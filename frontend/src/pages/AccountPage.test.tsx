@@ -5,6 +5,18 @@ import userEvent from '@testing-library/user-event';
 import { AccountPage } from './AccountPage';
 import type { Order, PublicUser } from '../types';
 
+// Mock IntersectionObserver for jsdom (used by useScrollSpy)
+class MockIntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = '';
+  readonly thresholds: readonly number[] = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] { return []; }
+}
+globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
 const apiMocks = vi.hoisted(() => ({
   getOrders: vi.fn(),
   googleAuth: vi.fn(),

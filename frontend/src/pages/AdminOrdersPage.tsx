@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, Search } from 'lucide-react';
 import { useGetAdminOrdersQuery } from '../api/ecommerceApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
+import { AdminNav } from '../components/AdminNav';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
 import { formatMoney } from '../lib/format';
 import type { AdminOrder, AsyncState, Navigate, PublicUser } from '../types';
@@ -10,6 +11,7 @@ import type { AdminOrder, AsyncState, Navigate, PublicUser } from '../types';
 type AdminOrdersPageProps = {
   userState: AsyncState<PublicUser | null>;
   navigate: Navigate;
+  currentPath: string;
 };
 
 const statusFilters = [
@@ -41,7 +43,7 @@ function isStripeAttentionOrder(order: AdminOrder) {
   );
 }
 
-export function AdminOrdersPage({ userState, navigate }: AdminOrdersPageProps) {
+export function AdminOrdersPage({ userState, navigate, currentPath }: AdminOrdersPageProps) {
   const [status, setStatus] = useState('');
   const [email, setEmail] = useState('');
   const [submittedEmail, setSubmittedEmail] = useState('');
@@ -131,6 +133,9 @@ export function AdminOrdersPage({ userState, navigate }: AdminOrdersPageProps) {
           </span>
         </div>
       </section>
+      <div style={{ marginTop: '24px' }}>
+        <AdminNav currentPath={currentPath} navigate={navigate} />
+      </div>
 
       <section className="admin-orders-toolbar" aria-label="Order filters">
         <label>

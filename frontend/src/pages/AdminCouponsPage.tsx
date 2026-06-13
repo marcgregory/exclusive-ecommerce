@@ -8,6 +8,7 @@ import {
 } from '../api/ecommerceApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
+import { AdminNav } from '../components/AdminNav';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
 import { getRtkErrorMessage } from '../lib/rtkErrors';
 import { formatMoney } from '../lib/format';
@@ -23,6 +24,7 @@ import type {
 type AdminCouponsPageProps = {
   userState: AsyncState<PublicUser | null>;
   navigate: Navigate;
+  currentPath: string;
 };
 
 type CouponDraft = {
@@ -61,7 +63,7 @@ function formatCouponValue(coupon: Coupon) {
   return coupon.type === 'percent' ? `${coupon.amount}% off` : `${formatMoney(coupon.amount)} off`;
 }
 
-export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps) {
+export function AdminCouponsPage({ userState, navigate, currentPath }: AdminCouponsPageProps) {
   const {
     data: couponsData,
     isLoading: couponsLoading,
@@ -192,18 +194,7 @@ export function AdminCouponsPage({ userState, navigate }: AdminCouponsPageProps)
             the catalog team.
           </p>
         </div>
-        <div className="admin-catalog-nav" aria-label="Admin sections">
-          <Button variant="ghost" onClick={() => navigate('/admin/products')}>
-            Products
-          </Button>
-          <Button variant="ghost" onClick={() => navigate('/admin/categories')}>
-            Categories
-          </Button>
-          <Button onClick={() => navigate('/admin/coupons')}>Coupons</Button>
-          <Button variant="ghost" onClick={() => navigate('/admin/orders')}>
-            Orders
-          </Button>
-        </div>
+        <AdminNav currentPath={currentPath} navigate={navigate} />
       </section>
 
       <section className="admin-orders-toolbar" aria-label="Coupon tools">

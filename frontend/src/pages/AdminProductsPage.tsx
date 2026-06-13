@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
 import { ProductVisual } from '../components/ProductVisual';
+import { AdminNav } from '../components/AdminNav';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
 import { getErrorMessage } from '../lib/errors';
 import { formatMoney } from '../lib/format';
@@ -29,6 +30,7 @@ import type {
 type AdminProductsPageProps = {
   userState: AsyncState<PublicUser | null>;
   navigate: Navigate;
+  currentPath: string;
 };
 
 type ProductDraft = {
@@ -137,7 +139,7 @@ function variantToDraft(variant: ProductVariant): VariantDraft {
   };
 }
 
-export function AdminProductsPage({ userState, navigate }: AdminProductsPageProps) {
+export function AdminProductsPage({ userState, navigate, currentPath }: AdminProductsPageProps) {
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -422,18 +424,7 @@ export function AdminProductsPage({ userState, navigate }: AdminProductsPageProp
           <h1 className="page-title">Product catalog</h1>
           <p>Manage product records, merchandising flags, option labels, and product images.</p>
         </div>
-        <div className="admin-catalog-nav" aria-label="Admin sections">
-          <Button onClick={() => navigate('/admin/products')}>Products</Button>
-          <Button variant="ghost" onClick={() => navigate('/admin/categories')}>
-            Categories
-          </Button>
-          <Button variant="ghost" onClick={() => navigate('/admin/coupons')}>
-            Coupons
-          </Button>
-          <Button variant="ghost" onClick={() => navigate('/admin/orders')}>
-            Orders
-          </Button>
-        </div>
+        <AdminNav currentPath={currentPath} navigate={navigate} />
       </section>
 
       <section className="admin-orders-toolbar" aria-label="Product tools">

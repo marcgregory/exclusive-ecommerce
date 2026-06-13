@@ -8,6 +8,7 @@ import {
 } from '../api/ecommerceApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
+import { AdminNav } from '../components/AdminNav';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
 import { getRtkErrorMessage } from '../lib/rtkErrors';
 import type {
@@ -22,6 +23,7 @@ import type {
 type AdminCategoriesPageProps = {
   userState: AsyncState<PublicUser | null>;
   navigate: Navigate;
+  currentPath: string;
 };
 
 type CategoryDraft = {
@@ -78,7 +80,7 @@ function draftToPayload(draft: CategoryDraft): AdminCategoryInput {
   };
 }
 
-export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPageProps) {
+export function AdminCategoriesPage({ userState, navigate, currentPath }: AdminCategoriesPageProps) {
   const {
     data: categoriesData,
     isLoading: categoriesLoading,
@@ -215,18 +217,7 @@ export function AdminCategoriesPage({ userState, navigate }: AdminCategoriesPage
             Maintain storefront category labels, URL slugs, icon keys, and child category lists.
           </p>
         </div>
-        <div className="admin-catalog-nav" aria-label="Admin sections">
-          <Button variant="ghost" onClick={() => navigate('/admin/products')}>
-            Products
-          </Button>
-          <Button onClick={() => navigate('/admin/categories')}>Categories</Button>
-          <Button variant="ghost" onClick={() => navigate('/admin/coupons')}>
-            Coupons
-          </Button>
-          <Button variant="ghost" onClick={() => navigate('/admin/orders')}>
-            Orders
-          </Button>
-        </div>
+        <AdminNav currentPath={currentPath} navigate={navigate} />
       </section>
 
       <section className="admin-orders-toolbar" aria-label="Category tools">

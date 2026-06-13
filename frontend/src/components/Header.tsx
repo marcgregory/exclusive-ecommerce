@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Navigate, PublicUser, AuthStatus } from '../types';
+import { NavLink } from './NavLink';
 
 type HeaderProps = {
+  currentPath: string;
   navigate: Navigate;
   user: PublicUser | null;
   authStatus: AuthStatus;
@@ -25,6 +27,7 @@ type HeaderProps = {
 };
 
 export function Header({
+  currentPath,
   navigate,
   user,
   authStatus,
@@ -38,6 +41,7 @@ export function Header({
   const [adminOpen, setAdminOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!accountOpen) return;
@@ -62,6 +66,30 @@ export function Header({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [accountOpen]);
+
+  useEffect(() => {
+    if (!adminOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!adminMenuRef.current?.contains(event.target as Node)) {
+        setAdminOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setAdminOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [adminOpen]);
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -106,32 +134,32 @@ export function Header({
           </button>
           <nav className="desktop-nav">
             {publicLinks.map(([href, label]) => (
-              <button
+              <NavLink
                 key={href}
-                onClick={() => {
-                  setAccountOpen(false);
-                  navigate(href);
-                }}
+                href={href}
+                currentPath={currentPath}
+                navigate={navigate}
+                onClick={() => setAccountOpen(false)}
               >
                 {label}
-              </button>
+              </NavLink>
             ))}
             {authStatus === 'unauthenticated' && (
               <>
-                <button
-                  onClick={() => {
-                    setAccountOpen(false);
-                    navigate('/signup');
-                  }}
+                <NavLink
+                  href="/signup"
+                  currentPath={currentPath}
+                  navigate={navigate}
+                  onClick={() => setAccountOpen(false)}
                 >
                   Sign Up
-                </button>
+                </NavLink>
               </>
             )}
             {authStatus === 'authenticated' && user?.role === 'admin' && (
-              <>
+              <div className="admin-dropdown" ref={adminMenuRef}>
                 <button
-                  className="admin-trigger"
+                  className={`admin-trigger ${currentPath.startsWith('/admin') ? 'active' : ''}`}
                   onClick={() => setAdminOpen(!adminOpen)}
                   aria-label="Admin menu"
                   aria-expanded={adminOpen}
@@ -142,19 +170,19 @@ export function Header({
                 {adminOpen && (
                   <div className="admin-dropdown-menu">
                     {adminLinks.map(([href, label]) => (
-                      <button
+                      <NavLink
                         key={href}
-                        onClick={() => {
-                          setAdminOpen(false);
-                          navigate(href);
-                        }}
+                        href={href}
+                        currentPath={currentPath}
+                        navigate={navigate}
+                        onClick={() => setAdminOpen(false)}
                       >
                         {label}
-                      </button>
+                      </NavLink>
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </nav>
           <div className="header-actions">
@@ -268,77 +296,77 @@ export function Header({
             </button>
           </form>
           {publicLinks.map(([href, label]) => (
-            <button
+            <NavLink
               key={href}
-              onClick={() => {
-                setOpen(false);
-                navigate(href);
-              }}
+              href={href}
+              currentPath={currentPath}
+              navigate={navigate}
+              onClick={() => setOpen(false)}
             >
               {label}
-            </button>
+            </NavLink>
           ))}
           {authStatus === 'authenticated' && user?.role === 'admin' && (
             <>
               {/* In mobile drawer, show admin links as simple buttons */}
               {adminLinks.map(([href, label]) => (
-                <button
+                <NavLink
                   key={href}
-                  onClick={() => {
-                    setOpen(false);
-                    navigate(href);
-                  }}
+                  href={href}
+                  currentPath={currentPath}
+                  navigate={navigate}
+                  onClick={() => setOpen(false)}
                 >
                   {label}
-                </button>
+                </NavLink>
               ))}
             </>
           )}
           {authStatus === 'unauthenticated' && (
             <>
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  navigate('/signup');
-                }}
+              <NavLink
+                href="/signup"
+                currentPath={currentPath}
+                navigate={navigate}
+                onClick={() => setOpen(false)}
               >
                 Sign Up
-              </button>
+              </NavLink>
             </>
           )}
-          <button
-            onClick={() => {
-              setOpen(false);
-              navigate('/wishlist');
-            }}
+          <NavLink
+            href="/wishlist"
+            currentPath={currentPath}
+            navigate={navigate}
+            onClick={() => setOpen(false)}
           >
-            Wishlist
+            <span>Wishlist</span>
             {wishlistCount > 0 && <span className="mobile-drawer__count">{wishlistCount}</span>}
-          </button>
+          </NavLink>
           {authStatus === 'authenticated' && user ? (
             <>
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  navigate('/account');
-                }}
+              <NavLink
+                href="/account"
+                currentPath={currentPath}
+                navigate={navigate}
+                onClick={() => setOpen(false)}
               >
                 Account
-              </button>
+              </NavLink>
               <button onClick={logout} disabled={logoutSaving}>
                 Log Out
               </button>
             </>
           ) : null}
-          <button
-            onClick={() => {
-              setOpen(false);
-              navigate('/cart');
-            }}
+          <NavLink
+            href="/cart"
+            currentPath={currentPath}
+            navigate={navigate}
+            onClick={() => setOpen(false)}
           >
-            Cart
+            <span>Cart</span>
             {cartCount > 0 && <span className="mobile-drawer__count">{cartCount}</span>}
-          </button>
+          </NavLink>
         </div>
       )}
     </>

@@ -158,6 +158,17 @@ button {
   text-decoration: underline;
 }
 
+.desktop-nav button.active {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
+}
+
+.desktop-nav button.active:hover {
+  color: var(--accent);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -2707,6 +2718,43 @@ button {
   outline: none;
 }
 
+.account-menu button.active {
+  color: var(--accent);
+  font-weight: 600;
+  position: relative;
+}
+
+.account-menu button.active::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 70%;
+  min-height: 14px;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: nav-active-in 200ms ease-out;
+}
+
+@keyframes nav-active-in {
+  from {
+    opacity: 0;
+    height: 0;
+  }
+  to {
+    opacity: 1;
+    height: 70%;
+  }
+}
+
+.account-menu {
+  position: sticky;
+  top: 120px;
+  align-self: start;
+}
+
 .account-section {
   scroll-margin-top: 150px;
 }
@@ -4434,6 +4482,29 @@ button {
 .admin-trigger:hover {
   text-decoration: underline;
 }
+
+.admin-trigger.active {
+  color: var(--accent);
+}
+
+.admin-trigger.active:hover {
+  color: var(--accent);
+}
+
+.admin-dropdown-menu button.active {
+  color: var(--accent);
+  background-color: #fdf2f2;
+  font-weight: 500;
+}
+
+.admin-dropdown-menu button.active:hover {
+  background-color: #fdf2f2;
+}
+.admin-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 .admin-dropdown-menu {
   position: absolute;
   top: 100%;
@@ -4920,6 +4991,16 @@ canvas {
   gap: 12px;
   border-bottom: 1px solid var(--line);
   text-align: left;
+}
+
+.mobile-drawer > button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+
+.mobile-drawer > button.active:hover {
+  color: var(--accent);
 }
 
 .mobile-drawer__count {

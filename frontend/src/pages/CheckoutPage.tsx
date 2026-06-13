@@ -107,9 +107,6 @@ const checkoutSchema = z.object({
 type BillingFormInput = z.input<typeof checkoutSchema>;
 type BillingForm = z.output<typeof checkoutSchema>;
 
-type BillingFormInput = z.input<typeof billingSchema>;
-type BillingForm = z.output<typeof billingSchema>;
-
 const billingFields: Array<{
   name: keyof BillingFormInput;
   label: string;
@@ -259,11 +256,9 @@ export function CheckoutPage({
   }, [pendingStripePayment?.clientSecret, publishableKey]);
 
   const startStripePayment = async (checkout: PendingStripeCheckout) => {
-    const formData = watch();
     const paymentData = await createPayment({
       orderId: checkout.orderId,
       paymentMethod: 'stripe',
-      couponCode: formData.couponCode || undefined,
     }).unwrap();
     if (paymentData.payment.provider === 'stripe' && paymentData.payment.clientSecret) {
       const nextCheckout = {

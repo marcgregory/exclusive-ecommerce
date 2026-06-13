@@ -22,7 +22,10 @@ vi.mock('../api/ecommerceApi', () => ({
   useCreateOrderMutation: () => [apiMocks.createOrder, { isLoading: false, error: undefined }],
   useCreatePaymentMutation: () => [apiMocks.createPayment, { isLoading: false, error: undefined }],
   useGetMeQuery: () => apiMocks.getMe(),
-  useValidateCouponMutation: () => [apiMocks.validateCoupon, { isLoading: false, error: undefined }],
+  useValidateCouponMutation: () => [
+    apiMocks.validateCoupon,
+    { isLoading: false, error: undefined },
+  ],
 }));
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: stripeMocks.loadStripe }));
 vi.mock('@stripe/react-stripe-js', async () => {
@@ -222,7 +225,6 @@ describe('CheckoutPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Place Order/i }));
 
     await waitFor(() => expect(apiMocks.createOrder).toHaveBeenCalled());
-    console.log('createOrder calls:', apiMocks.createOrder.mock.calls);
     expect(apiMocks.createOrder).toHaveBeenCalledWith({
       billing: expect.any(Object),
       paymentMethod: 'stripe',
@@ -241,7 +243,6 @@ describe('CheckoutPage', () => {
     expect(apiMocks.createPayment).toHaveBeenCalledWith({
       orderId: 'order-1',
       paymentMethod: 'stripe',
-      couponCode: 'SAVE10',
     });
 
     expect(refreshCart).toHaveBeenCalled();

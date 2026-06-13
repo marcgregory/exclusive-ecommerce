@@ -80,7 +80,10 @@ vi.mock('../api/ecommerceApi', () => ({
   useLoginMutation: () => apiMocks.login(),
   useUpdateProfileMutation: () => apiMocks.updateProfile(),
   useGoogleAuthMutation: () => apiMocks.googleAuth(),
-  useValidateCouponMutation: () => [apiMocks.validateCoupon, { isLoading: false, error: undefined }],
+  useValidateCouponMutation: () => [
+    apiMocks.validateCoupon,
+    { isLoading: false, error: undefined },
+  ],
 }));
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: stripeMocks.loadStripe }));
 vi.mock('@stripe/react-stripe-js', async () => {

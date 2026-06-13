@@ -7,6 +7,7 @@ type FormFieldProps = {
   textarea?: boolean;
   defaultValue?: string;
   type?: string;
+  placeholder?: string;
   register?: UseFormRegisterReturn;
   error?: string;
   disabled?: boolean;
@@ -19,6 +20,7 @@ export function FormField({
   textarea = false,
   defaultValue = '',
   type = 'text',
+  placeholder,
   register,
   error,
   disabled = false,
@@ -34,6 +36,7 @@ export function FormField({
           name={name}
           required={required}
           defaultValue={defaultValue}
+          placeholder={placeholder}
           disabled={disabled}
           {...register}
         />
@@ -43,6 +46,7 @@ export function FormField({
           type={type}
           required={required}
           defaultValue={defaultValue}
+          placeholder={placeholder}
           disabled={disabled}
           {...register}
         />

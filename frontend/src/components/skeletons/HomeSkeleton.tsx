@@ -1,7 +1,7 @@
 import { CategoryTileSkeleton } from '../CategoryTileSkeleton';
 import { ProductCardSkeleton } from '../ProductCardSkeleton';
 import { SectionHeader } from '../SectionHeader';
-import { CountdownTimer } from '../CountdownTimer';
+import { CountdownTimerSkeleton } from '../CountdownTimer';
 import { ServiceBadges } from '../ServiceBadges';
 import { useRef } from 'react';
 
@@ -51,15 +51,11 @@ export function HomeSkeleton() {
             kicker="Today's"
             title="Flash Sales"
             controls
-            onLeftScroll={() =>
-              productRowRef.current?.scrollBy({ left: -300, behavior: 'smooth' })
-            }
-            onRightScroll={() =>
-              productRowRef.current?.scrollBy({ left: 300, behavior: 'smooth' })
-            }
+            onLeftScroll={() => productRowRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
+            onRightScroll={() => productRowRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
           />
           <div className="section-countdown">
-            <CountdownTimer />
+            <CountdownTimerSkeleton />
           </div>
         </div>
         <div className="product-carousel" ref={productRowRef}>
@@ -101,14 +97,8 @@ export function HomeSkeleton() {
             <span className="skeleton skeleton-dark" />
             <span className="skeleton skeleton-dark" />
           </h2>
-          <div className="countdown countdown--skeleton">
-            {[1, 2, 3, 4].map((_, index) => (
-              <div key={index}>
-                <strong className="skeleton" />
-                <span className="skeleton" />
-              </div>
-            ))}
-          </div>
+
+          <CountdownTimerSkeleton />
           <span className="skeleton skeleton-green-button" />
         </div>
         <div className="speaker">

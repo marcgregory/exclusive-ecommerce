@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
 export function useRoute() {
-  const getCurrentRoute = () => window.location.pathname + window.location.search + window.location.hash;
+  const getCurrentRoute = () =>
+    window.location.pathname + window.location.search + window.location.hash;
   const [route, setRoute] = useState(getCurrentRoute);
 
   useEffect(() => {

@@ -17,6 +17,29 @@ type HomePageProps = {
   wishlistProductIds: string[];
 };
 
+const getResponsiveItemLimit = (desktop: number, tablet: number, mobile: number) => {
+  if (typeof window === 'undefined') return desktop;
+  if (!window.matchMedia) return desktop;
+  if (window.matchMedia('(max-width: 560px)').matches) return mobile;
+  if (window.matchMedia('(max-width: 900px)').matches) return tablet;
+  return desktop;
+};
+
+function useResponsiveItemLimit(desktop: number, tablet: number, mobile: number) {
+  const [itemLimit, setItemLimit] = useState(() => getResponsiveItemLimit(desktop, tablet, mobile));
+
+  useEffect(() => {
+    const syncItemLimit = () => setItemLimit(getResponsiveItemLimit(desktop, tablet, mobile));
+
+    syncItemLimit();
+    window.addEventListener('resize', syncItemLimit);
+
+    return () => window.removeEventListener('resize', syncItemLimit);
+  }, [desktop, mobile, tablet]);
+
+  return itemLimit;
+}
+
 export function HomePage({
   products,
   categories,
@@ -42,6 +65,8 @@ export function HomePage({
   const hero = products.filter((product) => product.flags.includes('hero'));
   const visibleCategories = categories.slice(0, 9);
   const browseCategories = categories.slice(0, 6);
+  const bestSellingLimit = useResponsiveItemLimit(4, 2, 1);
+  const hasMoreBestSellers = best.length > bestSellingLimit;
 
   return (
     <main>
@@ -62,13 +87,13 @@ export function HomePage({
           products={flashDisplay}
           kicker="Today's"
           title="Flash Sales"
-          countdown={<CountdownTimer days={3} />}
+          countdown={<CountdownTimer days={3} storageKey="exclusive-flash-sale-countdown-target" />}
           onAdd={onAdd}
           onWishlist={onWishlist}
           navigate={navigate}
           wishlistProductIds={wishlistProductIds}
           viewAllHref="/search?flag=flash"
-          viewAllDisabled={flash.length <= 5}
+          viewAllItemCount={flashDisplay.length}
         />
       </section>
 
@@ -82,9 +107,21 @@ export function HomePage({
       </section>
 
       <section className="home-section">
-        <SectionHeader kicker="This Month" title="Best Selling Products" />
+        <SectionHeader
+          kicker="This Month"
+          title="Best Selling Products"
+          action={
+            <Button
+              className="section-header__button"
+              onClick={() => navigate('/search?flag=best')}
+              disabled={!hasMoreBestSellers}
+            >
+              View All
+            </Button>
+          }
+        />
         <div className="product-grid four">
-          {best.slice(0, 4).map((product) => (
+          {best.slice(0, bestSellingLimit).map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -102,7 +139,7 @@ export function HomePage({
           <div>
             <p>Categories</p>
             <h2>Enhance Your Music Experience</h2>
-            <CountdownTimer days={5} />
+            <CountdownTimer days={5} storageKey="exclusive-music-promo-countdown-target" />
             <Button onClick={() => navigate('/category/electronics')}>Buy Now!</Button>
           </div>
           <div className="promo__art">
@@ -121,7 +158,7 @@ export function HomePage({
           navigate={navigate}
           wishlistProductIds={wishlistProductIds}
           viewAllHref="/search"
-          viewAllDisabled={explore.length === 0}
+          viewAllItemCount={explore.length}
         />
       </section>
 
@@ -317,7 +354,7 @@ type ProductCarouselProps = {
   navigate: Navigate;
   wishlistProductIds: string[];
   viewAllHref: string;
-  viewAllDisabled: boolean;
+  viewAllItemCount?: number;
 };
 
 function ProductCarousel({
@@ -330,11 +367,13 @@ function ProductCarousel({
   navigate,
   wishlistProductIds,
   viewAllHref,
-  viewAllDisabled,
+  viewAllItemCount,
 }: ProductCarouselProps) {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const visibleProductLimit = useResponsiveItemLimit(5, 2, 1);
+  const hasMoreProducts = (viewAllItemCount ?? products.length) > visibleProductLimit;
 
   const syncScrollState = useCallback(() => {
     const carousel = carouselRef.current;
@@ -401,7 +440,7 @@ function ProductCarousel({
       <Button
         className="center-button"
         onClick={() => navigate(viewAllHref)}
-        disabled={viewAllDisabled}
+        disabled={!hasMoreProducts}
       >
         View All Products
       </Button>

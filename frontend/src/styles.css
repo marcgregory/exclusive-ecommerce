@@ -757,6 +757,12 @@ button {
   gap: 8px;
 }
 
+.section-header__button {
+  min-height: 42px;
+  padding: 12px 32px;
+  font-size: 13px;
+}
+
 .carousel-controls button {
   width: 46px;
   height: 46px;
@@ -773,6 +779,7 @@ button {
 }
 
 .countdown {
+  position: relative;
   display: flex;
   gap: 18px;
 }
@@ -795,6 +802,19 @@ button {
 
 .countdown span {
   font-size: 11px;
+}
+
+.countdown--expired {
+  opacity: 0.72;
+}
+
+.countdown__expired {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .product-row {
@@ -4522,6 +4542,22 @@ button {
   margin-top: 32px;
 }
 
+.countdown--skeleton strong.skeleton {
+  display: block;
+  width: 34px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.section-countdown .countdown--skeleton strong.skeleton {
+  width: 42px;
+  height: 32px;
+}
+
+.countdown--skeleton span {
+  color: currentColor;
+}
+
 .promo--skeleton .countdown--skeleton div {
   background: #fff;
 }
@@ -4529,12 +4565,6 @@ button {
 .promo--skeleton .countdown--skeleton strong {
   width: 28px;
   height: 16px;
-  border-radius: 4px;
-}
-
-.promo--skeleton .countdown--skeleton span {
-  width: 36px;
-  height: 10px;
   border-radius: 4px;
 }
 

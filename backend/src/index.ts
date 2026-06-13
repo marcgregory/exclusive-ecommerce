@@ -71,6 +71,7 @@ import { createSessionOptions } from './session-store.js';
 import { getErrorLogFields, logError, logInfo } from './logger.js';
 import { migrate } from './migrate.js';
 import { createProductImageStorage, productImageUploadsRoot } from './image-storage.js';
+import { buildContactMessageEmail } from './emails/contact-message-email.js';
 import {
   addCartItemSchema,
   adminCategorySchema,
@@ -656,16 +657,20 @@ app.post(
 
     if (resend && config.contactToEmail) {
       try {
+        const emailTemplate = buildContactMessageEmail({
+          name: sanitizedName,
+          email: sanitizedEmail,
+          phone: sanitizedPhone,
+          message: sanitizedMessage,
+          submittedAt: contactMessage.createdAt,
+        });
+
         await resend.emails.send({
           from: 'Contact Form <onboarding@resend.dev>',
           to: config.contactToEmail,
-          subject: 'New Contact Message',
-          text: `New Contact Message
-
-Name: ${sanitizedName}
-Email: ${sanitizedEmail}
-Phone: ${sanitizedPhone}
-Message: ${sanitizedMessage}`,
+          subject: emailTemplate.subject,
+          html: emailTemplate.html,
+          text: emailTemplate.text,
         });
       } catch (emailError) {
         logError('contact.email_failed', getErrorLogFields(emailError));

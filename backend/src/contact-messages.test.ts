@@ -119,11 +119,12 @@ describe('Contact Us System APIs', () => {
         'Hello, I need assistance.',
       ]));
 
-      // Verify Resend email was sent
+      // Verify Resend email was sent with premium template
       expect(mocks.mockSend).toHaveBeenCalledWith({
         from: 'Contact Form <onboarding@resend.dev>',
         to: 'business@example.com',
-        subject: 'New Contact Message',
+        subject: expect.stringContaining('Jane Doe'),
+        html: expect.stringContaining('Jane Doe'),
         text: expect.stringContaining('Name: Jane Doe'),
       });
     });

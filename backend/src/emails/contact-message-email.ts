@@ -1,8 +1,9 @@
 /**
  * Premium email template for Contact Us notifications.
  *
- * Generates Resend-compatible { subject, html, text } payloads with
- * award-winning inline-CSS styling that is safe across all major email clients.
+ * Generates Resend-compatible { subject, html, text } payloads.
+ * Design: Stripe / Linear / Vercel-level SaaS aesthetic.
+ * Layout: table-based, inline CSS only, email-client safe.
  */
 
 // ---------------------------------------------------------------------------
@@ -47,21 +48,33 @@ function nl2br(escaped: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Brand tokens (inline, no external CSS)
+// Design tokens — Stripe / Linear inspired palette
 // ---------------------------------------------------------------------------
 
-const BRAND = {
+const T = {
   name: 'Exclusive',
-  accent: '#DB4444',       // primary red
-  accentDark: '#C03B3B',
-  accentLight: '#FFF0F0',
-  bg: '#F4F4F5',           // soft gray background
-  card: '#FFFFFF',
-  text: '#1A1A2E',
-  textMuted: '#6B7280',
-  border: '#E5E7EB',
-  radius: '12px',
+  // Colors
+  bg: '#F7F7F8',
+  surface: '#FFFFFF',
+  text: '#0A0A0B',
+  textSecondary: '#6E6E80',
+  textTertiary: '#A1A1AA',
+  accent: '#DB4444',
+  accentHover: '#C73A3A',
+  accentSubtle: '#FEF2F2',
+  border: '#EBEBEF',
+  // Spacing
+  outerPad: '0',
+  cardPad: '48px',
+  sectionGap: '40px',
+  // Dimensions
+  cardWidth: '640',
+  radius: '16px',
 } as const;
+
+// Reusable system font stack (same as Stripe / Linear)
+const FONT =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
 // ---------------------------------------------------------------------------
 // Builder
@@ -80,7 +93,7 @@ export function buildContactMessageEmail(
 
   // --- Plain-text fallback -------------------------------------------------
   const text = [
-    `New Contact Message — ${BRAND.name}`,
+    `New Contact Message — ${T.name}`,
     '',
     `Name: ${input.name}`,
     `Email: ${input.email}`,
@@ -90,10 +103,10 @@ export function buildContactMessageEmail(
     'Message:',
     input.message,
     '',
-    `— ${BRAND.name}`,
+    `— ${T.name}`,
   ].join('\n');
 
-  // --- HTML ----------------------------------------------------------------
+  // --- HTML (Stripe / Linear aesthetic) ------------------------------------
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
@@ -110,35 +123,30 @@ export function buildContactMessageEmail(
   </noscript>
   <![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:${BRAND.bg};font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
-  <!-- Outer wrapper -->
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.bg};padding:40px 0;">
+<body style="margin:0;padding:0;background-color:${T.bg};font-family:${FONT};-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:${T.text};">
+
+  <!-- ── Outer wrapper ── -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${T.bg};">
     <tr>
-      <td align="center">
-        <!-- Inner card -->
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="640" style="max-width:640px;width:100%;background-color:${BRAND.card};border-radius:${BRAND.radius};overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+      <td align="center" style="padding:60px 24px;">
 
-          <!-- ═══════════ HEADER ═══════════ -->
+        <!-- ── Card ── -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${T.cardWidth}" style="max-width:640px;width:100%;background-color:${T.surface};border-radius:${T.radius};border:1px solid ${T.border};">
+
+
+          <!-- ════════════════ BRAND HEADER ════════════════ -->
           <tr>
-            <td style="background:linear-gradient(135deg,${BRAND.accent} 0%,${BRAND.accentDark} 100%);padding:36px 40px 32px 40px;text-align:center;">
+            <td style="padding:${T.cardPad} ${T.cardPad} 0 ${T.cardPad};">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td align="center">
-                    <!-- Brand name -->
-                    <h1 style="margin:0 0 8px 0;font-size:28px;font-weight:800;letter-spacing:1.5px;color:#FFFFFF;text-transform:uppercase;">
-                      ${BRAND.name}
-                    </h1>
-                    <!-- Divider dot -->
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 16px auto;">
+                  <td>
+                    <p style="margin:0;font-size:18px;font-weight:700;letter-spacing:-0.2px;color:${T.text};">${T.name}</p>
+                  </td>
+                  <td align="right" style="vertical-align:middle;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="width:6px;height:6px;border-radius:50%;background-color:rgba(255,255,255,0.5);"></td>
-                      </tr>
-                    </table>
-                    <!-- Badge -->
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      <tr>
-                        <td style="background-color:rgba(255,255,255,0.2);border-radius:20px;padding:6px 18px;font-size:12px;font-weight:600;color:#FFFFFF;letter-spacing:0.8px;text-transform:uppercase;">
-                          &#9679;&ensp;New Contact Message
+                        <td style="background-color:${T.accentSubtle};border-radius:100px;padding:5px 14px;">
+                          <p style="margin:0;font-size:12px;font-weight:600;color:${T.accent};letter-spacing:0.01em;">New Contact Message</p>
                         </td>
                       </tr>
                     </table>
@@ -148,120 +156,113 @@ export function buildContactMessageEmail(
             </td>
           </tr>
 
-          <!-- ═══════════ TITLE ═══════════ -->
+
+          <!-- ════════════════ HERO ════════════════ -->
           <tr>
-            <td style="padding:36px 40px 8px 40px;text-align:center;">
-              <h2 style="margin:0;font-size:22px;font-weight:700;color:${BRAND.text};line-height:1.3;">
-                Customer Inquiry Received
-              </h2>
-              <p style="margin:10px 0 0 0;font-size:14px;color:${BRAND.textMuted};line-height:1.5;">
-                A visitor has submitted a message through the contact form.
-              </p>
+            <td style="padding:${T.sectionGap} ${T.cardPad} 0 ${T.cardPad};">
+              <h1 style="margin:0;font-size:26px;font-weight:700;line-height:1.25;letter-spacing:-0.4px;color:${T.text};">Customer Inquiry Received</h1>
+              <p style="margin:14px 0 0 0;font-size:15px;line-height:1.6;color:${T.textSecondary};">A visitor has submitted a message through the contact form. Their details and message are below.</p>
             </td>
           </tr>
 
-          <!-- ═══════════ CONTACT DETAILS ═══════════ -->
+
+          <!-- ════════════════ CONTACT DETAILS ════════════════ -->
           <tr>
-            <td style="padding:24px 40px 0 40px;">
-              <!-- Details grid — two-column on wide clients, stacks in narrow -->
+            <td style="padding:${T.sectionGap} ${T.cardPad} 0 ${T.cardPad};">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${T.bg};border-radius:12px;">
+                <!-- Name -->
+                <tr>
+                  <td style="padding:20px 24px 0 24px;">
+                    <p style="margin:0;font-size:12px;font-weight:500;color:${T.textTertiary};text-transform:uppercase;letter-spacing:0.06em;">Name</p>
+                    <p style="margin:6px 0 0 0;font-size:15px;font-weight:600;color:${T.text};line-height:1.4;word-break:break-word;">${safeName}</p>
+                  </td>
+                </tr>
+                <!-- Separator via spacing -->
+                <tr><td style="padding:16px 24px 0 24px;border-top:1px solid ${T.border};"></td></tr>
+                <!-- Email -->
+                <tr>
+                  <td style="padding:4px 24px 0 24px;">
+                    <p style="margin:0;font-size:12px;font-weight:500;color:${T.textTertiary};text-transform:uppercase;letter-spacing:0.06em;">Email</p>
+                    <p style="margin:6px 0 0 0;font-size:15px;font-weight:600;line-height:1.4;word-break:break-word;">
+                      <a href="mailto:${safeEmail}" style="color:${T.accent};text-decoration:none;">${safeEmail}</a>
+                    </p>
+                  </td>
+                </tr>
+                <!-- Separator -->
+                <tr><td style="padding:16px 24px 0 24px;border-top:1px solid ${T.border};"></td></tr>
+                <!-- Phone -->
+                <tr>
+                  <td style="padding:4px 24px 0 24px;">
+                    <p style="margin:0;font-size:12px;font-weight:500;color:${T.textTertiary};text-transform:uppercase;letter-spacing:0.06em;">Phone</p>
+                    <p style="margin:6px 0 0 0;font-size:15px;font-weight:600;color:${T.text};line-height:1.4;word-break:break-word;">${safePhone}</p>
+                  </td>
+                </tr>
+                <!-- Separator -->
+                <tr><td style="padding:16px 24px 0 24px;border-top:1px solid ${T.border};"></td></tr>
+                <!-- Submitted At -->
+                <tr>
+                  <td style="padding:4px 24px 20px 24px;">
+                    <p style="margin:0;font-size:12px;font-weight:500;color:${T.textTertiary};text-transform:uppercase;letter-spacing:0.06em;">Submitted At</p>
+                    <p style="margin:6px 0 0 0;font-size:15px;font-weight:600;color:${T.text};line-height:1.4;word-break:break-word;">${safeSubmittedAt}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+
+          <!-- ════════════════ MESSAGE ════════════════ -->
+          <tr>
+            <td style="padding:${T.sectionGap} ${T.cardPad} 0 ${T.cardPad};">
+              <p style="margin:0 0 12px 0;font-size:12px;font-weight:500;color:${T.textTertiary};text-transform:uppercase;letter-spacing:0.06em;">Message</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${T.accentSubtle};border-radius:12px;">
+                <tr>
+                  <td style="padding:24px;border-left:3px solid ${T.accent};border-radius:12px;">
+                    <p style="margin:0;font-size:15px;line-height:1.75;color:${T.text};word-break:break-word;">${nl2br(safeMessage)}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+
+          <!-- ════════════════ CTA ════════════════ -->
+          <tr>
+            <td style="padding:${T.sectionGap} ${T.cardPad} 0 ${T.cardPad};" align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:${T.accent};border-radius:10px;">
+                    <a href="mailto:${safeEmail}" style="display:inline-block;padding:14px 36px;font-family:${FONT};font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;letter-spacing:-0.01em;">Reply to ${safeName}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+
+          <!-- ════════════════ FOOTER ════════════════ -->
+          <tr>
+            <td style="padding:${T.sectionGap} ${T.cardPad} ${T.cardPad} ${T.cardPad};">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <!-- Name -->
-                  <td width="50%" style="padding:0 6px 12px 0;vertical-align:top;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.bg};border-radius:8px;border:1px solid ${BRAND.border};">
-                      <tr>
-                        <td style="padding:16px;">
-                          <p style="margin:0 0 4px 0;font-size:11px;font-weight:600;color:${BRAND.textMuted};text-transform:uppercase;letter-spacing:0.6px;">Name</p>
-                          <p style="margin:0;font-size:15px;font-weight:600;color:${BRAND.text};word-break:break-word;">${safeName}</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                  <!-- Email -->
-                  <td width="50%" style="padding:0 0 12px 6px;vertical-align:top;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.bg};border-radius:8px;border:1px solid ${BRAND.border};">
-                      <tr>
-                        <td style="padding:16px;">
-                          <p style="margin:0 0 4px 0;font-size:11px;font-weight:600;color:${BRAND.textMuted};text-transform:uppercase;letter-spacing:0.6px;">Email</p>
-                          <p style="margin:0;font-size:15px;font-weight:600;color:${BRAND.accent};word-break:break-word;">
-                            <a href="mailto:${safeEmail}" style="color:${BRAND.accent};text-decoration:none;">${safeEmail}</a>
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <!-- Phone -->
-                  <td width="50%" style="padding:0 6px 12px 0;vertical-align:top;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.bg};border-radius:8px;border:1px solid ${BRAND.border};">
-                      <tr>
-                        <td style="padding:16px;">
-                          <p style="margin:0 0 4px 0;font-size:11px;font-weight:600;color:${BRAND.textMuted};text-transform:uppercase;letter-spacing:0.6px;">Phone</p>
-                          <p style="margin:0;font-size:15px;font-weight:600;color:${BRAND.text};word-break:break-word;">${safePhone}</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                  <!-- Submitted At -->
-                  <td width="50%" style="padding:0 0 12px 6px;vertical-align:top;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.bg};border-radius:8px;border:1px solid ${BRAND.border};">
-                      <tr>
-                        <td style="padding:16px;">
-                          <p style="margin:0 0 4px 0;font-size:11px;font-weight:600;color:${BRAND.textMuted};text-transform:uppercase;letter-spacing:0.6px;">Submitted At</p>
-                          <p style="margin:0;font-size:15px;font-weight:600;color:${BRAND.text};word-break:break-word;">${safeSubmittedAt}</p>
-                        </td>
-                      </tr>
-                    </table>
+                  <td style="border-top:1px solid ${T.border};padding-top:${T.sectionGap};">
+                    <p style="margin:0;font-size:13px;line-height:1.6;color:${T.textTertiary};">This notification was sent by the <strong style="color:${T.textSecondary};">${T.name}</strong> contact form. You&rsquo;re receiving this because you&rsquo;re an admin of this store.</p>
+                    <p style="margin:12px 0 0 0;font-size:12px;color:${T.textTertiary};">&copy; ${new Date().getFullYear()} ${T.name}</p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- ═══════════ MESSAGE PANEL ═══════════ -->
-          <tr>
-            <td style="padding:12px 40px 0 40px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.accentLight};border-radius:8px;border-left:4px solid ${BRAND.accent};">
-                <tr>
-                  <td style="padding:20px 24px;">
-                    <p style="margin:0 0 8px 0;font-size:11px;font-weight:600;color:${BRAND.accent};text-transform:uppercase;letter-spacing:0.6px;">Message</p>
-                    <p style="margin:0;font-size:14px;color:${BRAND.text};line-height:1.7;word-break:break-word;">${nl2br(safeMessage)}</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- ═══════════ DIVIDER ═══════════ -->
-          <tr>
-            <td style="padding:32px 40px 0 40px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td style="border-top:1px solid ${BRAND.border};font-size:0;line-height:0;height:1px;">&nbsp;</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- ═══════════ FOOTER ═══════════ -->
-          <tr>
-            <td style="padding:24px 40px 36px 40px;text-align:center;">
-              <p style="margin:0 0 6px 0;font-size:13px;color:${BRAND.textMuted};line-height:1.5;">
-                This email was sent by <strong style="color:${BRAND.text};">${BRAND.name}</strong> contact form system.
-              </p>
-              <p style="margin:0;font-size:12px;color:#9CA3AF;line-height:1.5;">
-                &copy; ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.
-              </p>
-            </td>
-          </tr>
 
         </table>
-        <!-- /Inner card -->
+        <!-- / Card -->
+
       </td>
     </tr>
   </table>
-  <!-- /Outer wrapper -->
+  <!-- / Outer wrapper -->
+
 </body>
 </html>`;
 

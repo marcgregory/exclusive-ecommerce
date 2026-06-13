@@ -314,7 +314,6 @@ function App() {
             dispatch(updateQuantity({ id, quantity }));
           }}
           onRemoveItem={(id) => dispatch(removeItem(id))}
-          onClearCart={() => dispatch(clearCart())}
         />
       );
     if (path === '/checkout')

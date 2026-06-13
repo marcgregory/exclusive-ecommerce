@@ -89,6 +89,12 @@ describe('CheckoutPage', () => {
     apiMocks.getMe.mockReset();
     apiMocks.validateCoupon.mockReset();
     apiMocks.getMe.mockReturnValue({ data: undefined });
+    apiMocks.validateCoupon.mockReturnValue(
+      resolveMutation({
+        valid: true,
+        coupon: { code: 'SAVE10', type: 'percent', amount: 10, active: true },
+      })
+    );
     stripeMocks.loadStripe.mockClear();
     stripeMocks.stripe = null;
     stripeMocks.elements = { id: 'elements' };
@@ -269,7 +275,26 @@ describe('CheckoutPage', () => {
     await waitFor(() => expect(apiMocks.validateCoupon).toHaveBeenCalledWith('SAVE10'));
     expect(refreshCart).toHaveBeenCalledWith('SAVE10');
     expect(screen.getByText(/Coupon SAVE10 applied/i)).toBeDefined();
-    expect(screen.getByText('$300')).toBeDefined();
+    expect(screen.getByText('-$300')).toBeDefined();
+  });
+
+  it('auto-validates an applied cart coupon when checkout opens', async () => {
+    render(
+      <CheckoutPage
+        authStatus="authenticated"
+        cart={cart}
+        cartLoading={false}
+        cartError=""
+        refreshCart={vi.fn()}
+        navigate={vi.fn()}
+        appliedCoupon="SAVE10"
+        onCouponConsumed={vi.fn()}
+      />
+    );
+
+    await waitFor(() => expect(apiMocks.validateCoupon).toHaveBeenCalledWith('SAVE10'));
+    expect(screen.getByText('-$300')).toBeDefined();
+    expect(screen.getByText('$3199')).toBeDefined();
   });
 
   it('prefills saved checkout details and can opt out of saving them', async () => {

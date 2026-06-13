@@ -19,10 +19,12 @@ export function CartTotals({ cart, action }: CartTotalsProps) {
         <span>Shipping:</span>
         <strong>{cart.shipping ? formatMoney(cart.shipping) : 'Free'}</strong>
       </p>
-      <p>
-        <span>Discount:</span>
-        <strong>{formatMoney(cart.discount)}</strong>
-      </p>
+      {cart.discount > 0 && (
+        <p>
+          <span>Discount:</span>
+          <strong>-{formatMoney(cart.discount)}</strong>
+        </p>
+      )}
       <p>
         <span>Total:</span>
         <strong>{formatMoney(cart.total)}</strong>

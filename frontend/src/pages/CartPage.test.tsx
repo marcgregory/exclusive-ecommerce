@@ -5,6 +5,22 @@ import userEvent from '@testing-library/user-event';
 import { CartPage } from './CartPage';
 import type { Cart } from '../types';
 
+const apiMocks = vi.hoisted(() => ({
+  validateCoupon: vi.fn(),
+}));
+
+vi.mock('../api/ecommerceApi', () => ({
+  useValidateCouponMutation: () => [apiMocks.validateCoupon, { isLoading: false }],
+}));
+
+function resolveMutation(value: unknown) {
+  return { unwrap: vi.fn().mockResolvedValue(value) };
+}
+
+function rejectMutation(error: unknown) {
+  return { unwrap: vi.fn().mockRejectedValue(error) };
+}
+
 const baseCart: Cart = {
   items: [
     {
@@ -42,6 +58,7 @@ const baseCart: Cart = {
 describe('CartPage', () => {
   afterEach(() => {
     cleanup();
+    apiMocks.validateCoupon.mockReset();
   });
 
   it('shows loading state while checking cart', () => {
@@ -200,10 +217,151 @@ describe('CartPage', () => {
     await waitFor(() => expect(refreshCart).toHaveBeenCalledWith(''));
 
     const couponInput = screen.getByPlaceholderText('Coupon Code');
+    apiMocks.validateCoupon.mockReturnValueOnce(
+      resolveMutation({
+        valid: true,
+        coupon: { code: 'SAVE10', type: 'percent', amount: 10, active: true },
+      })
+    );
+
     await userEvent.type(couponInput, ' save10 ');
     await userEvent.click(screen.getByRole('button', { name: /Apply Coupon/i }));
 
+    await waitFor(() => expect(apiMocks.validateCoupon).toHaveBeenCalledWith('SAVE10'));
     await waitFor(() => expect(refreshCart).toHaveBeenCalledWith('SAVE10'));
+  });
+
+  it('applies a valid percent coupon to the cart totals', async () => {
+    const refreshCart = vi.fn();
+    const onAppliedCouponChange = vi.fn();
+    apiMocks.validateCoupon.mockReturnValueOnce(
+      resolveMutation({
+        valid: true,
+        coupon: { code: 'SAVE10', type: 'percent', amount: 10, active: true },
+      })
+    );
+
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={refreshCart}
+        appliedCoupon=""
+        onAppliedCouponChange={onAppliedCouponChange}
+      />
+    );
+
+    await userEvent.type(screen.getByPlaceholderText('Coupon Code'), 'save10');
+    await userEvent.click(screen.getByRole('button', { name: /Apply Coupon/i }));
+
+    await waitFor(() => expect(apiMocks.validateCoupon).toHaveBeenCalledWith('SAVE10'));
+    expect(onAppliedCouponChange).toHaveBeenCalledWith('SAVE10');
+    expect(refreshCart).toHaveBeenCalledWith('SAVE10');
+    expect(screen.getByText(/Coupon SAVE10 applied/i)).toBeDefined();
+    expect(screen.getByText('-$400')).toBeDefined();
+    expect(screen.getByText('$4098')).toBeDefined();
+  });
+
+  it('applies a valid fixed coupon to the cart totals', async () => {
+    apiMocks.validateCoupon.mockReturnValueOnce(
+      resolveMutation({
+        valid: true,
+        coupon: { code: 'SAVE500', type: 'fixed', amount: 500, active: true },
+      })
+    );
+
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={vi.fn()}
+        appliedCoupon=""
+        onAppliedCouponChange={vi.fn()}
+      />
+    );
+
+    await userEvent.type(screen.getByPlaceholderText('Coupon Code'), 'save500');
+    await userEvent.click(screen.getByRole('button', { name: /Apply Coupon/i }));
+
+    await waitFor(() => expect(apiMocks.validateCoupon).toHaveBeenCalledWith('SAVE500'));
+    expect(screen.getByText('-$500')).toBeDefined();
+    expect(screen.getAllByText('$3998').length).toBeGreaterThan(0);
+  });
+
+  it('shows invalid coupon feedback and leaves totals unchanged', async () => {
+    apiMocks.validateCoupon.mockReturnValueOnce(
+      rejectMutation({ data: { message: 'Coupon code is not valid' } })
+    );
+
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={vi.fn()}
+        appliedCoupon=""
+        onAppliedCouponChange={vi.fn()}
+      />
+    );
+
+    await userEvent.type(screen.getByPlaceholderText('Coupon Code'), 'missing');
+    await userEvent.click(screen.getByRole('button', { name: /Apply Coupon/i }));
+
+    expect(await screen.findByText(/Coupon code is not valid/i)).toBeDefined();
+    expect(screen.queryByText(/Discount:/i)).toBeNull();
+    expect(screen.getByText('$4498')).toBeDefined();
+  });
+
+  it('clears an applied coupon when the coupon field is empty', async () => {
+    const refreshCart = vi.fn();
+    const onAppliedCouponChange = vi.fn();
+
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={refreshCart}
+        appliedCoupon="SAVE10"
+        onAppliedCouponChange={onAppliedCouponChange}
+      />
+    );
+
+    const couponInput = screen.getByPlaceholderText('Coupon Code');
+    await userEvent.clear(couponInput);
+    await userEvent.click(screen.getByRole('button', { name: /Applied: SAVE10/i }));
+
+    expect(apiMocks.validateCoupon).not.toHaveBeenCalled();
+    expect(onAppliedCouponChange).toHaveBeenCalledWith('');
+    await waitFor(() => expect(refreshCart).toHaveBeenCalledWith(''));
+    expect(screen.getByText(/Coupon removed/i)).toBeDefined();
+  });
+
+  it('does not render the clear cart action from the previous cart UI', () => {
+    render(
+      <CartPage
+        authStatus="authenticated"
+        cart={baseCart}
+        cartLoading={false}
+        cartError=""
+        navigate={vi.fn()}
+        refreshCart={vi.fn()}
+        appliedCoupon=""
+        onAppliedCouponChange={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /Clear Cart/i })).toBeNull();
   });
 
   it('does not update quantities when Update Cart has no draft changes', async () => {

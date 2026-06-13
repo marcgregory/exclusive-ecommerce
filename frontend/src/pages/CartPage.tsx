@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useValidateCouponMutation } from '../api/ecommerceApi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Button } from '../components/Button';
 import { CartItem as CartItemRow } from '../components/CartItem';
 import { CartTotals } from '../components/CartTotals';
 import { EmptyState, ErrorState } from '../components/StateViews';
 import { getErrorMessage } from '../lib/errors';
-import type { AuthStatus, Cart, CartItem, Navigate, RefreshCart } from '../types';
+import { getRtkErrorMessage } from '../lib/rtkErrors';
+import type { AuthStatus, Cart, CartItem, Coupon, Navigate, RefreshCart } from '../types';
 import { CartSkeleton } from '../components/skeletons/CartSkeleton';
 
 type CartPageProps = {
@@ -19,7 +21,6 @@ type CartPageProps = {
   onAppliedCouponChange: (code: string) => void;
   onUpdateQuantity?: (id: string, quantity: number) => void | Promise<void>;
   onRemoveItem?: (id: string) => void;
-  onClearCart?: () => void;
 };
 
 export function CartPage({
@@ -33,11 +34,19 @@ export function CartPage({
   onAppliedCouponChange,
   onUpdateQuantity,
   onRemoveItem,
-  onClearCart,
 }: CartPageProps) {
   const [couponInput, setCouponInput] = useState(appliedCoupon);
   const [actionError, setActionError] = useState('');
+  const [couponStatus, setCouponStatus] = useState('');
+  const [couponIsError, setCouponIsError] = useState(false);
+  const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
   const [draftQuantities, setDraftQuantities] = useState<Record<string, number>>({});
+  const [validateCoupon, validateCouponState] = useValidateCouponMutation();
+  const couponApplying = validateCouponState.isLoading;
+
+  useEffect(() => {
+    setCouponInput(appliedCoupon);
+  }, [appliedCoupon]);
 
   useEffect(() => {
     setDraftQuantities((currentDrafts) => {
@@ -62,18 +71,52 @@ export function CartPage({
   );
   const canUpdateCart = changedQuantities.length > 0 && Boolean(onUpdateQuantity);
 
+  const displayCart = useMemo(() => {
+    if (!activeCoupon) return cart;
+    const discount =
+      activeCoupon.type === 'percent'
+        ? Math.round(cart.subtotal * (activeCoupon.amount / 100))
+        : activeCoupon.amount;
+    return {
+      ...cart,
+      discount,
+      total: Math.max(0, cart.subtotal - discount + cart.shipping),
+    };
+  }, [activeCoupon, cart]);
+
   const applyCoupon = async () => {
     try {
       setActionError('');
-      onAppliedCouponChange(couponInput.trim().toUpperCase());
-      await refreshCart(couponInput.trim().toUpperCase());
+      setCouponStatus('');
+      setCouponIsError(false);
+      const code = couponInput.trim().toUpperCase();
+
+      if (!code) {
+        setActiveCoupon(null);
+        setCouponInput('');
+        onAppliedCouponChange('');
+        await refreshCart('');
+        setCouponStatus('Coupon removed.');
+        return;
+      }
+
+      const result = await validateCoupon(code).unwrap();
+      setActiveCoupon(result.coupon);
+      setCouponInput(result.coupon.code);
+      onAppliedCouponChange(result.coupon.code);
+      await refreshCart(result.coupon.code);
+      setCouponStatus(`Coupon ${result.coupon.code} applied.`);
     } catch (error) {
-      setActionError(getErrorMessage(error));
+      setActiveCoupon(null);
+      onAppliedCouponChange('');
+      setCouponIsError(true);
+      setCouponStatus(getRtkErrorMessage(error) || getErrorMessage(error));
     }
   };
 
   const updateQty = (item: CartItem, quantity: number) => {
     setActionError('');
+    setCouponStatus('');
     setDraftQuantities((currentDrafts) => ({
       ...currentDrafts,
       [item.id]: Math.max(1, quantity),
@@ -174,9 +217,6 @@ export function CartPage({
         <Button variant="ghost" onClick={updateCart} disabled={!canUpdateCart}>
           Update Cart
         </Button>
-        <Button variant="ghost" onClick={() => onClearCart?.()}>
-          Clear Cart
-        </Button>
       </div>
       <div className="checkout-strip">
         <div className="coupon">
@@ -185,12 +225,17 @@ export function CartPage({
             onChange={(event) => setCouponInput(event.target.value)}
             placeholder="Coupon Code"
           />
-          <Button onClick={applyCoupon}>
+          <Button onClick={applyCoupon} disabled={couponApplying}>
             {appliedCoupon ? `Applied: ${appliedCoupon}` : 'Apply Coupon'}
           </Button>
+          {couponStatus && (
+            <p className={`coupon__status ${couponIsError ? 'form-status--error' : ''}`}>
+              {couponStatus}
+            </p>
+          )}
         </div>
         <CartTotals
-          cart={cart}
+          cart={displayCart}
           action={<Button onClick={() => navigate('/checkout')}>Proceed to checkout</Button>}
         />
       </div>

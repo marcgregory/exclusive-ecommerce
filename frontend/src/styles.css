@@ -2003,12 +2003,21 @@ button {
 .cart-head,
 .cart-row {
   display: grid;
-  grid-template-columns: 1fr 160px 180px 120px;
+  grid-template-columns: 323px 299px 329px minmax(67px, 1fr);
   align-items: center;
   gap: 24px;
-  min-height: 72px;
   padding: 24px 40px;
+  border-radius: 4px;
+  background: #fff;
   box-shadow: 0 1px 13px rgba(0, 0, 0, 0.05);
+}
+
+.cart-head {
+  min-height: 72px;
+}
+
+.cart-row {
+  min-height: 102px;
 }
 
 .cart-row > div:first-child {
@@ -2187,7 +2196,9 @@ button {
 .coupon {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 16px;
+  max-width: 527px;
 }
 
 .coupon input {
@@ -2196,6 +2207,18 @@ button {
   border: 1px solid #000;
   border-radius: 4px;
   padding: 0 24px;
+}
+
+.coupon__status {
+  flex: 0 0 100%;
+  margin: -4px 0 0;
+  color: #087a38;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.coupon__status.form-status--error {
+  color: var(--accent);
 }
 
 .cart-totals {
@@ -2214,6 +2237,15 @@ button {
   justify-content: space-between;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--line);
+}
+
+.cart-totals p:last-of-type {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.cart-totals .button {
+  margin: 16px auto 0;
 }
 
 .checkout-form,
@@ -2395,8 +2427,7 @@ button {
   display: contents;
 }
 
-.checkout-summary-panel .cart-totals h3,
-.checkout-summary-panel .cart-totals p:nth-of-type(3) {
+.checkout-summary-panel .cart-totals h3 {
   display: none;
 }
 
@@ -4950,6 +4981,11 @@ canvas {
 @media (max-width: 1180px) {
   .site-header__inner {
     gap: 18px;
+  }
+
+  .cart-head,
+  .cart-row {
+    grid-template-columns: minmax(220px, 1fr) 120px 160px 100px;
   }
 
   .checkout-form,

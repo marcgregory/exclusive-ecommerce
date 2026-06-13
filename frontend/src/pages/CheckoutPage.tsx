@@ -193,6 +193,30 @@ export function CheckoutPage({
   }, [appliedCoupon]);
 
   useEffect(() => {
+    if (!appliedCoupon) {
+      setActiveCoupon(null);
+      return;
+    }
+
+    let isCurrent = true;
+    validateCoupon(appliedCoupon)
+      .unwrap()
+      .then((result) => {
+        if (!isCurrent) return;
+        setActiveCoupon(result.coupon);
+        setCouponInput(result.coupon.code);
+      })
+      .catch(() => {
+        if (!isCurrent) return;
+        setActiveCoupon(null);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [appliedCoupon, validateCoupon]);
+
+  useEffect(() => {
     const user = meQuery.data?.user;
     if (!user) return;
     reset({

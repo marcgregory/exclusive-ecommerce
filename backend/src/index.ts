@@ -90,9 +90,12 @@ import {
   parseInput,
   productListQuerySchema,
   updateCartItemSchema,
+  adminContactMessageListQuerySchema,
 } from './validation.js';
+import { Resend } from 'resend';
 
 const config = loadRuntimeConfig();
+const resend = config.resendApiKey ? new Resend(config.resendApiKey) : null;
 const productImageStorage = createProductImageStorage(config);
 const app = express();
 const shouldSkipRateLimit = () =>
@@ -636,13 +639,61 @@ app.post(
   contactLimiter,
   asyncRoute(async (req, res) => {
     const { name, email, phone, message } = parseInput(contactSchema, req.body);
+    
+    // Sanitize inputs to prevent spam/XSS
+    const sanitize = (text: string) => text.replace(/<[^>]*>/g, '').trim();
+    const sanitizedName = sanitize(name);
+    const sanitizedEmail = sanitize(email);
+    const sanitizedPhone = sanitize(phone);
+    const sanitizedMessage = sanitize(message);
+
     const contactMessage = await createContactMessage({
-      name,
-      email,
-      phone,
-      message,
+      name: sanitizedName,
+      email: sanitizedEmail,
+      phone: sanitizedPhone,
+      message: sanitizedMessage,
     });
+
+    if (resend && config.contactToEmail) {
+      try {
+        await resend.emails.send({
+          from: 'Contact Form <onboarding@resend.dev>',
+          to: config.contactToEmail,
+          subject: 'New Contact Message',
+          text: `New Contact Message
+
+Name: ${sanitizedName}
+Email: ${sanitizedEmail}
+Phone: ${sanitizedPhone}
+Message: ${sanitizedMessage}`,
+        });
+      } catch (emailError) {
+        logError('contact.email_failed', getErrorLogFields(emailError));
+        throw emailError;
+      }
+    } else {
+      logInfo('contact.email_skipped', {
+        to: config.contactToEmail,
+        name: sanitizedName,
+        email: sanitizedEmail,
+      });
+    }
+
     res.status(201).json({ message: 'Message received', contactMessage });
+  })
+);
+
+app.get(
+  '/api/admin/contact-messages',
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const { status, page, limit } = parseInput(adminContactMessageListQuerySchema, req.query);
+    const result = await listContactMessages({
+      status: status || undefined,
+      page,
+      limit,
+    });
+    res.json(result);
   })
 );
 

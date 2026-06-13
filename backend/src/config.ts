@@ -21,6 +21,8 @@ export type RuntimeConfig = {
   sessionSecret: string;
   stripeSecretKey?: string;
   webOrigins: string[];
+  resendApiKey?: string;
+  contactToEmail?: string;
 };
 
 export const DEV_SESSION_SECRET = 'exclusive-dev-secret';
@@ -92,6 +94,14 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
     );
   }
 
+  if (isProduction && !env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is required in production');
+  }
+
+  if (isProduction && !env.CONTACT_TO_EMAIL) {
+    throw new Error('CONTACT_TO_EMAIL is required in production');
+  }
+
   return {
     cloudinary,
     databaseUrl,
@@ -105,5 +115,7 @@ export function loadRuntimeConfig(env = process.env): RuntimeConfig {
     sessionSecret,
     stripeSecretKey: env.STRIPE_SECRET_KEY,
     webOrigins,
+    resendApiKey: env.RESEND_API_KEY,
+    contactToEmail: env.CONTACT_TO_EMAIL,
   };
 }

@@ -101,10 +101,13 @@ export const createPaymentSchema = z.object({
 });
 
 export const contactSchema = z.object({
-  name: requiredText('Name, email, and message are required'),
-  email: requiredText('Name, email, and message are required'),
-  phone: optionalText,
-  message: requiredText('Name, email, and message are required'),
+  name: requiredText('Name is required'),
+  email: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : ''),
+    z.string().min(1, 'Email is required').email('Invalid email address')
+  ),
+  phone: requiredText('Phone is required'),
+  message: requiredText('Message is required'),
 });
 
 export const adminOrderUpdateSchema = z
@@ -176,3 +179,11 @@ export const adminCouponSchema = z
 export const contactMessageStatusSchema = z.object({
   status: requiredText('Status is required'),
 });
+
+export const adminContactMessageListQuerySchema = z
+  .object({
+    status: optionalText,
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(25),
+  })
+  .passthrough();

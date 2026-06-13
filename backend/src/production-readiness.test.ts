@@ -40,11 +40,15 @@ describe('runtime config', () => {
         DATABASE_URL: 'postgres://example/prod',
         WEB_ORIGIN: 'https://shop.example.com',
         SESSION_SECRET: 'a'.repeat(32),
+        RESEND_API_KEY: 're_test_key_123',
+        CONTACT_TO_EMAIL: 'contact@example.com',
       } as NodeJS.ProcessEnv)
     ).toMatchObject({
       databaseUrl: 'postgres://example/prod',
       isProduction: true,
       webOrigins: ['https://shop.example.com'],
+      resendApiKey: 're_test_key_123',
+      contactToEmail: 'contact@example.com',
     });
 
     expect(
@@ -133,6 +137,8 @@ describe('runtime config', () => {
         DATABASE_URL: 'postgres://example/prod',
         WEB_ORIGINS: 'https://shop.example.com, https://exclusive-git-main.vercel.app/',
         SESSION_SECRET: 'a'.repeat(32),
+        RESEND_API_KEY: 're_test_key_123',
+        CONTACT_TO_EMAIL: 'contact@example.com',
       } as NodeJS.ProcessEnv)
     ).toMatchObject({
       webOrigins: ['https://shop.example.com', 'https://exclusive-git-main.vercel.app'],
@@ -147,6 +153,8 @@ describe('session config', () => {
       DATABASE_URL: 'postgres://example/prod',
       WEB_ORIGIN: 'https://shop.example.com',
       SESSION_SECRET: 'a'.repeat(32),
+      RESEND_API_KEY: 're_test_key_123',
+      CONTACT_TO_EMAIL: 'contact@example.com',
     } as NodeJS.ProcessEnv);
 
     const testConfig = loadRuntimeConfig({

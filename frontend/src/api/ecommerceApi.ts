@@ -64,7 +64,7 @@ type AdminOrdersFilter = {
 type ContactInput = {
   name: string;
   email: string;
-  phone?: string;
+  phone: string;
   message: string;
 };
 

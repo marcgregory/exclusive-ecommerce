@@ -597,7 +597,9 @@ export async function createOrder(
   couponCode?: string,
   idempotencyKey?: string,
   saveBillingInfo = false,
-  submittedItems: Array<Pick<CartItem, 'productId' | 'quantity' | 'selectedColor' | 'selectedSize'>> = []
+  submittedItems: Array<
+    Pick<CartItem, 'productId' | 'quantity' | 'selectedColor' | 'selectedSize'>
+  > = []
 ): Promise<Order> {
   const normalizedIdempotencyKey = idempotencyKey?.trim() || undefined;
 

@@ -9,10 +9,14 @@ import { Button } from '../components/Button';
 import { FormField } from '../components/FormField';
 import { getRtkErrorMessage } from '../lib/rtkErrors';
 
+function ContactIcon({ children }: { children: React.ReactNode }) {
+  return <span className="contact-icon">{children}</span>;
+}
+
 const contactSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   email: z.string().trim().email('Enter a valid email address'),
-  phone: z.string().trim().optional().default(''),
+  phone: z.string().trim().min(1, 'Phone is required'),
   message: z.string().trim().min(1, 'Message is required'),
 });
 
@@ -30,6 +34,8 @@ export function ContactPage() {
     reset,
   } = useForm<ContactFormInput, unknown, ContactForm>({
     resolver: zodResolver(contactSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
     defaultValues: { name: '', email: '', phone: '', message: '' },
   });
 
@@ -51,23 +57,31 @@ export function ContactPage() {
       <Breadcrumbs items={['Home', 'Contact']} />
       <div className="contact-layout">
         <aside className="contact-card">
-          <div>
-            <Phone />
-            <h3>Call To Us</h3>
+          <div className="contact-card__block">
+            <div className="contact-card__head">
+              <ContactIcon>
+                <Phone size={20} aria-hidden="true" />
+              </ContactIcon>
+              <h3>Call To Us</h3>
+            </div>
             <p>We are available 24/7, 7 days a week.</p>
             <p>Phone: +8801611112222</p>
           </div>
-          <hr />
-          <div>
-            <Mail />
-            <h3>Write To US</h3>
+          <hr className="contact-card__divider" />
+          <div className="contact-card__block">
+            <div className="contact-card__head">
+              <ContactIcon>
+                <Mail size={20} aria-hidden="true" />
+              </ContactIcon>
+              <h3>Write To US</h3>
+            </div>
             <p>Fill out our form and we will contact you within 24 hours.</p>
             <p>Emails: customer@exclusive.com</p>
             <p>Emails: support@exclusive.com</p>
           </div>
         </aside>
-        <form className="contact-form" onSubmit={submit}>
-          <div className="three-col">
+        <form className="contact-form" onSubmit={submit} noValidate>
+          <div className="three-col contact-form__row">
             <FormField
               name="name"
               label="Your Name"
@@ -85,6 +99,7 @@ export function ContactPage() {
             <FormField
               name="phone"
               label="Your Phone"
+              required
               register={register('phone')}
               error={errors.phone?.message}
             />

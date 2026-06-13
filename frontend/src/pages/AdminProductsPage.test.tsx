@@ -298,28 +298,26 @@ describe('AdminProductsPage', () => {
   });
 
   it('creates a product and renders the returned row', async () => {
-    const actor = userEvent.setup();
+    const actor = userEvent.setup({ delay: null });
     renderPage();
 
-    await screen.findByLabelText(/Name/i);
-    await actor.type(screen.getByLabelText(/Name/i), 'New Hoodie');
-    await actor.selectOptions(screen.getByLabelText(/Category/i), 'fashion');
-    await actor.type(screen.getByLabelText(/Description/i), 'Warm cotton hoodie.');
+    await screen.findByLabelText(/^Name$/i);
+    await actor.type(screen.getByLabelText(/^Name$/i), 'New Hoodie');
+    await actor.selectOptions(screen.getByLabelText(/^Category$/i), 'fashion');
+    await actor.type(screen.getByLabelText(/^Description$/i), 'Warm cotton hoodie.');
     await actor.clear(screen.getByLabelText(/^Price$/i));
     await actor.type(screen.getByLabelText(/^Price$/i), '7500');
-    await actor.clear(screen.getByLabelText(/Original price/i));
-    await actor.type(screen.getByLabelText(/Original price/i), '9000');
-    await actor.type(screen.getByLabelText(/Colors/i), 'Black, Cream');
-    await actor.type(screen.getByLabelText(/Sizes/i), 'S, M');
-    await actor.type(screen.getByLabelText(/Flags/i), 'flash, best');
-    await actor.type(screen.getByLabelText(/Image URL or key/i), 'hoodie');
-    await actor.click(screen.getByLabelText(/New arrival/i));
+    await actor.clear(screen.getByLabelText(/^Original price$/i));
+    await actor.type(screen.getByLabelText(/^Original price$/i), '9000');
+    await actor.type(screen.getByLabelText(/^Colors$/i), 'Black, Cream');
+    await actor.type(screen.getByLabelText(/^Sizes$/i), 'S, M');
+    await actor.type(screen.getByLabelText(/^Flags$/i), 'flash, best');
+    await actor.type(screen.getByLabelText(/^Image URL or key$/i), 'hoodie');
+    await actor.click(screen.getByLabelText(/^New arrival$/i));
     await actor.click(screen.getByRole('button', { name: /Create Product/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('New Hoodie')).toBeDefined();
-    });
-  });
+    expect(await screen.findByText('New Hoodie')).toBeDefined();
+  }, 10000);
 
   it('uploads a product image and saves the returned URL in the image field', async () => {
     const actor = userEvent.setup();

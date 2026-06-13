@@ -87,7 +87,11 @@ describe('HomePage responsive view all actions', () => {
     if (!bestSellingSection) {
       throw new Error('Could not find best selling section');
     }
-    expect(within(bestSellingSection).getByRole('button', { name: 'North Coat' })).toBeInTheDocument();
-    expect(within(bestSellingSection).queryByRole('button', { name: 'Gucci Bag' })).not.toBeInTheDocument();
+    expect(
+      within(bestSellingSection).getByRole('button', { name: 'North Coat' })
+    ).toBeInTheDocument();
+    expect(
+      within(bestSellingSection).queryByRole('button', { name: 'Gucci Bag' })
+    ).not.toBeInTheDocument();
   });
 });

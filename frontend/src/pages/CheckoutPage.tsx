@@ -93,7 +93,7 @@ type StripePaymentFormProps = {
   onConfirm: (stripe: Stripe, elements: StripeElements) => Promise<void>;
 };
 
-const billingSchema = z.object({
+const checkoutSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required'),
   companyName: z.string().trim().optional().default(''),
   streetAddress: z.string().trim().min(1, 'Street address is required'),
@@ -101,7 +101,11 @@ const billingSchema = z.object({
   townCity: z.string().trim().min(1, 'Town/city is required'),
   phone: z.string().trim().min(1, 'Phone is required'),
   email: z.string().trim().email('Enter a valid email address'),
+  couponCode: z.string().trim().optional().default(''),
 });
+
+type BillingFormInput = z.input<typeof checkoutSchema>;
+type BillingForm = z.output<typeof checkoutSchema>;
 
 type BillingFormInput = z.input<typeof billingSchema>;
 type BillingForm = z.output<typeof billingSchema>;
@@ -158,7 +162,6 @@ export function CheckoutPage({
   const [status, setStatus] = useState('');
   const [statusIsError, setStatusIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [couponInput, setCouponInput] = useState(appliedCoupon);
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
   const [saveBillingInfo, setSaveBillingInfo] = useState(true);
   const {
@@ -166,8 +169,9 @@ export function CheckoutPage({
     handleSubmit,
     register,
     reset,
+    watch,
   } = useForm<BillingFormInput, unknown, BillingForm>({
-    resolver: zodResolver(billingSchema),
+    resolver: zodResolver(checkoutSchema),
     defaultValues: {
       firstName: '',
       companyName: '',
@@ -176,6 +180,7 @@ export function CheckoutPage({
       townCity: '',
       phone: '',
       email: '',
+      couponCode: appliedCoupon,
     },
   });
   const [pendingStripePayment, setPendingStripePayment] = useState<PendingStripeCheckout | null>(
@@ -189,8 +194,8 @@ export function CheckoutPage({
   );
 
   useEffect(() => {
-    setCouponInput(appliedCoupon);
-  }, [appliedCoupon]);
+    reset({ couponCode: appliedCoupon });
+  }, [appliedCoupon, reset]);
 
   useEffect(() => {
     if (!appliedCoupon) {
@@ -204,17 +209,20 @@ export function CheckoutPage({
       .then((result) => {
         if (!isCurrent) return;
         setActiveCoupon(result.coupon);
-        setCouponInput(result.coupon.code);
+        // Update form value when appliedCoupon prop changes and validation succeeds
+        reset({ couponCode: result.coupon.code });
       })
       .catch(() => {
         if (!isCurrent) return;
         setActiveCoupon(null);
+        // Clear coupon input when validation fails
+        reset({ couponCode: '' });
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [appliedCoupon, validateCoupon]);
+  }, [appliedCoupon, validateCoupon, reset]);
 
   useEffect(() => {
     const user = meQuery.data?.user;
@@ -251,9 +259,11 @@ export function CheckoutPage({
   }, [pendingStripePayment?.clientSecret, publishableKey]);
 
   const startStripePayment = async (checkout: PendingStripeCheckout) => {
+    const formData = watch();
     const paymentData = await createPayment({
       orderId: checkout.orderId,
       paymentMethod: 'stripe',
+      couponCode: formData.couponCode || undefined,
     }).unwrap();
     if (paymentData.payment.provider === 'stripe' && paymentData.payment.clientSecret) {
       const nextCheckout = {
@@ -275,10 +285,11 @@ export function CheckoutPage({
       setSubmitting(true);
       setStatus('');
       setStatusIsError(false);
+      const formData = watch();
       const data = await createOrder({
         billing,
         paymentMethod: 'stripe',
-        couponCode: activeCoupon?.code || appliedCoupon || undefined,
+        couponCode: formData.couponCode || undefined,
         idempotencyKey,
         saveBillingInfo,
         items: cart.items.map((item) => ({
@@ -374,17 +385,18 @@ export function CheckoutPage({
 
   const applyCoupon = async () => {
     try {
-      const code = couponInput.trim().toUpperCase();
+      const code = watch('couponCode').trim().toUpperCase();
       setStatus('');
       setStatusIsError(false);
       if (!code) {
         setActiveCoupon(null);
+        reset({ couponCode: '' });
         await refreshCart('');
         return;
       }
       const result = await validateCoupon(code).unwrap();
       setActiveCoupon(result.coupon);
-      setCouponInput(result.coupon.code);
+      reset({ couponCode: result.coupon.code });
       await refreshCart(result.coupon.code);
       setStatus(`Coupon ${result.coupon.code} applied.`);
     } catch (error) {
@@ -498,11 +510,12 @@ export function CheckoutPage({
             </div>
           )}
           <div className="checkout-coupon">
-            <input
-              value={couponInput}
-              onChange={(event) => setCouponInput(event.target.value)}
+            <FormField
+              name="couponCode"
+              label="Coupon Code"
               placeholder="Coupon Code"
-              aria-label="Coupon Code"
+              register={register('couponCode')}
+              error={errors.couponCode?.message}
             />
             <Button type="button" onClick={applyCoupon} disabled={submitting}>
               Apply Coupon

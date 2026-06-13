@@ -507,7 +507,6 @@ export function CheckoutPage({
           <div className="checkout-coupon">
             <FormField
               name="couponCode"
-              label="Coupon Code"
               placeholder="Coupon Code"
               register={register('couponCode')}
               error={errors.couponCode?.message}

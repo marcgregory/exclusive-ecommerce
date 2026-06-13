@@ -272,7 +272,7 @@ describe('CheckoutPage', () => {
       />
     );
 
-    await userEvent.type(screen.getByLabelText(/Coupon Code/i), 'save10');
+    await userEvent.type(screen.getByPlaceholderText(/Coupon Code/i), 'save10');
     await userEvent.click(screen.getByRole('button', { name: /Apply Coupon/i }));
 
     await waitFor(() => expect(apiMocks.validateCoupon).toHaveBeenCalledWith('SAVE10'));

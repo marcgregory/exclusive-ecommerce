@@ -1,7 +1,7 @@
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
 type FormFieldProps = {
-  label: string;
+  label?: string;
   name: string;
   required?: boolean;
   textarea?: boolean;
@@ -27,10 +27,12 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <label className="form-field">
-      <span>
-        {label}
-        {required && <b>*</b>}
-      </span>
+      {label && (
+        <span>
+          {label}
+          {required && <b>*</b>}
+        </span>
+      )}
       {textarea ? (
         <textarea
           name={name}

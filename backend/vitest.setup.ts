@@ -1,5 +1,9 @@
 import { vi } from 'vitest';
 
+if (process.env.TEST_DATABASE_URL && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+}
+
 vi.mock('./src/image-storage.js', async () => {
   const actual = await vi.importActual('./src/image-storage.js');
   return {
